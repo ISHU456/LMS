@@ -1,5 +1,6 @@
 import Announcement from '../models/Announcement.js';
 import Comment from '../models/Comment.js';
+import Course from '../models/Course.js';
 import { cloudinary } from '../config/cloudinary.js';
 
 const mapAnnouncement = (announcement) => {
@@ -99,17 +100,16 @@ export const getAnnouncements = async (req, res) => {
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;
     const skip = (page - 1) * limit;
-    const courseId = req.query.courseId;
-
+    const courseIdParam = req.query.courseId;
     const query = {};
-    if (courseId) {
-      query.courseId = courseId;
-    } else {
-      // If no courseId is provided, we might want to only show global ones
-      // or show everything. Let's assume we show global ones if not specified.
-      // But let's check if the user wants ALL announcements or just global.
-      // Typically, the main feed shows all.
-      // Let's make it optional.
+    if (courseIdParam) {
+      if (courseIdParam.length === 24) {
+        query.courseId = courseIdParam;
+      } else {
+        const course = await Course.findOne({ code: courseIdParam.toUpperCase() });
+        if (course) { query.courseId = course._id; }
+        else { return res.json({ announcements: [], currentPage: 1, totalPages: 0, hasMore: false }); }
+      }
     }
 
     const announcements = await Announcement.find(query)

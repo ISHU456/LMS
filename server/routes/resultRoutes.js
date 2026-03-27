@@ -12,6 +12,7 @@ import {
   getFinalResults,
   lockResults,
   toggleResultLock,
+  unlockResults,
   getSemesterSummary
 } from '../controllers/resultController.js';
 import { protect, authorize } from '../middlewares/authMiddleware.js';
@@ -30,6 +31,7 @@ router.get('/semester-summary', protect, authorize('admin', 'hod'), getSemesterS
 router.post('/generate-final', protect, authorize('admin', 'hod'), generateFinalResult);
 router.get('/final', protect, authorize('student'), getFinalResults);
 router.post('/lock', protect, authorize('admin', 'hod', 'teacher'), lockResults);
+router.post('/unlock', protect, authorize('admin', 'hod', 'teacher'), unlockResults);
 router.post('/toggle-lock/:id', protect, authorize('admin', 'hod', 'teacher'), toggleResultLock);
 
 export default router;

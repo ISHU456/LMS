@@ -360,33 +360,39 @@ const AIMode = () => {
             >
               {messages.map((msg) => (
                 <motion.div 
-                  initial={{ opacity: 0, scale: 0.98 }}
-                  animate={{ opacity: 1, scale: 1 }}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
                   key={msg.id}
-                  className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}
+                  className={`flex w-full ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}
                 >
-                  <div className={`flex gap-6 max-w-[90%] md:max-w-[75%] ${msg.sender === 'user' ? 'flex-row-reverse' : 'flex-row'}`}>
-                    <div className={`w-12 h-12 rounded-2xl shrink-0 flex items-center justify-center border transition-all duration-500 ${
+                  <div className={`flex gap-8 w-full ${msg.sender === 'user' ? 'max-w-[85%] flex-row-reverse' : 'max-w-full flex-row'}`}>
+                    <div className={`w-12 h-12 rounded-2xl shrink-0 flex items-center justify-center border transition-all duration-500 mt-2 ${
                       msg.sender === 'user' 
-                        ? 'bg-orange-600 border-orange-500 shadow-[0_0_20px_rgba(234,88,12,0.4)] hover:shadow-orange-500/60' 
-                        : 'bg-indigo-600/10 border-indigo-500/30 text-indigo-400 hover:bg-indigo-600/20'
+                        ? 'bg-orange-600 border-orange-500 shadow-[0_0_30px_rgba(234,88,12,0.4)]' 
+                        : 'bg-indigo-600 border-indigo-500 shadow-[0_0_30px_rgba(79,70,229,0.4)] text-white'
                     }`}>
-                      {msg.sender === 'user' ? <User size={22} /> : <Cpu size={22} />}
+                      {msg.sender === 'user' ? <User size={24} /> : <Cpu size={24} />}
                     </div>
-                    <div>
-                      <div className={`px-8 py-6 rounded-[2.5rem] text-sm leading-relaxed transition-all duration-300 ${
+                    <div className="flex-1 min-w-0">
+                      <div className={`relative px-10 py-8 rounded-[3rem] text-base leading-relaxed transition-all duration-300 ${
                         msg.sender === 'user' 
-                          ? 'bg-orange-600 text-white rounded-tr-none hover:bg-orange-500' 
-                          : 'bg-white/5 border border-white/10 backdrop-blur-md text-gray-200 rounded-tl-none font-medium hover:bg-white/[0.08]'
+                          ? 'bg-white dark:bg-gray-800 text-gray-900 dark:text-white rounded-tr-none shadow-2xl border border-white/10' 
+                          : 'bg-white/5 border border-white/10 backdrop-blur-3xl text-gray-100 rounded-tl-none font-medium hover:bg-white/[0.08] shadow-inner'
                       }`}>
                          {msg.sender === 'bot' ? (
-                          <div className="prose prose-sm prose-invert max-w-none prose-headings:text-orange-500 prose-strong:text-indigo-400">
+                          <div className="prose prose-md prose-invert max-w-none prose-headings:text-orange-500 prose-headings:font-black prose-headings:uppercase prose-headings:tracking-tighter prose-strong:text-indigo-400 prose-code:text-orange-400 prose-pre:bg-black/40 prose-pre:rounded-[2rem] prose-pre:p-8 prose-pre:border prose-pre:border-white/5">
                              <ReactMarkdown remarkPlugins={[remarkGfm]}>{msg.text}</ReactMarkdown>
                           </div>
-                        ) : <p className="font-bold">{msg.text}</p>}
+                        ) : <p className="font-extrabold text-lg tracking-tight">{msg.text}</p>}
+                        
+                        {msg.sender === 'bot' && (
+                          <div className="absolute top-6 right-8 opacity-[0.05] pointer-events-none">
+                            <BrainCircuit size={64} />
+                          </div>
+                        )}
                       </div>
-                      <p className={`text-[8px] font-black text-white/20 uppercase tracking-[0.3em] mt-3 ${msg.sender === 'user' ? 'text-right' : 'text-left'}`}>
-                        {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      <p className={`text-[10px] font-black text-white/10 uppercase tracking-[0.4em] mt-4 ${msg.sender === 'user' ? 'text-right' : 'text-left'}`}>
+                        {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} • Sync Priority High
                       </p>
                     </div>
                   </div>

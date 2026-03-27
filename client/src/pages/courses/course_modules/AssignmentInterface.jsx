@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { 
     ClipboardCheck, FileText, Send, Clock, Activity, 
     CheckCircle2, AlertCircle, Eye, Download, Users, 
-    X, Check, Save, Zap, Brain, Trophy, Trash2
+    X, Check, Save, Zap, Brain, Trophy, Trash2, Plus
 } from 'lucide-react';
 import axios from 'axios';
 
@@ -11,7 +11,7 @@ const AssignmentInterface = ({ assignment, user, isTeacher, onBack, fetchAssignm
     const [submissionFile, setSubmissionFile] = useState(null);
     const [quizAnswers, setQuizAnswers] = useState({});
     const [isSubmitting, setIsSubmitting] = useState(false);
-    const [gradingData, setGradingData] = useState({ marks: 0, feedback: '' });
+    const [gradingData, setGradingData] = useState({}); // Keyed by submission ID: { id: { marks, feedback } }
     
     // Student Proctoring & Identity States
     const [isIdentityVerified, setIsIdentityVerified] = useState(false);
@@ -37,6 +37,8 @@ const AssignmentInterface = ({ assignment, user, isTeacher, onBack, fetchAssignm
     }, [assignment._id]);
 
     const [isReattempting, setIsReattempting] = useState(false);
+    const [viewMode, setViewMode] = useState('submissions'); 
+
     const userSubmission = submissions.find(s => s.student._id === user._id || s.student === user._id);
 
     if (userSubmission && !isTeacher && !isReattempting) {
@@ -128,18 +130,23 @@ const AssignmentInterface = ({ assignment, user, isTeacher, onBack, fetchAssignm
     };
 
     const handleGrade = async (subId) => {
+        const sub = submissions.find(s => s._id === subId);
+        const marks = gradingData[subId]?.marks !== undefined ? gradingData[subId].marks : (sub.marksObtained ?? sub.automatedScore ?? 0);
+        const feedback = gradingData[subId]?.feedback !== undefined ? gradingData[subId].feedback : (sub.facultyFeedback ?? "");
+
         try {
             await axios.put(`http://localhost:5001/api/assignments/grade/${subId}`, {
-                marks: gradingData.marks,
-                feedback: gradingData.feedback,
+                marks,
+                feedback,
                 teacherId: user._id
             }, {
                 headers: { Authorization: `Bearer ${user.token}` }
             });
             fetchSubmissions();
-            alert("Node Graded");
+            alert("Protocol Node Graded Successfully.");
         } catch (e) {
-            alert("Grading failed");
+            console.error(e);
+            alert("Grading transmission failed.");
         }
     };
 
@@ -156,7 +163,6 @@ const AssignmentInterface = ({ assignment, user, isTeacher, onBack, fetchAssignm
         }
     };
 
-    const [viewMode, setViewMode] = useState('submissions'); // 'submissions' or 'preview'
 
     if (isTeacher) {
         return (
@@ -204,11 +210,16 @@ const AssignmentInterface = ({ assignment, user, isTeacher, onBack, fetchAssignm
                                        <div>
                                           <h4 className="text-base font-black dark:text-white uppercase tracking-tight">{sub.student.name}</h4>
                                           <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest mt-1 mb-2">{sub.student.email}</p>
-                                          {sub.marksObtained !== undefined && (
-                                             <div className="px-3 py-1 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 text-[10px] font-black uppercase rounded-lg border border-emerald-100 dark:border-emerald-800 inline-flex items-center gap-2">
+                                          <div className="flex gap-2 items-center">
+                                            {sub.status === 'graded' && (
+                                              <div className="px-3 py-1 bg-emerald-600 text-white text-[8px] font-black uppercase rounded-lg shadow-lg shadow-emerald-500/10">Graded</div>
+                                            )}
+                                            {sub.marksObtained !== undefined && (
+                                              <div className="px-3 py-1 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 text-[10px] font-black uppercase rounded-lg border border-emerald-100 dark:border-emerald-800 inline-flex items-center gap-2">
                                                 <Trophy size={10}/> Score: {sub.marksObtained}/{assignment.totalMarks}
-                                             </div>
-                                          )}
+                                              </div>
+                                            )}
+                                          </div>
                                        </div>
                                     </div>
 
@@ -219,7 +230,10 @@ const AssignmentInterface = ({ assignment, user, isTeacher, onBack, fetchAssignm
                                              <input 
                                                type="number" 
                                                defaultValue={sub.marksObtained || sub.automatedScore || 0}
-                                               onChange={(e) => setGradingData({...gradingData, marks: e.target.value})}
+                                               onChange={(e) => setGradingData({
+                                                  ...gradingData, 
+                                                  [sub._id]: { ...gradingData[sub._id], marks: e.target.value }
+                                               })}
                                                className="w-12 bg-transparent text-center text-sm font-black dark:text-white outline-none"
                                              />
                                           </div>
@@ -227,7 +241,10 @@ const AssignmentInterface = ({ assignment, user, isTeacher, onBack, fetchAssignm
                                              <input 
                                                placeholder="Faculty Feedback..."
                                                defaultValue={sub.facultyFeedback}
-                                               onChange={(e) => setGradingData({...gradingData, feedback: e.target.value})}
+                                               onChange={(e) => setGradingData({
+                                                  ...gradingData, 
+                                                  [sub._id]: { ...gradingData[sub._id], feedback: e.target.value }
+                                               })}
                                                className="bg-transparent text-[10px] font-bold dark:text-gray-300 outline-none w-32"
                                              />
                                           </div>

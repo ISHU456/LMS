@@ -136,6 +136,9 @@ export const getAccessHistory = async (req, res) => {
 export const checkAndAutoRestrict = async (courseId, studentId, percentage) => {
   try {
     if (percentage < 75) {
+      const course = await Course.findById(courseId).select('autoRestrictEnabled');
+      if (course && !course.autoRestrictEnabled) return; // Skip if restricted system is disabled for this course
+
       const access = await CourseAccess.findOne({ course: courseId, student: studentId });
       
       // Only auto-restrict if currently ACTIVE and not manually overridden recently?

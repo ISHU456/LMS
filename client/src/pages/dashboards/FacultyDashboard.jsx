@@ -28,37 +28,30 @@ const TYPES  = [
 ];
 const TYPE_META = (v) => TYPES.find(t => t.value === v) || TYPES[0];
 
-const COURSE_LIST = [
-  { id:'CS301', name:'Data Structures & Algorithms', icon:'🧮', color:'#4361ee' },
-  { id:'CS401', name:'Operating Systems',            icon:'⚙️', color:'#7209b7' },
-  { id:'CS501', name:'Computer Networks',            icon:'🌐', color:'#f72585' },
-  { id:'CS899', name:'Capstone Implementation',      icon:'🚀', color:'#4cc9f0' },
-];
+const getCourseIcon = (id) => {
+  const map = {
+    'CS301': '🧮', 'CS401': '⚙️', 'CS501': '🌐', 'CS899': '🚀', 'default': '📚'
+  };
+  return map[id] || map.default;
+};
+
+const getCourseColor = (id) => {
+  const map = {
+    'CS301': '#4361ee', 'CS401': '#7209b7', 'CS501': '#f72585', 'CS899': '#4cc9f0', 'default': '#6366f1'
+  };
+  return map[id] || map.default;
+};
 
 const EMPTY_FORM = {
-  id: null, course:'CS301', day:'Monday',
+  id: null, course:'', day:'Monday',
   startTime:'09:00', endTime:'10:30',
-  room:'', type:'Theory', notes:''
+  room:'', type:'lecture', notes:''
 };
-
-const LS_KEY = 'faculty_schedule_v1';
-const loadSchedule = () => {
-  try { return JSON.parse(localStorage.getItem(LS_KEY)) || defaultSchedule(); }
-  catch { return defaultSchedule(); }
-};
-const saveSchedule = (data) => localStorage.setItem(LS_KEY, JSON.stringify(data));
-const defaultSchedule = () => [
-  { id:1, course:'CS301', day:'Monday',    startTime:'09:00', endTime:'10:30', room:'LHC-101', type:'Theory',    notes:'Chapter 5: Trees' },
-  { id:2, course:'CS401', day:'Monday',    startTime:'11:30', endTime:'13:00', room:'LHC-204', type:'Theory',    notes:'Process Scheduling' },
-  { id:3, course:'CS501', day:'Tuesday',   startTime:'09:00', endTime:'10:30', room:'LHC-302', type:'Tutorial',  notes:'Subnetting Practice' },
-  { id:4, course:'CS301', day:'Wednesday', startTime:'14:00', endTime:'16:00', room:'Lab-C',   type:'Practical', notes:'BST Implementation' },
-  { id:5, course:'CS899', day:'Thursday',  startTime:'10:00', endTime:'12:00', room:'PG-Lab',  type:'Seminar',   notes:'Capstone Review' },
-  { id:6, course:'CS401', day:'Friday',    startTime:'09:00', endTime:'10:30', room:'LHC-204', type:'Lab',       notes:'Shell Scripting' },
-];
 
 // ─── Schedule Edit Modal ─────────────────────────────────────
-const ScheduleModal = ({ form, setForm, onSave, onClose, isEdit }) => {
-  const courseMeta = COURSE_LIST.find(c => c.id === form.course) || COURSE_LIST[0];
+const ScheduleModal = ({ form, setForm, onSave, onClose, isEdit, courses }) => {
+  const selectedCourse = courses.find(c => c.code === form.course) || courses[0] || { code: 'N/A', name: 'Select Course', color: '#6366f1' };
+  const courseColor = getCourseColor(selectedCourse.code);
   return (
     <motion.div initial={{ opacity:0 }} animate={{ opacity:1 }} exit={{ opacity:0 }}
       className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm"
@@ -69,10 +62,10 @@ const ScheduleModal = ({ form, setForm, onSave, onClose, isEdit }) => {
 
         {/* Modal Header */}
         <div className="px-6 py-5 flex items-center justify-between border-b border-gray-100 dark:border-gray-800"
-          style={{ background: `linear-gradient(135deg, ${courseMeta.color}15, transparent)` }}>
+          style={{ background: `linear-gradient(135deg, ${courseColor}15, transparent)` }}>
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl flex items-center justify-center text-xl"
-              style={{ background: `${courseMeta.color}20` }}>{courseMeta.icon}</div>
+              style={{ background: `${courseColor}20` }}>{getCourseIcon(selectedCourse.code)}</div>
             <div>
               <h2 className="text-sm font-black text-gray-900 dark:text-white uppercase tracking-widest">
                 {isEdit ? 'Edit Session' : 'Add New Session'}
@@ -95,7 +88,8 @@ const ScheduleModal = ({ form, setForm, onSave, onClose, isEdit }) => {
             </label>
             <select value={form.course} onChange={e => setForm(f=>({...f,course:e.target.value}))}
               className="w-full border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 rounded-xl px-4 py-3 text-sm font-bold text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 transition">
-              {COURSE_LIST.map(c => <option key={c.id} value={c.id}>{c.icon} {c.id} — {c.name}</option>)}
+              <option value="">Select Course</option>
+              {courses.map(c => <option key={c._id} value={c.code}>{getCourseIcon(c.code)} {c.code} — {c.name}</option>)}
             </select>
           </div>
 
@@ -180,25 +174,25 @@ const ScheduleModal = ({ form, setForm, onSave, onClose, isEdit }) => {
 
 // ─── Session Card (list item) ────────────────────────────────
 const SessionCard = ({ s, onEdit, onDelete, onLive }) => {
-  const course = COURSE_LIST.find(c => c.id === s.course) || COURSE_LIST[0];
+  const courseColor = getCourseColor(s.course);
   const typeMeta = TYPE_META(s.type);
   const TypeIcon = typeMeta.icon;
   return (
     <motion.div layout initial={{ opacity:0, y:10 }} animate={{ opacity:1, y:0 }} exit={{ opacity:0, x:-20 }}
       className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm hover:shadow-md transition-all group overflow-hidden">
       {/* Color bar */}
-      <div className="h-1 w-full" style={{ background: course.color }}/>
+      <div className="h-1 w-full" style={{ background: courseColor }}/>
       <div className="p-4 flex items-center gap-4">
         {/* Time block */}
-        <div className="shrink-0 text-center w-16 bg-gray-50 dark:bg-gray-800 rounded-xl py-2 px-1 border border-gray-100 dark:border-gray-700">
-          <p className="text-xs font-black text-gray-900 dark:text-white">{s.startTime}</p>
+        <div className="shrink-0 text-center w-20 bg-gray-50 dark:bg-gray-800 rounded-xl py-2 px-1 border border-gray-100 dark:border-gray-700">
+          <p className="text-xs font-black text-gray-900 dark:text-white uppercase">{s.startTime}</p>
           <div className="w-4 h-[1px] bg-gray-300 dark:bg-gray-600 mx-auto my-1"/>
-          <p className="text-[10px] font-bold text-gray-400">{s.endTime}</p>
+          <p className="text-[10px] font-bold text-gray-400 uppercase">{s.endTime}</p>
         </div>
 
         {/* Course icon */}
         <div className="w-10 h-10 rounded-xl flex items-center justify-center text-xl shrink-0"
-          style={{ background:`${course.color}15` }}>{course.icon}</div>
+          style={{ background:`${courseColor}15` }}>{getCourseIcon(s.course)}</div>
 
         {/* Info */}
         <div className="flex-1 min-w-0">
@@ -241,7 +235,8 @@ const FacultyDashboard = () => {
   const { user }  = useSelector(s => s.auth);
   const navigate  = useNavigate();
   const [activeTab, setActiveTab] = useState('overview');
-  const [schedule, setSchedule]   = useState(loadSchedule);
+  const [schedule, setSchedule]   = useState([]);
+  const [myCourses, setMyCourses] = useState([]);
   const [assignments, setAssignments]   = useState([]);
   const [announcements, setAnnouncements] = useState([]);
   const [time, setTime] = useState(new Date());
@@ -269,10 +264,34 @@ const FacultyDashboard = () => {
       const data = Array.isArray(r.data) ? r.data : (r.data.announcements || []);
       setAnnouncements(data.slice(0, 5));
     }).catch(() => {});
-  }, [user?.token]);
 
-  // Persist schedule
-  useEffect(() => saveSchedule(schedule), [schedule]);
+    // Fetch Courses and extract schedules
+    axios.get('http://localhost:5001/api/courses', config).then(r => {
+      const coursesData = r.data;
+      setMyCourses(coursesData);
+      
+      const flatSchedule = [];
+      coursesData.forEach(c => {
+        if (c.schedule && Array.isArray(c.schedule)) {
+          c.schedule.forEach((s, idx) => {
+            const [start, end] = s.time.includes('-') ? s.time.split('-') : [s.time, '10:00'];
+            flatSchedule.push({
+              id: `${c.code}-${idx}-${s.day}`,
+              course: c.code,
+              day: s.day,
+              startTime: (start || '').trim(),
+              endTime: (end || '').trim(),
+              room: s.room,
+              type: s.type === 'lecture' ? 'Theory' : s.type.charAt(0).toUpperCase() + s.type.slice(1),
+              notes: s.activity,
+              dbIndex: idx // Store original index for updates
+            });
+          });
+        }
+      });
+      setSchedule(flatSchedule);
+    }).catch(() => {});
+  }, [user?.token]);
 
   const showToast = (msg, ok=true) => {
     setToast({ msg, ok });
@@ -282,23 +301,71 @@ const FacultyDashboard = () => {
   const openAdd = () => { setModalForm({...EMPTY_FORM, id: Date.now()}); setIsEdit(false); setModalOpen(true); };
   const openEdit = (s) => { setModalForm({...s}); setIsEdit(true); setModalOpen(true); };
 
-  const handleSave = () => {
+  const handleSave = async () => {
+    if (!modalForm.course) { showToast('Please select a course', false); return; }
     if (!modalForm.room.trim()) { showToast('Please enter a room/venue', false); return; }
     if (modalForm.startTime >= modalForm.endTime) { showToast('End time must be after start time', false); return; }
+    
+    setIsLoading(true);
+    const config = { headers: { Authorization: `Bearer ${user.token}` } };
+    const courseCode = modalForm.course;
+    const course = myCourses.find(c => c.code === courseCode);
+    
+    if (!course) { showToast('Course not found', false); return; }
+
+    const newScheduleEntry = {
+      day: modalForm.day,
+      time: `${modalForm.startTime} - ${modalForm.endTime}`,
+      room: modalForm.room,
+      activity: modalForm.notes || 'No topic specified',
+      type: modalForm.type === 'Theory' ? 'lecture' : modalForm.type.toLowerCase(),
+      addedBy: user.name
+    };
+
+    let updatedList = [...(course.schedule || [])];
     if (isEdit) {
-      setSchedule(prev => prev.map(s => s.id === modalForm.id ? {...modalForm} : s));
-      showToast('Session updated successfully');
+      updatedList[modalForm.dbIndex] = newScheduleEntry;
     } else {
-      setSchedule(prev => [...prev, {...modalForm, id: Date.now()}]);
-      showToast('Session added to schedule');
+      updatedList.push(newScheduleEntry);
     }
-    setModalOpen(false);
+
+    try {
+      await axios.put(`http://localhost:5001/api/courses/${courseCode}/schedule`, 
+        { schedule: updatedList }, 
+        config
+      );
+      
+      showToast(isEdit ? 'Session updated successfully' : 'Session added to schedule');
+      setModalOpen(false);
+      // Reload everything
+      window.location.reload(); 
+    } catch (error) {
+      showToast('Error syncing with database', false);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const handleDelete = (id) => {
-    setSchedule(prev => prev.filter(s => s.id !== id));
-    setDeleteConfirm(null);
-    showToast('Session removed');
+  const handleDelete = async (id) => {
+    // id format: courseCode-index-day
+    const [courseCode, idx] = id.split('-');
+    const course = myCourses.find(c => c.code === courseCode);
+    if (!course) return;
+
+    const config = { headers: { Authorization: `Bearer ${user.token}` } };
+    const updatedList = course.schedule.filter((_, i) => i !== parseInt(idx));
+
+    try {
+      await axios.put(`http://localhost:5001/api/courses/${courseCode}/schedule`, 
+        { schedule: updatedList }, 
+        config
+      );
+      showToast('Session removed');
+      setDeleteConfirm(null);
+      window.location.reload();
+    } catch (error) {
+      showToast('Failed to delete session', false);
+    }
   };
 
   const greeting = () => {
@@ -330,11 +397,15 @@ const FacultyDashboard = () => {
     { id:'announcements', label:'Notices',     icon: Bell        },
   ];
 
-  const courses = COURSE_LIST.map(c => ({
-    ...c,
-    sessions: schedule.filter(s => s.course === c.id).length,
-    students: { CS301:120, CS401:98, CS501:85, CS899:45 }[c.id] || 60,
-    progress: { CS301:72, CS401:55, CS501:88, CS899:40 }[c.id] || 60,
+  const coursesToDisplay = myCourses.map(c => ({
+    id: c.code,
+    name: c.name,
+    icon: getCourseIcon(c.code),
+    color: getCourseColor(c.code),
+    sessions: schedule.filter(s => s.course === c.code).length,
+    students: c.enrolledCount || 60,
+    progress: c.completionRate || 75,
+    isAuthorized: c.isAuthorized ?? true,
   }));
 
   return (
@@ -375,7 +446,7 @@ const FacultyDashboard = () => {
 
       {/* ── MODAL ── */}
       <AnimatePresence>
-        {modalOpen && <ScheduleModal form={modalForm} setForm={setModalForm} onSave={handleSave} onClose={() => setModalOpen(false)} isEdit={isEdit}/>}
+        {modalOpen && <ScheduleModal form={modalForm} setForm={setModalForm} onSave={handleSave} onClose={() => setModalOpen(false)} isEdit={isEdit} courses={myCourses}/>}
       </AnimatePresence>
 
       {/* ── SIDEBAR ── */}
@@ -427,7 +498,7 @@ const FacultyDashboard = () => {
             className="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl border-2 border-dashed border-indigo-300 dark:border-indigo-700 text-indigo-500 dark:text-indigo-400 font-black text-xs uppercase tracking-widest hover:bg-indigo-50 dark:hover:bg-indigo-900/20 transition-all">
             <Plus size={14}/> Add Session
           </button>
-          <Link to={`/live-class/${courses[0]?.id}`}
+          <Link to={`/live-class/${coursesToDisplay[0]?.id || 'default'}`}
             className="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl bg-gradient-to-r from-red-500 to-rose-600 text-white font-black text-xs uppercase tracking-widest shadow-lg shadow-red-200/50 dark:shadow-red-900/40 hover:opacity-90 transition-all">
             <span className="relative flex h-2 w-2">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75"/>
@@ -441,33 +512,65 @@ const FacultyDashboard = () => {
       {/* ── MAIN ── */}
       <main className="flex-1 p-4 md:p-8 overflow-y-auto custom-scrollbar">
 
-        {/* Hero */}
-        <div className="relative overflow-hidden px-8 pt-7 pb-6"
-          style={{ background:'linear-gradient(135deg, #4361ee 0%, #7209b7 100%)' }}>
-          <div className="absolute -top-10 -right-10 w-64 h-64 bg-white/5 rounded-full blur-2xl"/>
-          <div className="absolute bottom-0 left-1/3 w-96 h-32 bg-white/5 rounded-full blur-3xl"/>
-          <div className="relative z-10 flex items-center justify-between">
-            <div>
-              <p className="text-indigo-200 text-xs font-black uppercase tracking-[0.2em] mb-1">{greeting()}, Professor 👋</p>
-              <h1 className="text-3xl font-black text-white uppercase tracking-tighter leading-none">
-                {user?.name || 'Faculty'} <span className="text-indigo-300">·</span> Faculty Portal
-              </h1>
-              <p className="text-indigo-200 text-sm mt-2 font-medium">
-                {time.toLocaleDateString('en-IN',{ weekday:'long', day:'numeric', month:'long', year:'numeric' })}
-              </p>
-            </div>
-            <div className="hidden md:flex items-center gap-3">
-              <div className="text-center px-5 py-3 bg-white/10 rounded-2xl backdrop-blur-sm border border-white/20">
-                <p className="text-3xl font-black text-white">{schedule.length}</p>
-                <p className="text-[10px] font-black text-indigo-200 uppercase tracking-widest mt-1">Sessions</p>
+        {/* ── MODERN PREMIUM HERO CARD ── */}
+        <motion.div 
+          initial={{ opacity: 0, y: -20 }} 
+          animate={{ opacity: 1, y: 0 }}
+          className="relative overflow-hidden rounded-[2.5rem] mb-8 p-10 bg-gradient-to-br from-[#4361ee] via-[#480ca8] to-[#7209b7] shadow-2xl shadow-indigo-200/50 dark:shadow-none"
+        >
+          {/* Animated Background Elements */}
+          <div className="absolute top-0 right-0 w-1/2 h-full bg-gradient-to-l from-indigo-500/20 to-transparent pointer-events-none" />
+          <div className="absolute -top-24 -right-24 w-80 h-80 bg-white/10 rounded-full blur-3xl animate-pulse" />
+          <div className="absolute -bottom-24 -left-24 w-80 h-80 bg-purple-500/10 rounded-full blur-3xl" />
+          
+          <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-8">
+            <div className="space-y-4">
+              <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/10 backdrop-blur-md border border-white/20 w-fit">
+                <span className="relative flex h-2 w-2">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
+                </span>
+                <p className="text-[10px] font-black text-white/90 uppercase tracking-[0.2em]">{greeting()}, Professor 👋</p>
               </div>
-              <div className="text-center px-5 py-3 bg-white/10 rounded-2xl backdrop-blur-sm border border-white/20">
-                <p className="text-3xl font-black text-white">{todayClasses.length}</p>
-                <p className="text-[10px] font-black text-indigo-200 uppercase tracking-widest mt-1">Today</p>
+              
+              <div>
+                <h1 className="text-4xl md:text-5xl font-black text-white uppercase tracking-tighter leading-[0.9] flex flex-wrap items-center gap-y-2 gap-x-5">
+                  {user?.name || 'Faculty'}
+                  <span className="text-[11px] font-black text-indigo-100 opacity-60 px-4 py-2 rounded-2xl border border-white/20 bg-white/5 uppercase tracking-[0.3em] backdrop-blur-sm">Academic Portal</span>
+                </h1>
+                
+                <div className="flex flex-wrap items-center gap-3 mt-8">
+                  <div className="flex items-center gap-3 px-5 py-2.5 bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl transition-all hover:bg-white/20">
+                    <Calendar size={15} className="text-indigo-200" />
+                    <p className="text-[11px] font-black text-white uppercase tracking-widest leading-none">
+                      {time.toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long' })}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-3 px-5 py-2.5 bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl transition-all hover:bg-white/20">
+                    <Clock size={15} className="text-indigo-200" />
+                    <p className="text-[11px] font-black text-white uppercase tracking-widest leading-none tabular-nums">
+                      {time.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <div className="flex items-center gap-5">
+              <div className="group relative text-center px-10 py-7 bg-white/10 hover:bg-white/15 backdrop-blur-xl border border-white/20 rounded-[2.5rem] transition-all duration-500 transform hover:-translate-y-2 shadow-2xl">
+                <div className="absolute inset-0 bg-gradient-to-br from-white/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity rounded-[2.5rem]" />
+                <p className="text-5xl font-black text-white leading-none mb-1.5 group-hover:scale-110 transition-transform tabular-nums">{schedule.length}</p>
+                <p className="text-[11px] font-black text-indigo-100 uppercase tracking-widest mt-1 opacity-60">Total Sessions</p>
+              </div>
+              
+              <div className="group relative text-center px-10 py-7 bg-white/10 hover:bg-white/15 backdrop-blur-xl border border-white/20 rounded-[2.5rem] transition-all duration-500 transform hover:-translate-y-2 shadow-2xl">
+                <div className="absolute inset-0 bg-gradient-to-br from-white/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity rounded-[2.5rem]" />
+                <p className="text-5xl font-black text-white leading-none mb-1.5 group-hover:scale-110 transition-transform tabular-nums">{todayClasses.length}</p>
+                <p className="text-[11px] font-black text-indigo-100 uppercase tracking-widest mt-1 opacity-60">Today's Load</p>
               </div>
             </div>
           </div>
-        </div>
+        </motion.div>
 
         <div className="p-6 space-y-6">
         <AnimatePresence mode="wait">
@@ -564,19 +667,20 @@ const FacultyDashboard = () => {
                   <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
                     <AnimatePresence>
                       {filteredSchedule.map((s,i) => {
-                        const course = COURSE_LIST.find(c=>c.id===s.course)||COURSE_LIST[0];
+                        const courseColor = getCourseColor(s.course);
+                        const courseName = myCourses.find(c => c.code === s.course)?.name || 'Course';
                         const tm = TYPE_META(s.type); const TI = tm.icon;
                         return (
                           <motion.div key={s.id} layout initial={{ opacity:0, scale:0.95 }} animate={{ opacity:1, scale:1 }} exit={{ opacity:0, scale:0.9 }} transition={{ delay:i*0.04 }}
                             className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 overflow-hidden shadow-sm hover:shadow-md transition-all group">
-                            <div className="h-1.5" style={{ background:course.color }}/>
+                            <div className="h-1.5" style={{ background:courseColor }}/>
                             <div className="p-5">
                               <div className="flex items-center justify-between mb-3">
-                                <span className="text-2xl">{course.icon}</span>
+                                <span className="text-2xl">{getCourseIcon(s.course)}</span>
                                 <span className="text-[9px] font-black px-2 py-1 rounded-full uppercase" style={{ color:tm.color, background:`${tm.color}15` }}><TI size={8} className="inline mr-0.5"/>{s.type}</span>
                               </div>
                               <p className="text-sm font-black text-gray-900 dark:text-white uppercase tracking-tight">{s.course}</p>
-                              <p className="text-[10px] text-gray-400 font-bold uppercase mt-0.5">{COURSE_LIST.find(c=>c.id===s.course)?.name}</p>
+                              <p className="text-[10px] text-gray-400 font-bold uppercase mt-0.5">{courseName}</p>
                               <div className="mt-3 space-y-1.5">
                                 <div className="flex items-center gap-2 text-[10px] font-bold text-gray-500"><CalendarDays size={10} className="text-indigo-400"/>{s.day}</div>
                                 <div className="flex items-center gap-2 text-[10px] font-bold text-gray-500"><Clock size={10} className="text-indigo-400"/>{s.startTime} – {s.endTime}</div>
@@ -609,36 +713,53 @@ const FacultyDashboard = () => {
           {activeTab === 'courses' && (
             <motion.div key="courses" initial={{ opacity:0, y:12 }} animate={{ opacity:1, y:0 }} exit={{ opacity:0 }} className="space-y-5">
               <h2 className="text-xl font-black text-gray-900 dark:text-white uppercase tracking-tighter">My Courses</h2>
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-                {courses.map((c,i) => (
-                  <motion.div key={c.id} initial={{ opacity:0, y:16 }} animate={{ opacity:1, y:0 }} transition={{ delay:i*0.07 }}
-                    className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm hover:shadow-lg transition-all overflow-hidden">
-                    <div className="h-1.5" style={{ background:`linear-gradient(90deg,${c.color},${c.color}88)` }}/>
-                    <div className="p-6">
-                      <div className="flex items-start justify-between mb-4">
-                        <div className="flex items-center gap-3">
-                          <div className="w-12 h-12 rounded-2xl flex items-center justify-center text-2xl shadow-md" style={{ background:`${c.color}15` }}>{c.icon}</div>
-                          <div>
-                            <p className="text-base font-black text-gray-900 dark:text-white uppercase tracking-tight leading-tight">{c.name}</p>
-                            <p className="text-[10px] font-black uppercase tracking-widest mt-0.5" style={{ color:c.color }}>{c.id} · {c.sessions} sessions scheduled</p>
+              {coursesToDisplay.length > 0 ? (
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+                  {coursesToDisplay.map((c,i) => (
+                    <motion.div key={c.id} initial={{ opacity:0, y:16 }} animate={{ opacity:1, y:0 }} transition={{ delay:i*0.07 }}
+                      className={`bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm hover:shadow-lg transition-all overflow-hidden ${!c.isAuthorized ? 'opacity-50 grayscale-[0.3]' : 'opacity-100'}`}>
+                      {!c.isAuthorized && (
+                        <div className="absolute top-3 right-3 z-10">
+                          <span className="px-3 py-1 bg-gray-200 dark:bg-gray-800 text-gray-500 dark:text-gray-400 text-[8px] font-black uppercase tracking-widest rounded-full border border-gray-100 dark:border-gray-700">View Only</span>
+                        </div>
+                      )}
+                      <div className="h-1.5" style={{ background:`linear-gradient(90deg,${c.color},${c.color}88)` }}/>
+                      <div className="p-6">
+                        <div className="flex items-start justify-between mb-4">
+                          <div className="flex items-center gap-3">
+                            <div className="w-12 h-12 rounded-2xl flex items-center justify-center text-2xl shadow-md" style={{ background:`${c.color}15` }}>{c.icon}</div>
+                            <div>
+                              <p className="text-base font-black text-gray-900 dark:text-white uppercase tracking-tight leading-tight">{c.name}</p>
+                              <p className="text-[10px] font-black uppercase tracking-widest mt-0.5" style={{ color:c.color }}>{c.id} · {c.sessions} sessions scheduled</p>
+                            </div>
+                          </div>
+                          <span className="text-xs font-black px-2.5 py-1 rounded-full" style={{ color:c.color, background:`${c.color}15` }}>{c.students} 👤</span>
+                        </div>
+                        <div className="mb-4">
+                          <div className="flex justify-between text-[10px] font-black uppercase text-gray-400 mb-1.5"><span>Progress</span><span style={{ color:c.color }}>{c.progress}%</span></div>
+                          <div className="h-1.5 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
+                            <motion.div initial={{ width:0 }} animate={{ width:`${c.progress}%` }} transition={{ duration:0.7, delay:i*0.1 }} className="h-full rounded-full" style={{ background:c.color }}/>
                           </div>
                         </div>
-                        <span className="text-xs font-black px-2.5 py-1 rounded-full" style={{ color:c.color, background:`${c.color}15` }}>{c.students} 👤</span>
-                      </div>
-                      <div className="mb-4">
-                        <div className="flex justify-between text-[10px] font-black uppercase text-gray-400 mb-1.5"><span>Progress</span><span style={{ color:c.color }}>{c.progress}%</span></div>
-                        <div className="h-1.5 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
-                          <motion.div initial={{ width:0 }} animate={{ width:`${c.progress}%` }} transition={{ duration:0.7, delay:i*0.1 }} className="h-full rounded-full" style={{ background:c.color }}/>
+                        <div className="flex gap-2">
+                          <Link to={`/course-inner/${c.id}`} className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-white font-black text-xs uppercase tracking-wider shadow-md hover:opacity-90 transition-all" style={{ background:c.color }}><BookOpen size={13}/> Enter</Link>
+                          <Link to={`/live-class/${c.id}`} className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-gray-900 dark:bg-white text-white dark:text-gray-900 font-black text-xs uppercase tracking-wider shadow-md hover:opacity-80 transition-all"><Radio size={13}/> Live</Link>
                         </div>
                       </div>
-                      <div className="flex gap-2">
-                        <Link to={`/course-inner/${c.id}`} className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-white font-black text-xs uppercase tracking-wider shadow-md hover:opacity-90 transition-all" style={{ background:c.color }}><BookOpen size={13}/> Enter</Link>
-                        <Link to={`/live-class/${c.id}`} className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-gray-900 dark:bg-white text-white dark:text-gray-900 font-black text-xs uppercase tracking-wider shadow-md hover:opacity-80 transition-all"><Radio size={13}/> Live</Link>
-                      </div>
-                    </div>
-                  </motion.div>
-                ))}
-              </div>
+                    </motion.div>
+                  ))}
+                </div>
+              ) : (
+                <div className="bg-white dark:bg-gray-900 border border-dashed border-gray-200 dark:border-gray-800 rounded-[2.5rem] flex flex-col items-center justify-center p-20 text-center h-full min-h-[500px]">
+                  <div className="w-20 h-20 rounded-3xl bg-indigo-50 dark:bg-indigo-900/10 flex items-center justify-center mb-6 text-indigo-500">
+                    <BookOpen size={40} className="opacity-40" />
+                  </div>
+                  <h3 className="text-xl font-black text-gray-900 dark:text-white uppercase tracking-tighter mb-3">No Authorized Courses</h3>
+                  <p className="text-xs font-black text-gray-400 uppercase tracking-widest max-w-[280px] leading-relaxed">
+                    You do not currently have any assigned nodes or authorization permissions for courses in this department/semester bucket.
+                  </p>
+                </div>
+              )}
             </motion.div>
           )}
 

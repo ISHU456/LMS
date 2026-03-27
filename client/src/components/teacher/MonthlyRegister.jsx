@@ -3,12 +3,13 @@ import axios from 'axios';
 import { 
   FileText, Download, Printer, Calendar, 
   ChevronLeft, ChevronRight, Search, Users,
-  Check, X, Minus, Loader2
+  Check, X, Minus, Loader2, FileSpreadsheet
 } from 'lucide-react';
+import * as XLSX from 'xlsx';
 import { motion, AnimatePresence } from 'framer-motion';
 import AdminStudentProfileModal from '../admin/AdminStudentProfileModal';
-import jsPDF from 'jspdf';
-import 'jspdf-autotable';
+import { jsPDF } from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
 const MonthlyRegister = ({ user }) => {
   const [courses, setCourses] = useState([]);
@@ -170,7 +171,7 @@ const MonthlyRegister = ({ user }) => {
       return row;
     });
 
-    doc.autoTable({
+    autoTable(doc, {
       startY: 45,
       head: tableHeaders,
       body: tableData,
@@ -184,6 +185,35 @@ const MonthlyRegister = ({ user }) => {
     });
 
     doc.save(`Attendance_Register_${selectedCourse.code}_${months[selectedDate.getMonth()]}.pdf`);
+  };
+  
+  const exportExcel = () => {
+    const tableData = filteredStudents.map(student => {
+      const data = {
+        'Roll Number': student.rollNumber,
+        'Student Name': student.name
+      };
+      
+      let presentCount = 0;
+      let totalAssessed = 0;
+      
+      daysInMonth.forEach(day => {
+        const status = attendanceGrid[student._id]?.[day] || '-';
+        data[day] = status;
+        if (status === 'P') presentCount++;
+        if (status !== '-') totalAssessed++;
+      });
+      
+      data['Total Present'] = presentCount;
+      data['Percentage'] = totalAssessed > 0 ? `${((presentCount / totalAssessed) * 100).toFixed(1)}%` : '0%';
+      
+      return data;
+    });
+
+    const ws = XLSX.utils.json_to_sheet(tableData);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Attendance Register");
+    XLSX.writeFile(wb, `Attendance_Register_${selectedCourse.code}_${months[selectedDate.getMonth()]}.xlsx`);
   };
 
   return (
@@ -202,41 +232,57 @@ const MonthlyRegister = ({ user }) => {
             </div>
 
             <div className="flex flex-wrap items-center gap-3">
-               <div className="flex items-center bg-gray-50 dark:bg-gray-800 rounded-2xl p-1 border border-gray-200 dark:border-gray-700">
-                  <button onClick={prevMonth} className="p-2 hover:bg-white dark:hover:bg-gray-700 rounded-xl transition-all">
-                    <ChevronLeft size={16}/>
-                  </button>
-                  <div className="px-4 text-xs font-black uppercase tracking-widest min-w-[140px] text-center">
-                    {months[selectedDate.getMonth()]} {selectedDate.getFullYear()}
-                  </div>
-                  <button onClick={nextMonth} className="p-2 hover:bg-white dark:hover:bg-gray-700 rounded-xl transition-all">
-                    <ChevronRight size={16}/>
-                  </button>
-               </div>
+               <select 
+                value={semester} 
+                onChange={(e) => setSemester(Number(e.target.value))}
+                className="bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl px-4 py-2.5 text-[10px] font-black uppercase tracking-wider focus:ring-2 focus:ring-indigo-500 outline-none w-24 cursor-pointer text-gray-900 dark:text-white"
+               >
+                 {[1,2,3,4,5,6,7,8].map(s => <option key={s} value={s} className="dark:bg-gray-800">Sem {s}</option>)}
+               </select>
 
                <select 
                 value={selectedCourse?.code || ''} 
                 onChange={(e) => setSelectedCourse(courses.find(c => c.code === e.target.value))}
-                className="bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl px-4 py-2.5 text-xs font-black uppercase tracking-wider focus:ring-2 focus:ring-indigo-500 outline-none"
+                className="bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl px-4 py-2.5 text-[10px] font-black uppercase tracking-wider focus:ring-2 focus:ring-indigo-500 outline-none cursor-pointer text-gray-900 dark:text-white"
                >
-                 {courses.map(c => <option key={c._id} value={c.code}>{c.code} - {c.name}</option>)}
+                 {courses.filter(c => c.semester === semester).map(c => (
+                   <option key={c._id} value={c.code} className="dark:bg-gray-800">
+                     {c.code} · {c.name} {c.isAuthorized === false ? ' (Unauthorized)' : ''}
+                   </option>
+                 ))}
                </select>
 
-               <select 
-                value={semester} 
-                onChange={(e) => setSemester(Number(e.target.value))}
-                className="bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl px-4 py-2.5 text-xs font-black uppercase tracking-wider focus:ring-2 focus:ring-indigo-500 outline-none w-24"
-               >
-                 {[1,2,3,4,5,6,7,8].map(s => <option key={s} value={s}>Sem {s}</option>)}
-               </select>
+               <div className="flex items-center bg-gray-50 dark:bg-gray-800 rounded-2xl p-1 border border-gray-200 dark:border-gray-700">
+                  <button onClick={prevMonth} className="p-2 hover:bg-white dark:hover:bg-gray-700 rounded-xl transition-all text-gray-400 dark:text-gray-100">
+                    <ChevronLeft size={16}/>
+                  </button>
+                  <div className="px-4 text-[10px] font-black uppercase tracking-widest min-w-[140px] text-center text-gray-900 dark:text-white">
+                    {months[selectedDate.getMonth()]} {selectedDate.getFullYear()}
+                  </div>
+                  <button onClick={nextMonth} className="p-2 hover:bg-white dark:hover:bg-gray-700 rounded-xl transition-all text-gray-400 dark:text-gray-100">
+                    <ChevronRight size={16}/>
+                  </button>
+               </div>
 
-               <button 
-                onClick={exportPDF}
-                disabled={students.length === 0}
-                className="flex items-center gap-2 px-6 py-2.5 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-black uppercase tracking-widest shadow-lg shadow-indigo-200 transition-all disabled:opacity-50"
-               >
-                 <Download size={14}/> Export PDF
-               </button>
+               <div className="flex items-center gap-2">
+                 <button 
+                  onClick={exportPDF}
+                  disabled={students.length === 0}
+                  className="flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-rose-600 hover:bg-rose-700 text-white text-[10px] font-black uppercase tracking-widest shadow-lg shadow-rose-200 dark:shadow-none transition-all disabled:opacity-50"
+                  title="Download as PDF"
+                 >
+                   <FileText size={14}/> PDF
+                 </button>
+                 
+                 <button 
+                  onClick={exportExcel}
+                  disabled={students.length === 0}
+                  className="flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] font-black uppercase tracking-widest shadow-lg shadow-emerald-200 dark:shadow-none transition-all disabled:opacity-50"
+                  title="Download as Excel"
+                 >
+                   <FileSpreadsheet size={14}/> Excel
+                 </button>
+               </div>
             </div>
         </div>
 
@@ -246,7 +292,7 @@ const MonthlyRegister = ({ user }) => {
                 <input 
                   type="text" 
                   placeholder="Search student by name or roll number..."
-                  className="w-full pl-11 pr-4 py-3 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl text-xs font-bold focus:ring-2 focus:ring-indigo-500 outline-none"
+                  className="w-full pl-11 pr-4 py-3 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl text-xs font-bold focus:ring-2 focus:ring-indigo-500 outline-none text-gray-900 dark:text-white placeholder:text-gray-400"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                 />
@@ -254,15 +300,15 @@ const MonthlyRegister = ({ user }) => {
             <div className="flex items-center gap-6">
                 <div className="flex items-center gap-2">
                     <div className="w-3 h-3 rounded bg-emerald-500"/>
-                    <span className="text-[10px] font-black uppercase text-gray-400 tracking-tighter">Present</span>
+                    <span className="text-[10px] font-black uppercase text-gray-400 dark:text-gray-200 tracking-tighter">Present</span>
                 </div>
                 <div className="flex items-center gap-2">
                     <div className="w-3 h-3 rounded bg-rose-500"/>
-                    <span className="text-[10px] font-black uppercase text-gray-400 tracking-tighter">Absent</span>
+                    <span className="text-[10px] font-black uppercase text-gray-400 dark:text-gray-200 tracking-tighter">Absent</span>
                 </div>
                 <div className="flex items-center gap-2">
                     <div className="w-3 h-3 rounded bg-gray-200 dark:bg-gray-800"/>
-                    <span className="text-[10px] font-black uppercase text-gray-400 tracking-tighter">No Session</span>
+                    <span className="text-[10px] font-black uppercase text-gray-400 dark:text-gray-200 tracking-tighter">No Session</span>
                 </div>
             </div>
         </div>
@@ -284,14 +330,14 @@ const MonthlyRegister = ({ user }) => {
             <thead className="sticky top-0 z-10 bg-gray-50 dark:bg-gray-800 border-b border-gray-100 dark:border-gray-700">
               <tr>
                 <th className="px-6 py-4 text-left min-w-[120px] sticky left-0 z-20 bg-gray-50 dark:bg-gray-800 shadow-xl border-r border-gray-100 dark:border-gray-700">
-                  <span className="text-[10px] font-black uppercase tracking-widest text-gray-400 leading-none">Roll Number</span>
+                  <span className="text-[10px] font-black uppercase tracking-widest text-gray-400 dark:text-gray-100 leading-none">Roll Number</span>
                 </th>
                 <th className="px-6 py-4 text-left min-w-[200px] sticky left-[120px] z-20 bg-gray-50 dark:bg-gray-800 shadow-xl border-r border-gray-100 dark:border-gray-700">
-                  <span className="text-[10px] font-black uppercase tracking-widest text-gray-400">Student Identity</span>
+                  <span className="text-[10px] font-black uppercase tracking-widest text-gray-400 dark:text-gray-100">Student Identity</span>
                 </th>
                 {daysInMonth.map(day => (
                   <th key={day} className="px-2 py-4 min-w-[40px] border-r border-gray-100 dark:border-gray-700 last:border-0">
-                    <span className="text-[10px] font-black uppercase text-gray-500 tabular-nums">{day}</span>
+                    <span className="text-[10px] font-black uppercase text-gray-500 dark:text-gray-100 tabular-nums">{day}</span>
                   </th>
                 ))}
                 <th className="px-6 py-4 min-w-[80px] bg-indigo-50/50 dark:bg-indigo-900/10 border-l border-indigo-100 dark:border-indigo-800">
@@ -305,7 +351,7 @@ const MonthlyRegister = ({ user }) => {
                 return (
                   <tr key={student._id} className="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-all border-b border-gray-100 dark:border-gray-800 last:border-0 group">
                     <td className="px-6 py-3 sticky left-0 z-10 bg-white dark:bg-gray-900 shadow-lg border-r border-gray-100 dark:border-gray-700 group-hover:bg-gray-50 dark:group-hover:bg-gray-800/80 transition-all">
-                      <span className="text-[11px] font-black text-gray-400 tabular-nums group-hover:text-indigo-500 transition-all">{student.rollNumber}</span>
+                      <span className="text-[11px] font-black text-gray-400 dark:text-gray-100 tabular-nums group-hover:text-indigo-500 transition-all">{student.rollNumber}</span>
                     </td>
                     <td className="px-6 py-3 sticky left-[120px] z-10 bg-white dark:bg-gray-900 shadow-lg border-r border-gray-100 dark:border-gray-700 group-hover:bg-gray-50 dark:group-hover:bg-gray-800/80 transition-all">
                       <p className="text-xs font-black text-gray-900 dark:text-white uppercase truncate cursor-pointer hover:text-indigo-500" onClick={() => setViewingStudentId(student._id)}>{student.name}</p>
@@ -406,15 +452,15 @@ const MonthlyRegister = ({ user }) => {
             <div className="flex flex-wrap items-center justify-between gap-6">
             <div className="flex items-center gap-8">
                 <div className="flex items-center gap-2">
-                    <span className="text-[10px] font-black text-gray-400 uppercase">Total Students:</span>
+                    <span className="text-[10px] font-black text-gray-400 dark:text-gray-300 uppercase">Total Students:</span>
                     <span className="text-xs font-black text-gray-900 dark:text-white">{students.length}</span>
                 </div>
                 <div className="flex items-center gap-2">
-                    <span className="text-[10px] font-black text-gray-400 uppercase">Avg Attendance:</span>
+                    <span className="text-[10px] font-black text-gray-400 dark:text-gray-300 uppercase">Avg Attendance:</span>
                     <span className="text-xs font-black text-emerald-500">84.2%</span>
                 </div>
             </div>
-            <div className="text-[9px] font-black text-gray-300 dark:text-gray-600 uppercase tracking-[0.3em]">
+            <div className="text-[9px] font-black text-gray-300 dark:text-gray-400 uppercase tracking-[0.3em]">
                 Monthly Register Protocol v2.4 · Secure Academic Node
             </div>
         </div>

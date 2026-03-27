@@ -45,6 +45,8 @@ const AdminDashboard = () => {
   useEffect(() => {
     localStorage.setItem('adminActiveTab', activeTab);
     fetchStats();
+    const interval = setInterval(fetchStats, 60000); // 1-minute updates
+    return () => clearInterval(interval);
   }, [activeTab]);
 
   const fetchStats = async () => {
@@ -310,8 +312,8 @@ const AdminDashboard = () => {
                         <p className="text-[9px] font-bold text-gray-400 uppercase">{student.department} • SEM {student.semester}</p>
                       </div>
                       <div className="text-right">
-                        <p className="text-[10px] font-black text-blue-500">{student.credits || 0}</p>
-                        <p className="text-[8px] font-black text-gray-400 uppercase">CREDITS</p>
+                        <p className="text-[10px] font-black text-blue-500">{student.xp || 0}</p>
+                        <p className="text-[8px] font-black text-gray-400 uppercase tracking-tighter">Performance XP</p>
                       </div>
                     </div>
                   )) : (

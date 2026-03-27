@@ -22,6 +22,7 @@ const AttendanceManager = ({ user }) => {
   const [viewMode, setViewMode] = useState('mark'); // 'mark' | 'view'
   const [history, setHistory] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
+  const [subjectSearch, setSubjectSearch] = useState('');
   const [viewingStudentId, setViewingStudentId] = useState(null); // For profile modal
   const [currentMarkPage, setCurrentMarkPage] = useState(1);
   const [currentHistoryPage, setCurrentHistoryPage] = useState(1);
@@ -32,20 +33,20 @@ const AttendanceManager = ({ user }) => {
       try {
         const config = { headers: { Authorization: `Bearer ${user.token}` } };
         const res = await axios.get(`http://localhost:5001/api/courses`, config);
-        // Filter courses where this user is assigned
-        const teacherCourses = res.data.filter(c => {
-          const isAssigned = c.facultyAssigned?.some(f => 
-            (f._id?.toString() || f.toString()) === user._id.toString()
-          );
-          const isSemMatch = user.assignedSemesters?.includes(c.semester);
-          const isDeptMatch = c.department?.name === user.department || c.department?.code === user.department;
-          
-          return isAssigned || (isSemMatch && isDeptMatch);
-        });
-        setCourses(teacherCourses);
-        if (teacherCourses.length > 0) {
-          setSelectedCourse(teacherCourses[0]);
-          setSemester(teacherCourses[0].semester);
+        const fetchedCourses = res.data;
+        setCourses(fetchedCourses);
+        
+        if (fetchedCourses.length > 0) {
+          // If no subjects in semester 1, auto-select first available semester
+          const hasSem1 = fetchedCourses.some(c => c.semester === 1);
+          if (!hasSem1) {
+             const firstAvailable = [...fetchedCourses].sort((a,b) => a.semester - b.semester)[0];
+             setSemester(firstAvailable.semester);
+             setSelectedCourse(firstAvailable);
+          } else {
+             setSelectedCourse(fetchedCourses[0]);
+             setSemester(fetchedCourses[0].semester);
+          }
         }
       } catch (error) {
         console.error('Error fetching courses:', error);
@@ -55,15 +56,19 @@ const AttendanceManager = ({ user }) => {
   }, [user._id, user.token]);
 
   useEffect(() => {
-    if (selectedCourse && viewMode === 'mark') {
+    const courseToUse = selectedCourse;
+    if (courseToUse && viewMode === 'mark') {
       const fetchStudents = async () => {
         setIsLoading(true);
+        setStudents([]); // Explicitly clear students to show loading state
         try {
           const config = { headers: { Authorization: `Bearer ${user.token}` } };
-          const studentsRes = await axios.get(`http://localhost:5001/api/courses/${selectedCourse.code}/students?semester=${semester}`, config);
+          // We use the direct semester of the course to ensure we're getting those students
+          const fetchSem = courseToUse?.semester || semester;
+          const studentsRes = await axios.get(`http://localhost:5001/api/courses/${courseToUse.code}/students?semester=${fetchSem}`, config);
           
           // Fetch existing attendance for this date/course
-          const attendanceRes = await axios.get(`http://localhost:5001/api/attendance/course/${selectedCourse._id}?startDate=${attendanceDate}&endDate=${attendanceDate}&semester=${semester}`, config);
+          const attendanceRes = await axios.get(`http://localhost:5001/api/attendance/course/${courseToUse._id}?startDate=${attendanceDate}&endDate=${attendanceDate}&semester=${fetchSem}`, config);
           
           setStudents(studentsRes.data);
           
@@ -175,18 +180,27 @@ const AttendanceManager = ({ user }) => {
     setCurrentMarkPage(1);
     setCurrentHistoryPage(1);
 
-    // Auto-select first course of the new semester if current selection is not in the new semester
+    // Auto-select first course of the new semester ONLY IF no course is selected 
+    // or if the current course selection is NOT in the new semester AND we're manually changing semester
     if (courses.length > 0) {
       const semCourses = courses.filter(c => c.semester === semester);
       if (semCourses.length > 0) {
         if (!selectedCourse || selectedCourse.semester !== semester) {
+          // Only auto-switch if the current selected course isn't in this semester
+          // This allows manual selection from sidebar to work without being overridden
           setSelectedCourse(semCourses[0]);
         }
-      } else {
-        setSelectedCourse(null);
       }
     }
-  }, [semester, searchQuery, viewMode, courses]);
+  }, [semester, courses, selectedCourse]); // Now resets when specific course changes too
+
+  const sidebarFilteredCourses = useMemo(() => {
+    return courses.filter(c => 
+      (c.semester === semester) &&
+      (c.name?.toLowerCase().includes(subjectSearch.toLowerCase()) || 
+       c.code?.toLowerCase().includes(subjectSearch.toLowerCase()))
+    ).sort((a,b) => a.name.localeCompare(b.name));
+  }, [courses, subjectSearch, semester]);
 
   return (
     <div className="space-y-6">
@@ -209,26 +223,16 @@ const AttendanceManager = ({ user }) => {
           </div>
           <div>
             <h2 className="text-xl font-black text-gray-900 dark:text-white uppercase tracking-tighter">Attendance Manager</h2>
-            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mt-1">Manage class presence & history</p>
+            <p className="text-[10px] font-black text-gray-400 dark:text-gray-200 uppercase tracking-widest mt-1">Manage class presence & history</p>
           </div>
         </div>
 
         <div className="flex flex-wrap items-center gap-6">
           {viewMode === 'mark' && (
             <div className="flex items-center gap-4 bg-gray-50/80 dark:bg-gray-800/80 p-1.5 rounded-2xl border border-gray-100 dark:border-gray-700">
-              <div className="flex items-center gap-2 pl-2">
-                <Clock size={14} className="text-indigo-500" />
-                <input 
-                  type="datetime-local" 
-                  value={attendanceDate} 
-                  onChange={(e) => setAttendanceDate(e.target.value)}
-                  className="bg-transparent border-none text-[11px] font-black uppercase tracking-tight text-gray-900 dark:text-white focus:ring-0 outline-none w-40" 
-                />
-              </div>
-              <div className="w-[1px] h-6 bg-gray-200 dark:bg-gray-700" />
               <div className="flex items-center gap-2 px-2">
                 <Users size={14} className="text-indigo-500" />
-                <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest leading-none">Semester:</span>
+                <span className="text-[10px] font-black text-gray-400 dark:text-gray-100 uppercase tracking-widest leading-none">Semester:</span>
                 <select 
                   value={semester} 
                   onChange={(e) => setSemester(parseInt(e.target.value))}
@@ -238,6 +242,16 @@ const AttendanceManager = ({ user }) => {
                     <option key={s} value={s} className="bg-white dark:bg-gray-900">Sem {s}</option>
                   ))}
                 </select>
+              </div>
+              <div className="w-[1px] h-6 bg-gray-200 dark:bg-gray-700" />
+              <div className="flex items-center gap-2 pl-2">
+                <Clock size={14} className="text-indigo-500" />
+                <input 
+                  type="datetime-local" 
+                  value={attendanceDate} 
+                  onChange={(e) => setAttendanceDate(e.target.value)}
+                  className="bg-transparent border-none text-[11px] font-black uppercase tracking-tight text-gray-900 dark:text-white focus:ring-0 outline-none w-40" 
+                />
               </div>
             </div>
           )}
@@ -269,24 +283,40 @@ const AttendanceManager = ({ user }) => {
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
         {/* Sidebar: Course Selection */}
         <div className="lg:col-span-1 space-y-4">
-          <div className="bg-white dark:bg-gray-900 p-5 rounded-3xl border border-gray-100 dark:border-gray-800 shadow-sm flex flex-col max-h-[500px]">
-            <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-4 shrink-0">Select Subject</h3>
-            <div className="space-y-2 overflow-y-auto pr-2 custom-scrollbar">
-              {courses.filter(c => c.semester === semester).length > 0 ? (
-                courses.filter(c => c.semester === semester).map(course => (
-                  <button key={course._id} onClick={() => {
-                     setSelectedCourse(course);
-                     // Ensure we're in marking mode when selecting a new course
-                     if (viewMode === 'view') setViewMode('mark');
-                  }}
-                    className={`w-full text-left p-4 rounded-2xl transition-all border ${selectedCourse?._id === course._id ? 'bg-indigo-50 dark:bg-indigo-900/20 border-indigo-200 dark:border-indigo-800' : 'border-transparent hover:bg-gray-50 dark:hover:bg-gray-800'}`}>
-                    <p className="text-xs font-black text-gray-900 dark:text-white uppercase truncate">{course.name}</p>
-                    <p className="text-[9px] font-bold text-gray-400 mt-1 uppercase tracking-widest">{course.code} · Sem {course.semester}</p>
-                  </button>
-                ))
-              ) : (
+          <div className="bg-white dark:bg-gray-900 p-5 rounded-3xl border border-gray-100 dark:border-gray-800 shadow-sm flex flex-col h-[600px]">
+            <div className="flex items-center justify-between mb-4 shrink-0">
+               <h3 className="text-[10px] font-black text-gray-400 dark:text-gray-200 uppercase tracking-widest">Select Subject</h3>
+               <span className="text-[9px] font-black px-2 py-0.5 rounded-full bg-indigo-50 dark:bg-indigo-900/30 text-indigo-500">{sidebarFilteredCourses.length}</span>
+            </div>
+
+            <div className="relative mb-4 shrink-0">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={13} />
+              <input 
+                type="text" 
+                placeholder="Search subjects..." 
+                value={subjectSearch}
+                onChange={(e) => setSubjectSearch(e.target.value)}
+                className="w-full pl-9 pr-4 py-2.5 bg-gray-50 dark:bg-gray-800 border-none rounded-xl text-[10px] font-bold focus:ring-2 focus:ring-indigo-500 transition placeholder:text-gray-400"
+              />
+            </div>
+
+            <div className="space-y-1.5 overflow-y-auto pr-2 custom-scrollbar flex-1">
+              {sidebarFilteredCourses.length > 0 ? sidebarFilteredCourses.map(course => (
+                <button key={course._id} onClick={() => {
+                   setSelectedCourse(course);
+                   if (viewMode === 'view') setViewMode('mark');
+                }}
+                  className={`w-full text-left p-3 rounded-2xl transition-all border group ${selectedCourse?._id === course._id ? 'bg-indigo-50 dark:bg-indigo-900/40 border-indigo-200 dark:border-indigo-800 shadow-sm' : 'border-transparent hover:bg-gray-50 dark:hover:bg-gray-800'} ${course.isAuthorized === false ? 'opacity-50 grayscale-[0.4]' : ''}`}>
+                  <div className="flex items-start justify-between gap-2">
+                    <p className={`text-[11px] font-black uppercase leading-tight transition-colors ${selectedCourse?._id === course._id ? 'text-indigo-600' : 'text-gray-700 dark:text-gray-300 group-hover:text-gray-900 dark:hover:text-white'}`}>{course.name}</p>
+                    <ArrowRight size={10} className={`mt-0.5 shrink-0 transition-all ${selectedCourse?._id === course._id ? 'text-indigo-400 translate-x-0' : 'text-gray-300 opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0'}`} />
+                  </div>
+                  <p className="text-[9px] font-bold text-gray-400 dark:text-gray-300 mt-1 uppercase tracking-widest">{course.code} · Sem {course.semester}</p>
+                </button>
+              )) : (
                 <div className="py-20 text-center">
-                  <p className="text-[9px] font-black text-gray-300 uppercase leading-relaxed">No subjects assigned for Semester {semester}</p>
+                  <Search size={24} className="mx-auto text-gray-200 mb-3" />
+                  <p className="text-[9px] font-black text-gray-300 uppercase leading-relaxed tracking-widest px-4">No subjects in Sem {semester}</p>
                 </div>
               )}
             </div>
@@ -397,7 +427,7 @@ const AttendanceManager = ({ user }) => {
               <div className="p-6 border-b border-gray-50 dark:border-gray-800 flex items-center justify-between">
                 <h3 className="text-sm font-black text-gray-900 dark:text-white uppercase tracking-widest">Historical Logs</h3>
                 <button onClick={fetchHistory} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl transition-all">
-                  <Clock size={16} className="text-gray-400" />
+                  <Clock size={16} className="text-gray-400 dark:text-gray-100" />
                 </button>
               </div>
 
@@ -405,11 +435,11 @@ const AttendanceManager = ({ user }) => {
                 <table className="w-full text-left border-collapse">
                   <thead>
                     <tr className="bg-gray-50 dark:bg-gray-800/50">
-                      <th className="px-6 py-4 text-[10px] font-black uppercase text-gray-400 tracking-widest">Date</th>
-                      <th className="px-6 py-4 text-[10px] font-black uppercase text-gray-400 tracking-widest">Student</th>
-                      <th className="px-6 py-4 text-[10px] font-black uppercase text-gray-400 tracking-widest text-center">Status</th>
-                      <th className="px-6 py-4 text-[10px] font-black uppercase text-gray-400 tracking-widest">Remarks</th>
-                      <th className="px-6 py-4 text-[10px] font-black uppercase text-gray-400 tracking-widest">Entry By</th>
+                      <th className="px-6 py-4 text-[10px] font-black uppercase text-gray-400 dark:text-gray-100 tracking-widest">Date</th>
+                      <th className="px-6 py-4 text-[10px] font-black uppercase text-gray-400 dark:text-gray-100 tracking-widest">Student</th>
+                      <th className="px-6 py-4 text-[10px] font-black uppercase text-gray-400 dark:text-gray-100 tracking-widest text-center">Status</th>
+                      <th className="px-6 py-4 text-[10px] font-black uppercase text-gray-400 dark:text-gray-100 tracking-widest">Remarks</th>
+                      <th className="px-6 py-4 text-[10px] font-black uppercase text-gray-400 dark:text-gray-100 tracking-widest">Entry By</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-50 dark:divide-gray-800">

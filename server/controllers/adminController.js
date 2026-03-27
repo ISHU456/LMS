@@ -62,11 +62,29 @@ export const getAdminDashboardStats = async (req, res) => {
             });
         }
 
-        // 5. Student Leaderboard (Top 10)
-        const leaderboard = await User.find({ role: 'student' })
-            .select('name credits email profilePic department semester')
-            .sort({ credits: -1 })
-            .limit(10);
+        // 5. Student Leaderboard (Top 10 - Real Performance)
+        const topStudents = await User.find({ role: 'student' })
+            .select('name profilePic department semester _id')
+            .limit(100) // Fetch top 100 to find real top 10 after calculation
+            .lean();
+
+        const topStudentIds = topStudents.map(s => s._id);
+        const [topProgress, topSubmissions] = await Promise.all([
+            Progress.find({ user: { $in: topStudentIds } }).lean(),
+            Submission.find({ student: { $in: topStudentIds }, status: 'graded' }).lean()
+        ]);
+
+        const leaderboard = topStudents.map(student => {
+            const studentProgressXP = topProgress.filter(p => p.user.toString() === student._id.toString())
+                .reduce((sum, p) => sum + (p.completedItems?.length || 0), 0) * 10;
+            const studentSubmissionXP = topSubmissions.filter(s => s.student.toString() === student._id.toString())
+                .reduce((sum, s) => sum + (s.marksObtained || 0), 0);
+            
+            return {
+                ...student,
+                xp: studentProgressXP + studentSubmissionXP
+            };
+        }).sort((a, b) => b.xp - a.xp).slice(0, 10);
 
         // 6. Recent Active Users
         const recentUsers = await User.find()

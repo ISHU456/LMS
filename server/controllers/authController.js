@@ -286,15 +286,23 @@ export const getLeaderboard = async (req, res) => {
       .lean();
     
     const studentIds = students.map(s => s._id);
-    const allProgress = await Progress.find({ user: { $in: studentIds } }).lean();
+    const [allProgress, allSubmissions] = await Promise.all([
+      Progress.find({ user: { $in: studentIds } }).lean(),
+      Submission.find({ student: { $in: studentIds }, status: 'graded' }).lean()
+    ]);
 
     const leaderboard = students.map(student => {
+      // XP from Resources (Progress)
       const studentProgressDocs = allProgress.filter(p => p.user.toString() === student._id.toString());
-      const totalItems = studentProgressDocs.reduce((sum, p) => sum + (p.completedItems?.length || 0), 0);
+      const totalProgressXP = studentProgressDocs.reduce((sum, p) => sum + (p.completedItems?.length || 0), 0) * 10;
       
+      // XP from Assignments (Submissions)
+      const studentSubmissions = allSubmissions.filter(s => s.student.toString() === student._id.toString());
+      const totalAssignmentXP = studentSubmissions.reduce((sum, s) => sum + (s.marksObtained || 0), 0);
+
       return {
         ...student,
-        xp: totalItems * 10
+        xp: totalProgressXP + totalAssignmentXP
       };
     });
 

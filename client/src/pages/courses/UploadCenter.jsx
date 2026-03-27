@@ -2,14 +2,13 @@ import { useState, useEffect, useRef } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import axios from 'axios';
-import { ArrowLeft, Megaphone, Radio, Layout, Calendar, Book, Youtube, ClipboardCheck, Award, Bot } from 'lucide-react';
+import { ArrowLeft, Radio, Layout, Calendar, Book, Youtube, Award, Bot } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 // Modular Components
 import SidebarNav from './course_modules/SidebarNav';
 import CourseHeader from './course_modules/CourseHeader';
 import ContentUploader from './course_modules/ContentUploader';
-import LiveActivityFeed from './course_modules/LiveActivityFeed';
 
 const UploadCenter = () => {
   const { courseId } = useParams();
@@ -34,16 +33,6 @@ const UploadCenter = () => {
   const [uploadProgress, setUploadProgress] = useState(0);
   const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef(null);
-
-  // Assignment Form State
-  const [asgnTitle, setAsgnTitle] = useState('');
-  const [asgnDesc, setAsgnDesc] = useState('');
-  const [asgnDue, setAsgnDue] = useState('');
-  const [asgnMarks, setAsgnMarks] = useState(100);
-
-  // Announcement Form State
-  const [announcementTitle, setAnnouncementTitle] = useState('');
-  const [announcementContent, setAnnouncementContent] = useState('');
 
   const displayName = user?.name || 'Faculty';
   const initials = user?.name?.split(' ').map(n => n[0]).join('') || 'FC';
@@ -110,7 +99,10 @@ const UploadCenter = () => {
 
       if (selectedFile) {
         formData.append('file', selectedFile);
-        const res = await axios.post(`http://localhost:5001/api/courses/${courseId}/resources/upload`, formData, {
+        formData.append('extraCourseId', courseId);
+        formData.append('uploadedBy', user._id);
+        
+        const res = await axios.post(`http://localhost:5001/api/resources/upload?courseId=${courseId}`, formData, {
           headers: { 
             'Content-Type': 'multipart/form-data',
             Authorization: `Bearer ${user.token}`
@@ -122,8 +114,13 @@ const UploadCenter = () => {
         });
         alert('Asset deployed successfully');
       } else {
-        await axios.post(`http://localhost:5001/api/courses/${courseId}/resources`, {
-          title: newTitle, type: newType, fileUrl: newUrl, points: newPoints
+        await axios.post(`http://localhost:5001/api/resources?courseId=${courseId}`, {
+          title: newTitle, 
+          type: newType, 
+          fileUrl: newUrl, 
+          points: newPoints,
+          extraCourseId: courseId,
+          uploadedBy: user._id
         }, {
           headers: { Authorization: `Bearer ${user.token}` }
         });
@@ -142,54 +139,11 @@ const UploadCenter = () => {
     }
   };
 
-  const handleCreateAssignment = async (e) => {
-    e.preventDefault();
-    try {
-      await axios.post(`http://localhost:5001/api/courses/${courseId}/assignments`, {
-        title: asgnTitle,
-        description: asgnDesc,
-        dueDate: asgnDue,
-        totalMarks: asgnMarks
-      }, {
-        headers: { Authorization: `Bearer ${user.token}` }
-      });
-      alert('Protocol assigned successfully');
-      setAsgnTitle('');
-      setAsgnDesc('');
-      setAsgnDue('');
-    } catch (err) {
-      console.error(err);
-      alert('Protocol assignment failed');
-    }
-  };
-
-  const handleCreateAnnouncement = async (e) => {
-    e.preventDefault();
-    try {
-      const res = await axios.post(`http://localhost:5001/api/announcements`, {
-        courseId,
-        title: announcementTitle,
-        content: announcementContent,
-        author: user._id
-      }, {
-        headers: { Authorization: `Bearer ${user.token}` }
-      });
-      setAnnouncements([res.data, ...announcements]);
-      setAnnouncementTitle('');
-      setAnnouncementContent('');
-      alert('Notice broadcasted successfully');
-    } catch (err) {
-      console.error(err);
-      alert('Broadcast failed');
-    }
-  };
-
   const sectionTabs = [
     { id: 'upload', label: 'Upload Hub', icon: Layout, color: 'text-primary-500 bg-primary-50 dark:bg-primary-900/20 group-hover:bg-primary-100', active: 'bg-primary-500 text-white shadow-primary-500/30' },
     { id: 'timetable', label: 'Schedule', icon: Calendar, color: 'text-blue-500 bg-blue-50 dark:bg-blue-900/20 group-hover:bg-blue-100', active: 'bg-blue-500 text-white shadow-blue-500/30' },
     { id: 'ebooks', label: 'Resources', icon: Book, color: 'text-emerald-500 bg-emerald-50 dark:bg-emerald-900/20 group-hover:bg-emerald-100', active: 'bg-emerald-500 text-white shadow-emerald-500/30' },
     { id: 'yt-links', label: 'Videos', icon: Youtube, color: 'text-red-500 bg-red-50 dark:bg-red-900/20 group-hover:bg-red-100', active: 'bg-red-500 text-white shadow-red-500/30' },
-    { id: 'assignments', label: 'Assignments', icon: ClipboardCheck, color: 'text-purple-500 bg-purple-50 dark:bg-purple-900/20 group-hover:bg-purple-100', active: 'bg-purple-500 text-white shadow-purple-500/30' },
     { id: 'completion', label: 'Completion', icon: Award, color: 'text-amber-500 bg-amber-50 dark:bg-amber-900/20 group-hover:bg-amber-100', active: 'bg-amber-500 text-white shadow-amber-500/30' },
     { id: 'ai-assistant', label: 'AI Assistant', icon: Bot, color: 'text-indigo-500 bg-indigo-50 dark:bg-indigo-900/20 group-hover:bg-indigo-100', active: 'bg-indigo-500 text-white shadow-indigo-500/30' }
   ];
@@ -223,8 +177,8 @@ const UploadCenter = () => {
                  <ArrowLeft size={20} />
               </Link>
               <div>
-                 <h1 className="text-xl font-black dark:text-white uppercase tracking-tighter">Faculty Upload Hub</h1>
-                 <p className="text-[10px] font-black text-primary-500 uppercase tracking-widest">{courseInfo?.name || courseId}</p>
+                 <h1 className="text-xl font-black dark:text-white uppercase tracking-tighter">{courseInfo?.name} [{courseInfo?.code || courseId}]</h1>
+                 <p className="text-[10px] font-black text-primary-500 uppercase tracking-widest">Faculty Upload Hub</p>
               </div>
            </div>
            <div className="flex items-center gap-4">
@@ -240,54 +194,24 @@ const UploadCenter = () => {
            </div>
         </header>
 
-        <div className="flex-1 p-8 overflow-y-auto custom-scrollbar">
-           <div className="flex flex-col lg:flex-row gap-8">
-              {/* Left Column: Form */}
-              <div className="flex-1 space-y-8">
-                 <ContentUploader 
-                    showUploadForm={true}
-                    setShowUploadForm={() => {}}
-                    newTitle={newTitle}
-                    setNewTitle={setNewTitle}
-                    newType={newType}
-                    setNewType={setNewType}
-                    newUrl={newUrl}
-                    setNewUrl={setNewUrl}
-                    fileInputRef={fileInputRef}
-                    selectedFile={selectedFile}
-                    setSelectedFile={setSelectedFile}
-                    handleUploadCombined={handleUploadCombined}
-                    isUploading={isUploading}
-                    uploadProgress={uploadProgress}
-                    asgnTitle={asgnTitle}
-                    setAsgnTitle={setAsgnTitle}
-                    asgnDue={asgnDue}
-                    setAsgnDue={setAsgnDue}
-                    asgnDesc={asgnDesc}
-                    setAsgnDesc={setAsgnDesc}
-                    handleCreateAssignment={handleCreateAssignment}
-                    announcementTitle={announcementTitle}
-                    setAnnouncementTitle={setAnnouncementTitle}
-                    announcementContent={announcementContent}
-                    setAnnouncementContent={setAnnouncementContent}
-                    handleCreateAnnouncement={handleCreateAnnouncement}
-                 />
-              </div>
-
-              {/* Right Column: Feed */}
-              <div className="w-full lg:w-96 shrink-0">
-                 <div className="sticky top-0">
-                    <div className="flex items-center gap-2 mb-4">
-                       <Megaphone size={18} className="text-rose-500" />
-                       <h2 className="text-xs font-black dark:text-white uppercase tracking-widest">Notice Broadcast History</h2>
-                    </div>
-                    <LiveActivityFeed 
-                       announcements={announcements}
-                       isTeacher={isTeacher}
-                       activeSection="upload"
-                    />
-                 </div>
-              </div>
+        <div className="flex-1 p-8 overflow-y-auto custom-scrollbar flex flex-col items-center">
+           <div className="w-full max-w-4xl space-y-8 mt-12">
+              <ContentUploader 
+                 showUploadForm={true}
+                 setShowUploadForm={() => {}}
+                 newTitle={newTitle}
+                 setNewTitle={setNewTitle}
+                 newType={newType}
+                 setNewType={setNewType}
+                 newUrl={newUrl}
+                 setNewUrl={setNewUrl}
+                 fileInputRef={fileInputRef}
+                 selectedFile={selectedFile}
+                 setSelectedFile={setSelectedFile}
+                 handleUploadCombined={handleUploadCombined}
+                 isUploading={isUploading}
+                 uploadProgress={uploadProgress}
+              />
            </div>
         </div>
       </main>

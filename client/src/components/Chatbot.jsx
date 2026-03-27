@@ -85,7 +85,7 @@ const Chatbot = ({ variant = 'floating', className = '', noAutoScroll = false })
   };
 
   const chatWindow = (
-    <div className={`flex flex-col h-full bg-white dark:bg-[#030712] rounded-[2.5rem] shadow-2xl border border-gray-100 dark:border-gray-800/50 overflow-hidden relative ${variant === 'inline' ? 'w-full h-full' : 'w-full h-full md:w-[450px] md:h-[700px]'}`}>
+    <div className={`flex flex-col h-full bg-white dark:bg-[#030712] rounded-[2.5rem] shadow-2xl border border-gray-100 dark:border-gray-800/50 overflow-hidden relative w-full h-full`}>
       
       {/* --- BOOST MODE BACKGROUND --- */}
       <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden opacity-30">
@@ -122,9 +122,9 @@ const Chatbot = ({ variant = 'floating', className = '', noAutoScroll = false })
               <button 
                 onClick={() => setIsOpen(false)}
                 className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl transition-all"
-                title="Back to Page"
+                title="Close AI Dashboard"
               >
-                <ArrowLeft size={18} className="text-gray-400" />
+                <X size={22} className="text-gray-400 hover:text-rose-500 transition-colors" />
               </button>
             )}
             <div className="flex items-center gap-3">
@@ -138,10 +138,10 @@ const Chatbot = ({ variant = 'floating', className = '', noAutoScroll = false })
               </motion.div>
               <div>
                 <div className="flex items-center gap-2">
-                  <h3 className="font-black text-xs text-gray-900 dark:text-white uppercase tracking-[0.2em] leading-none">Intelligence Terminal</h3>
+                  <h3 className="font-black text-sm text-gray-900 dark:text-white uppercase tracking-[0.2em] leading-none">Intelligence Terminal</h3>
                   <span className="px-2 py-0.5 bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 rounded-md text-[8px] font-black uppercase tracking-widest border border-emerald-500/20">Secure Sync</span>
                 </div>
-                <div className="text-[9px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest mt-1.5 flex items-center gap-2">
+                <div className="text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest mt-1.5 flex items-center gap-2">
                   <div className="w-1 h-1 bg-emerald-500 rounded-full animate-pulse"></div> Gemini 2.0 Advanced Reasoning Engine
                 </div>
               </div>
@@ -159,38 +159,37 @@ const Chatbot = ({ variant = 'floating', className = '', noAutoScroll = false })
       <div className="relative z-10 flex-1 overflow-y-auto p-6 space-y-6 no-scrollbar bg-gray-50/30 dark:bg-[#030712]/50">
         {messages.map((msg) => (
           <motion.div 
-            initial={{ opacity: 0, y: 10, scale: 0.95 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
             key={msg.id} 
-            className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}
+            className={`flex w-full ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}
           >
-            <div className={`flex gap-3 max-w-[85%] ${msg.sender === 'user' ? 'flex-row-reverse' : 'flex-row'}`}>
-              <div className={`w-10 h-10 rounded-2xl flex-shrink-0 flex items-center justify-center shadow-lg border ${
+            <div className={`flex gap-6 w-full ${msg.sender === 'user' ? 'max-w-[90%] flex-row-reverse' : 'max-w-full flex-row'}`}>
+              <div className={`w-10 h-10 rounded-2xl flex-shrink-0 flex items-center justify-center shadow-xl border mt-1 transition-transform hover:scale-110 ${
                 msg.sender === 'user' 
                   ? 'bg-primary-600 text-white border-primary-500 shadow-primary-500/20' 
-                  : 'bg-white dark:bg-gray-800 text-indigo-600 border-gray-100 dark:border-gray-700 shadow-black/5'
+                  : 'bg-indigo-600 text-white border-indigo-500 shadow-indigo-500/20'
               }`}>
                 {msg.sender === 'user' ? <User size={20} /> : <Bot size={20} />}
               </div>
-              <div className={`relative px-5 py-4 rounded-[2rem] text-xs font-bold leading-relaxed transition-all ${
+              <div className={`flex-1 relative px-6 py-5 rounded-[2.5rem] text-sm font-bold leading-relaxed transition-all ${
                 msg.sender === 'user' 
-                  ? 'bg-gradient-to-br from-primary-600 to-indigo-600 text-white rounded-tr-none shadow-xl shadow-primary-600/20' 
-                  : 'bg-white dark:bg-gray-800/80 backdrop-blur-md text-gray-800 dark:text-gray-100 border border-gray-100 dark:border-gray-700/50 shadow-sm rounded-tl-none'
+                  ? 'bg-white dark:bg-gray-800 text-gray-900 dark:text-white rounded-tr-none border border-gray-100 dark:border-gray-700 shadow-xl' 
+                  : 'bg-white/40 dark:bg-white/5 backdrop-blur-xl text-gray-800 dark:text-gray-100 border border-white/20 dark:border-white/10 shadow-sm rounded-tl-none'
               }`}>
                 {msg.sender === 'user' ? (
                   msg.text
                 ) : (
-                  <div className="prose prose-sm dark:prose-invert max-w-none prose-p:leading-relaxed prose-pre:bg-gray-100 dark:prose-pre:bg-gray-900/50 prose-pre:p-4 prose-pre:rounded-2xl prose-code:text-primary-600 dark:prose-code:text-primary-400">
+                  <div className="prose prose-sm dark:prose-invert max-w-none prose-p:leading-relaxed prose-pre:bg-gray-100 dark:prose-pre:bg-gray-900/50 prose-pre:p-6 prose-pre:rounded-3xl prose-code:text-primary-600 dark:prose-code:text-primary-400 prose-headings:text-indigo-600 dark:prose-headings:text-indigo-400">
                     <ReactMarkdown remarkPlugins={[remarkGfm]}>
                       {msg.text}
                     </ReactMarkdown>
                   </div>
                 )}
                 
-                {/* Visual Accent for bot messages */}
                 {msg.sender === 'bot' && (
-                  <div className="absolute top-0 right-0 p-2 opacity-10">
-                    <Sparkles size={12} />
+                  <div className="absolute top-4 right-4 opacity-[0.03] pointer-events-none">
+                    <BrainCircuit size={48} />
                   </div>
                 )}
               </div>
@@ -227,7 +226,7 @@ const Chatbot = ({ variant = 'floating', className = '', noAutoScroll = false })
               onChange={(e) => setInput(e.target.value)}
               placeholder="Synchronize query..."
               disabled={!user}
-              className="w-full pl-6 pr-14 py-4 rounded-2xl bg-gray-50 dark:bg-gray-900 border border-transparent focus:border-primary-500/50 dark:focus:border-indigo-500/50 outline-none font-black text-xs text-gray-900 dark:text-white transition-all disabled:opacity-50 shadow-inner"
+              className="w-full pl-6 pr-14 py-4 rounded-2xl bg-gray-50 dark:bg-gray-900 border border-transparent focus:border-primary-500/50 dark:focus:border-indigo-500/50 outline-none font-black text-sm text-gray-900 dark:text-white transition-all disabled:opacity-50 shadow-inner"
             />
             <div className="absolute right-4 top-1/2 -translate-y-1/2 opacity-20 hidden md:block">
               <Zap size={18} />
@@ -281,32 +280,18 @@ const Chatbot = ({ variant = 'floating', className = '', noAutoScroll = false })
         </motion.button>
       </div>
 
-      {/* Fullscreen Overlay */}
+      {/* Floating Popup Window */}
       <AnimatePresence>
         {isOpen && (
           <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[2000] bg-white dark:bg-[#030712] flex flex-col items-center justify-center p-0 md:p-8"
+            layoutId="chatbot-window"
+            initial={{ opacity: 0, y: 40, scale: 0.9, transformOrigin: 'bottom right' }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 40, scale: 0.9 }}
+            transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+            className="fixed bottom-28 right-8 z-[2000] w-[400px] h-[600px] max-w-[95vw] max-h-[80vh] shadow-[0_30px_100px_-20px_rgba(0,0,0,0.4)] rounded-[2.5rem] overflow-hidden border border-gray-100 dark:border-gray-800"
           >
-            {/* Background elements for Boost Mode */}
-            <div className="absolute inset-0 pointer-events-none z-0 overflow-hidden">
-              <div className="absolute top-[-20%] left-[-10%] w-[70vw] h-[70vw] rounded-full bg-primary-600/10 blur-[150px]" />
-              <div className="absolute bottom-[-20%] right-[-10%] w-[60vw] h-[60vw] rounded-full bg-indigo-600/10 blur-[150px]" />
-              <div className="absolute top-[30%] right-[10%] w-[100px] h-[100px] bg-primary-500/10 blur-3xl animate-pulse" />
-            </div>
-
-            <motion.div
-              layoutId="chatbot-window"
-              initial={{ scale: 0.9, opacity: 0, y: 50 }}
-              animate={{ scale: 1, opacity: 1, y: 0 }}
-              exit={{ scale: 0.9, opacity: 0, y: 50 }}
-              transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-              className="w-full h-full max-w-[1400px] max-h-[900px] shadow-[0_50px_100px_-20px_rgba(0,0,0,0.5)] z-10"
-            >
-              {chatWindow}
-            </motion.div>
+            {chatWindow}
           </motion.div>
         )}
       </AnimatePresence>

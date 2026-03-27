@@ -4,6 +4,7 @@ import User from '../models/User.js';
 import Progress from '../models/Progress.js';
 import Resource from '../models/Resource.js';
 import Assignment from '../models/Assignment.js';
+import Submission from '../models/Submission.js';
 import CourseAccess from '../models/CourseAccess.js';
 import mongoose from 'mongoose';
 
@@ -34,12 +35,25 @@ export const getCourses = async (req, res) => {
         const studentSem = req.user.semester;
         courses = courses.filter(c => c.semester === studentSem && !c.excludedStudents?.includes(req.user._id));
       } else if (req.user.role === 'teacher') {
-        courses = courses.filter(c => {
-           const isAssigned = c.facultyAssigned?.some(f => f._id.equals(req.user._id) || f.equals(req.user._id));
-           const isDeptMatch = c.department?.name === req.user.department || c.department?.code === req.user.department;
-           const isSemAssigned = req.user.assignedSemesters?.length > 0 ? req.user.assignedSemesters.includes(c.semester) : true;
-           return isAssigned || (isDeptMatch && isSemAssigned);
+        const userDept = req.user.department?.trim();
+        courses = courses.map(c => {
+           const isAssigned = c.facultyAssigned?.some(f => 
+             (f._id?.equals(req.user._id) || f.equals(req.user._id))
+           );
+           
+           const isDeptMatch = c.department?.name === userDept || c.department?.code === userDept;
+           const isSemMatch = (req.user.assignedSemesters && req.user.assignedSemesters.length > 0) 
+             ? req.user.assignedSemesters.includes(c.semester) 
+             : false;
+           
+           const authorized = isAssigned || (isDeptMatch && isSemMatch);
+           return { ...c.toObject(), isAuthorized: authorized }; 
         });
+        
+        // Show all courses in teacher's department, but tag authorization
+        courses = courses.filter(c => 
+          c.department?.name === userDept || c.department?.code === userDept || c.isAuthorized
+        );
       }
     }
       
@@ -120,13 +134,32 @@ export const uploadTimetableImage = async (req, res) => {
 export const getCourseStudents = async (req, res) => {
   try {
     const code = req.params.code.toUpperCase();
-    const course = await Course.findOne({ code }).populate('department');
+    const course = await Course.findOne({ code }).populate('department').populate('facultyAssigned');
     if (!course) return res.status(404).json({ message: 'Course not found' });
 
-    // 1. Get total items to calc progress
-    const totalResources = await Resource.countDocuments({ extraCourseId: code });
-    const totalAssignments = await Assignment.countDocuments({ extraCourseId: code });
-    const totalItems = totalResources + totalAssignments;
+    // Authorization Check for Teachers
+    if (req.user.role === 'teacher') {
+       const userDept = req.user.department?.trim();
+       const isAssigned = course.facultyAssigned?.some(f => 
+         (f._id?.equals(req.user._id) || f.equals(req.user._id))
+       );
+       const isDeptMatch = course.department?.name === userDept || course.department?.code === userDept;
+       const isSemMatch = (req.user.assignedSemesters && req.user.assignedSemesters.length > 0) 
+         ? req.user.assignedSemesters.includes(course.semester) 
+         : false;
+       
+       if (!isAssigned && !(isDeptMatch && isSemMatch)) {
+         return res.status(403).json({ message: 'Unauthorized access to course students' });
+       }
+    }
+
+    // 1. Get all items to calc content progress and reward XP
+    const courseResources = await Resource.find({ extraCourseId: code });
+    const courseAssignments = await Assignment.find({ 
+      $or: [{ extraCourseId: code }, { course: course._id }] 
+    });
+    
+    const totalItems = courseResources.length + courseAssignments.length;
 
     // 2. Find students who belong to this course (Matching department)
     const students = await User.find({
@@ -145,13 +178,37 @@ export const getCourseStudents = async (req, res) => {
 
     // 3. Attach progress data for each student
     const studentData = await Promise.all(activeStudents.map(async (student) => {
+      // Progress & Resource XP
       const progress = await Progress.findOne({ user: student._id, course: course._id });
-      const completedCount = progress ? progress.completedItems.length : 0;
-      const percentage = totalItems > 0 ? Math.round((completedCount / totalItems) * 100) : 0;
+      const completedResourceIds = progress ? progress.completedItems.map(i => i.itemId.toString()) : [];
       
-      // Calculate XP (Dummy logic but more realistic than static)
-      // Base XP 10 per item + 50 bonus if completed
-      const xp = completedCount * 10 + (percentage === 100 ? 500 : 0);
+      // Calculate resource XP from base points
+      const resourceXP = courseResources.reduce((acc, res) => {
+        if (completedResourceIds.includes(res._id.toString())) {
+          return acc + (res.points || 15);
+        }
+        return acc;
+      }, 0);
+
+      // 4. Calculate Assignment XP from Submissions
+      const assignmentIds = courseAssignments.map(a => a._id);
+
+      const studentSubmissions = await Submission.find({
+        student: student._id,
+        assignment: { $in: assignmentIds },
+        status: { $in: ['submitted', 'graded', 'late'] }
+      });
+
+      const submissionXP = studentSubmissions.reduce((acc, sub) => {
+        // Use marksObtained if graded, else automatedScore for quizes
+        return acc + (sub.marksObtained || sub.automatedScore || 0);
+      }, 0);
+
+      const totalXP = resourceXP + submissionXP;
+
+      // ACTUAL PROGRESS CALCULATION: Resources from Progress model + Assignments from Submission model
+      const actualCompletedCount = completedResourceIds.length + studentSubmissions.length;
+      const percentage = totalItems > 0 ? Math.round((actualCompletedCount / totalItems) * 100) : 0;
 
       // Determine Badge
       let badge = "Novice";
@@ -165,15 +222,16 @@ export const getCourseStudents = async (req, res) => {
         profilePic: student.profilePic,
         rollNumber: student.rollNumber,
         progress: percentage,
-        xp,
+        xp: totalXP,
         badge,
-        rank: 0 // Will rank after fetch
+        rank: 0 
       };
     }));
 
-    // Sort students alphabetically by Name as requested
-    const sorted = studentData.sort((a, b) => a.name.localeCompare(b.name));
-    const ranked = sorted.map((s, idx) => ({ ...s, rank: idx + 1 }));
+    // Sort students by XP (DESC) for Leaderboard
+    const sortedByXP = studentData.sort((a, b) => b.xp - a.xp);
+    // Sort by name if XP is tied? (Optional but good)
+    const ranked = sortedByXP.map((s, idx) => ({ ...s, rank: idx + 1 }));
 
     res.json(ranked);
   } catch (error) {
@@ -193,5 +251,38 @@ export const removeStudentFromCourse = async (req, res) => {
     res.json({ message: 'Student removed from course', excludedStudents: course.excludedStudents });
   } catch (error) {
     res.status(500).json({ message: 'Error removing student', error: error.message });
+  }
+};
+
+export const toggleAutoRestrict = async (req, res) => {
+    try {
+        const { code } = req.params;
+        const course = await Course.findOne({ code });
+        if (!course) return res.status(404).json({ message: 'Course node not identified.' });
+
+        course.autoRestrictEnabled = !course.autoRestrictEnabled;
+        await course.save();
+
+        res.json({ message: `Auto-Restriction ${course.autoRestrictEnabled ? 'Activated' : 'Suspended'}.`, enabled: course.autoRestrictEnabled });
+    } catch (e) {
+        res.status(500).json({ message: e.message });
+    }
+};
+
+export const updateCourseDeadline = async (req, res) => {
+  try {
+    const { code } = req.params;
+    const { marksDeadline } = req.body;
+
+    const course = await Course.findOne({ code: code.toUpperCase() });
+    if (!course) return res.status(404).json({ message: 'Course not found' });
+
+    course.marksDeadline = marksDeadline;
+    await course.save();
+
+    res.json({ message: 'Result locking deadline synchronized.', marksDeadline: course.marksDeadline });
+  } catch (e) {
+    console.error('CRITICAL: Course Deadline Update Failed =>', e);
+    res.status(500).json({ message: e.message });
   }
 };

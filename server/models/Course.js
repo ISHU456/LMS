@@ -27,7 +27,9 @@ const courseSchema = new mongoose.Schema({
   }],
   timetableImageUrl: { type: String },
   meetingLink: { type: String, default: 'https://meet.google.com/new' },
-  excludedStudents: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }]
+  excludedStudents: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
+  autoRestrictEnabled: { type: Boolean, default: true },
+  marksDeadline: { type: Date } // Deadline for result entry after which it locks
 }, {
   timestamps: true
 });

@@ -50,9 +50,9 @@ const ContentUploader = ({
           </button>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="flex justify-center">
           {/* Resource Signal */}
-          <div className="space-y-4 p-6 rounded-3xl bg-gray-50 dark:bg-gray-800/20 border border-gray-100 dark:border-white/5">
+          <div className="w-full max-w-xl space-y-4 p-6 rounded-3xl bg-gray-50 dark:bg-gray-800/20 border border-gray-100 dark:border-white/5">
              <div className="flex items-center gap-3">
                 <div className="w-8 h-8 rounded-lg bg-emerald-500/10 text-emerald-600 flex items-center justify-center"><Layers size={18}/></div>
                 <h3 className="text-xs font-black dark:text-white uppercase tracking-widest">Asset Parameters</h3>
@@ -88,40 +88,6 @@ const ContentUploader = ({
                className="w-full py-4 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl shadow-emerald-500/20 transition-all"
              >
                {isUploading ? `UPLOADING ${uploadProgress}%` : 'UPLOAD CONTENT'}
-             </button>
-          </div>
-
-          {/* Assignment Signal */}
-          <div className="space-y-4 p-6 rounded-3xl bg-gray-50 dark:bg-gray-800/20 border border-gray-100 dark:border-white/5">
-             <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-lg bg-indigo-500/10 text-indigo-600 flex items-center justify-center"><ClipboardCheck size={18}/></div>
-                <h3 className="text-xs font-black dark:text-white uppercase tracking-widest">Protocol Assignment</h3>
-             </div>
-             <input type="text" placeholder="PROTOCOL TITLE" value={asgnTitle} onChange={(e)=>setAsgnTitle(e.target.value)} className="w-full bg-white dark:bg-gray-800 border-0 rounded-xl px-4 py-3 text-xs font-bold uppercase tracking-tight"/>
-             <input type="datetime-local" value={asgnDue} onChange={(e)=>setAsgnDue(e.target.value)} className="w-full bg-white dark:bg-gray-800 border-0 rounded-xl px-4 py-3 text-xs font-bold uppercase tracking-tight"/>
-             <textarea placeholder="PROTOCOL DESCRIPTION" value={asgnDesc} onChange={(e)=>setAsgnDesc(e.target.value)} className="w-full bg-white dark:bg-gray-800 border-0 rounded-xl px-4 py-3 text-xs font-bold min-h-[80px] uppercase tracking-tight"/>
-             <button onClick={handleCreateAssignment} className="w-full py-4 bg-primary-600 hover:bg-primary-700 text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl shadow-primary-500/20 transition-all">DEPLOY PROTOCOL</button>
-          </div>
-
-          {/* Notice/Announcement Section */}
-          <div className="space-y-4 p-6 rounded-3xl bg-gray-50 dark:bg-gray-800/20 border border-gray-100 dark:border-white/5">
-             <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-lg bg-rose-500/10 text-rose-600 flex items-center justify-center"><Megaphone size={18}/></div>
-                <h3 className="text-xs font-black dark:text-white uppercase tracking-widest">Global Notice</h3>
-             </div>
-             <input 
-                type="text" placeholder="NOTICE TITLE" value={announcementTitle} onChange={(e)=>setAnnouncementTitle(e.target.value)}
-                className="w-full bg-white dark:bg-gray-800 border-0 rounded-xl px-4 py-3 text-xs font-bold focus:ring-2 ring-primary-500 uppercase tracking-tight"
-             />
-             <textarea 
-                placeholder="NOTICE CONTENT & BROADCAST" value={announcementContent} onChange={(e)=>setAnnouncementContent(e.target.value)}
-                className="w-full bg-white dark:bg-gray-800 border-0 rounded-xl px-4 py-3 text-xs font-bold min-h-[120px] uppercase tracking-tight"
-             />
-             <button 
-                onClick={handleCreateAnnouncement}
-                className="w-full py-4 bg-rose-600 hover:bg-rose-700 text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl shadow-rose-500/20 transition-all"
-             >
-                BROADCAST NOTICE
              </button>
           </div>
         </div>

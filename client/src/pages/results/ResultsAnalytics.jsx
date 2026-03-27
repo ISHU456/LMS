@@ -14,6 +14,11 @@ const ResultsAnalytics = () => {
   const [courseId, setCourseId] = useState('');
   const [semester, setSemester] = useState('');
   const [courses, setCourses] = useState([]);
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   useEffect(() => {
     const fetchCourses = async () => {
@@ -123,8 +128,9 @@ const ResultsAnalytics = () => {
                     <BookOpen className="text-blue-500" />
                     Grade Distribution
                   </h3>
-                  <div className="flex-1 min-h-[300px]">
-                    <ResponsiveContainer width="100%" height="100%">
+                  <div className="flex-1 min-h-[300px] relative">
+                    {isMounted && (
+                      <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
                       <BarChart data={getPieData()}>
                         <CartesianGrid strokeDasharray="3 3" stroke="#334155" vertical={false} />
                         <XAxis dataKey="name" stroke="#94a3b8" />
@@ -139,6 +145,7 @@ const ResultsAnalytics = () => {
                         </Bar>
                       </BarChart>
                     </ResponsiveContainer>
+                    )}
                   </div>
                </div>
 
@@ -147,8 +154,9 @@ const ResultsAnalytics = () => {
                     <TrendingUp className="text-purple-500" />
                     Overall Performance
                   </h3>
-                  <div className="flex-1 min-h-[300px]">
-                    <ResponsiveContainer width="100%" height="100%">
+                  <div className="flex-1 min-h-[300px] relative">
+                    {isMounted && (
+                      <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
                       <PieChart>
                         <Pie
                           data={getPieData()}
@@ -167,6 +175,7 @@ const ResultsAnalytics = () => {
                         <Legend verticalAlign="bottom" height={36}/>
                       </PieChart>
                     </ResponsiveContainer>
+                    )}
                   </div>
                </div>
             </div>

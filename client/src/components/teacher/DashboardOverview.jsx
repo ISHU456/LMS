@@ -5,7 +5,7 @@ import {
   TrendingUp, TrendingDown, LayoutGrid, 
   CalendarDays, ChevronRight, ArrowUpRight,
   ShieldCheck, ShieldAlert, ShieldOff, Sparkles, Bell, Check, X,
-  FileText
+  FileText, Trophy
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -22,18 +22,34 @@ const DashboardOverview = ({ user }) => {
   const [activeCourseStudents, setActiveCourseStudents] = useState([]);
   const [isStudentsLoading, setIsStudentsLoading] = useState(false);
   const [markingId, setMarkingId] = useState(null);
+  const [globalLeaderboard, setGlobalLeaderboard] = useState([]);
+  const [isMounted, setIsMounted] = useState(false);
   const navigate = useNavigate();
 
   const todayStr = new Date().toISOString().split('T')[0];
 
   useEffect(() => {
     if (user?.token) {
+      setIsMounted(true);
       fetchStats();
+      fetchLeaderboard();
       // Real-time update simulation (or setup polling/socket listener)
-      const interval = setInterval(fetchStats, 60000); // 1-minute updates
+      const interval = setInterval(() => {
+        fetchStats();
+        fetchLeaderboard();
+      }, 60000); // 1-minute updates
       return () => clearInterval(interval);
     }
   }, [user?.token]);
+
+  const fetchLeaderboard = async () => {
+    try {
+      const res = await axios.get('http://localhost:5001/api/auth/leaderboard');
+      setGlobalLeaderboard(res.data);
+    } catch (err) {
+      console.error("Failed to fetch leaderboard in dashboard overview");
+    }
+  };
 
   const fetchStats = async () => {
     try {
@@ -126,12 +142,12 @@ const DashboardOverview = ({ user }) => {
               <Bell size={20} className="animate-bounce" />
             </div>
             <div>
-              <p className="text-sm font-black text-rose-900 dark:text-rose-100 uppercase tracking-tight">Critical Alert: Attention Required</p>
-              <p className="text-xs font-bold text-rose-600 dark:text-rose-400 uppercase tracking-widest mt-0.5">{totalLowAttendance} students have dropped below 75% attendance threshold.</p>
+              <p className="text-sm font-black text-rose-900 dark:text-rose-100 uppercase tracking-tight">System Notice: Immediate Action Required</p>
+              <p className="text-xs font-bold text-rose-600 dark:text-rose-400 uppercase tracking-widest mt-0.5">{totalLowAttendance} students have dropped below 75% attendance. Threshold security active.</p>
             </div>
           </div>
           <button className="px-4 py-2 bg-rose-500 text-white text-[10px] font-black uppercase tracking-widest rounded-xl hover:opacity-90 transition-all shadow-md">
-            Review List
+            Execute Filter
           </button>
         </motion.div>
       )}
@@ -139,217 +155,244 @@ const DashboardOverview = ({ user }) => {
       {/* Main Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {[
-          { label: 'Total Enrolled', value: totalStudents, sub: 'Across subjects', icon: Users, color: '#4361ee', accent: 'bg-indigo-50 text-indigo-600' },
-          { label: 'Avg Attendance', value: `${Math.round(avgAttendanceForAll)}%`, sub: 'Current Semester', icon: CalendarDays, color: '#10b981', accent: 'bg-emerald-50 text-emerald-600' },
-          { label: 'Total Conflicts', value: totalBlocked + totalRestricted, sub: `${totalBlocked} Blocked / ${totalRestricted} Restricted`, icon: ShieldAlert, color: '#f59e0b', accent: 'bg-amber-50 text-amber-600' },
-          { label: 'Performance', value: '88%', sub: 'Avg engagement', icon: Sparkles, color: '#7209b7', accent: 'bg-purple-50 text-purple-600' }
+          { label: 'Network Reach', value: totalStudents, trend: '+12%', icon: Users, accent: 'bg-indigo-50 text-indigo-600', color: '#4361ee' },
+          { label: 'Avg Integrity', value: `${Math.round(avgAttendanceForAll)}%`, trend: '-0.4%', icon: CalendarDays, accent: 'bg-emerald-50 text-emerald-600', color: '#10b981' },
+          { label: 'Access Barriers', value: totalBlocked + totalRestricted, trend: '+2', icon: ShieldAlert, accent: 'bg-amber-50 text-amber-600', color: '#f59e0b' },
+          { label: 'Synergy Score', value: '88%', trend: '+5.2%', icon: Sparkles, accent: 'bg-purple-50 text-purple-600', color: '#7209b7' }
         ].map((s, i) => (
-          <motion.div key={i} initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: i * 0.1 }}
-            className="bg-white dark:bg-gray-900 p-6 rounded-[32px] border border-gray-100 dark:border-gray-800 shadow-sm hover:shadow-xl transition-all cursor-default relative overflow-hidden group">
-            <div className={`absolute top-0 right-0 p-8 opacity-5 group-hover:scale-110 transition-transform`}>
-              <s.icon size={110} />
-            </div>
+          <motion.div key={i} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.1 }}
+            className="bg-white dark:bg-gray-900 p-6 rounded-[32px] border border-gray-100 dark:border-gray-800 shadow-sm relative overflow-hidden group">
             <div className="flex items-center justify-between mb-6">
               <div className={`p-3 rounded-2xl ${s.accent}`}><s.icon size={20}/></div>
-              {i === 1 && <span className="text-[9px] font-black uppercase tracking-widest text-emerald-500 bg-emerald-50 px-2 py-1 rounded-full"><TrendingUp size={10} className="inline mr-1"/>+2.4%</span>}
+              <span className={`text-[9px] font-black uppercase px-2 py-1 rounded-full ${s.trend.startsWith('+') ? 'bg-emerald-50 text-emerald-500' : 'bg-rose-50 text-rose-500'}`}>
+                {s.trend}
+              </span>
             </div>
             <p className="text-4xl font-black text-gray-900 dark:text-white tracking-tighter tabular-nums">{s.value}</p>
-            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mt-2">{s.label}</p>
-            <p className="text-[9px] font-bold text-gray-300 dark:text-gray-600 uppercase mt-1 italic tracking-widest">{s.sub}</p>
+            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mt-1 italic">{s.label}</p>
+            <div className="absolute -bottom-4 -right-4 opacity-5 group-hover:scale-110 group-hover:-rotate-12 transition-all duration-500 pointer-events-none">
+               <s.icon size={120} />
+            </div>
           </motion.div>
         ))}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Subject-wise Cards List */}
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
+        {/* Left: Your Subjects Fixed List */}
         <div className="lg:col-span-1 space-y-4">
           <div className="flex items-center justify-between px-2">
-            <h3 className="text-xs font-black text-gray-900 dark:text-white uppercase tracking-widest">Your Subjects</h3>
-            <span className="text-[9px] font-black text-gray-400 uppercase tracking-widest">{stats.length} Subjects</span>
+            <h3 className="text-[10px] font-black text-gray-900 dark:text-white uppercase tracking-widest">Global Node Map</h3>
+            <span className="text-[9px] font-black text-rose-500 px-2 py-0.5 bg-rose-50 dark:bg-rose-900/20 rounded-full">{stats.length} Nodes</span>
           </div>
-          <div className="space-y-3">
+          <div className="space-y-3 h-[600px] overflow-y-auto pr-2 custom-scrollbar">
             {stats.map((s, i) => (
               <motion.div key={s.courseId} onClick={() => setActiveCourseIndex(i)}
                 whileHover={{ x: 4 }}
-                className={`w-full p-5 rounded-[28px] text-left transition-all border flex items-center justify-between gap-4 group cursor-pointer ${activeCourseIndex === i ? 'bg-indigo-600 border-indigo-500 text-white shadow-xl shadow-indigo-200 dark:shadow-indigo-900/40' : 'bg-white dark:bg-gray-900 border-gray-100 dark:border-gray-800 hover:border-indigo-300'}`}>
+                className={`w-full p-5 rounded-[28px] text-left transition-all border flex items-center justify-between gap-4 group cursor-pointer ${activeCourseIndex === i ? 'bg-gray-900 dark:bg-white dark:text-gray-900 text-white shadow-2xl' : 'bg-white dark:bg-gray-900 border-gray-100 dark:border-gray-800 hover:border-gray-300'}`}>
                 <div className="min-w-0">
                   <div className="flex items-center gap-2 mb-1">
-                    <span className={`text-[10px] font-black px-2 py-0.5 rounded-full border ${activeCourseIndex === i ? 'bg-white/20 border-white/20 text-white' : 'bg-gray-50 border-gray-100 text-gray-500'}`}>{s.courseCode}</span>
-                    <span className={`text-[9px] font-black uppercase ${activeCourseIndex === i ? 'text-indigo-200' : 'text-gray-400'}`}>{s.studentCount} Students Enrolled</span>
+                    <span className={`text-[9px] font-black px-1.5 py-0.5 rounded-md border ${activeCourseIndex === i ? 'bg-white/10 border-white/20 text-white dark:bg-gray-100 dark:text-gray-900' : 'bg-gray-50 border-gray-100 text-gray-400'}`}>{s.courseCode}</span>
+                    <span className={`text-[8px] font-black uppercase ${activeCourseIndex === i ? 'text-gray-400' : 'text-gray-300'}`}>{s.studentCount} Units</span>
                   </div>
-                  <h4 className={`text-sm font-black uppercase truncate ${activeCourseIndex === i ? 'text-white' : 'text-gray-900 dark:text-white'}`}>{s.courseName}</h4>
+                  <h4 className={`text-xs font-black uppercase truncate ${activeCourseIndex === i ? 'text-white dark:text-gray-900' : 'text-gray-900 dark:text-white'}`}>{s.courseName}</h4>
                 </div>
-                <div className="flex flex-col gap-2">
-                  <div className={`p-2 rounded-xl transition-all ${activeCourseIndex === i ? 'bg-white/10 text-white rotate-90' : 'bg-gray-50 text-gray-300 group-hover:text-indigo-500'}`}>
-                     <ChevronRight size={16}/>
-                  </div>
-                  <button 
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    navigate(`/results/entry?courseId=${s.courseId}&semester=${s.semester}`);
-                  }}
-                  className={`p-2 rounded-xl transition-all ${activeCourseIndex === i ? 'bg-white/20 text-white' : 'bg-indigo-50 text-indigo-500'}`}
-                  title="Go to Grading"
-                  >
-                    <FileText size={16}/>
-                  </button>
+                <div className={`p-2 rounded-xl transition-all ${activeCourseIndex === i ? 'bg-white/10 text-white dark:text-gray-300' : 'bg-gray-50 text-gray-300 group-hover:text-indigo-500'}`}>
+                   <ArrowUpRight size={14}/>
                 </div>
               </motion.div>
             ))}
           </div>
         </div>
 
-        {/* Analytics Section */}
-        <div className="lg:col-span-2 space-y-6">
-          {currentCourse && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {/* Pie Chart: Access Distribution */}
-              <div className="bg-white dark:bg-gray-900 p-6 rounded-[32px] border border-gray-100 dark:border-gray-800 shadow-sm">
-                <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-6 flex items-center gap-2">
-                  <ShieldCheck size={14} className="text-indigo-500"/> Course Access State
-                </h3>
-                <div className="h-[200px] w-full flex items-center">
-                  <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
-                    <PieChart>
-                      <Pie data={pieData} cx="50%" cy="50%" innerRadius={60} outerRadius={80} paddingAngle={5} dataKey="value">
-                        {pieData.map((entry, index) => <Cell key={`cell-${index}`} fill={entry.color} />)}
-                      </Pie>
-                      <Tooltip />
-                    </PieChart>
-                  </ResponsiveContainer>
-                  <div className="space-y-2 pr-6">
-                     {pieData.map(d => (
-                       <div key={d.name} className="flex items-center gap-2">
-                         <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: d.color }}/>
-                         <span className="text-[10px] font-black text-gray-500 uppercase">{d.name}: {d.value}</span>
-                       </div>
-                     ))}
-                  </div>
-                </div>
-              </div>
+        {/* Center: Interactive Intelligence Hub */}
+        <div className="lg:col-span-2 space-y-8">
+           {currentCourse ? (
+             <>
+               {/* Quick Intelligence Summary */}
+               <div className="grid grid-cols-3 gap-4">
+                  {[
+                    { label: 'Unit Health', value: `${currentCourse.avgAttendance}%`, color: 'text-emerald-500', bg: 'bg-emerald-50' },
+                    { label: 'Risk Factor', value: currentCourse.studentsBelow75, color: 'text-rose-500', bg: 'bg-rose-50' },
+                    { label: 'Isolation', value: currentCourse.restrictedStudents, color: 'text-amber-500', bg: 'bg-amber-50' }
+                  ].map((mini, midx) => (
+                    <div key={midx} className={`${mini.bg} dark:bg-gray-900 dark:border dark:border-gray-800 p-4 rounded-[28px] text-center`}>
+                       <p className={`text-xl font-black ${mini.color}`}>{mini.value}</p>
+                       <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest mt-1">{mini.label}</p>
+                    </div>
+                  ))}
+               </div>
 
-              {/* Bar Chart: Quick Stats Component */}
-              <div className="bg-white dark:bg-gray-900 p-6 rounded-[32px] border border-gray-100 dark:border-gray-800 shadow-sm">
-                <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-6 flex items-center gap-2">
-                   <AlertTriangle size={14} className="text-amber-500"/> Critical Metrics
-                </h3>
-                <div className="space-y-5">
-                   {[
-                     { label: 'Avg Attendance', value: currentCourse.avgAttendance, color: '#4361ee', icon: Clock },
-                     { label: 'Students Below 75%', value: Math.round((currentCourse.studentsBelow75 / currentCourse.studentCount) * 100) || 0, color: '#f43f5e', icon: UserMinus },
-                     { label: 'Restricted Students', value: Math.round((currentCourse.restrictedStudents / currentCourse.studentCount) * 100) || 0, color: '#f59e0b', icon: ShieldAlert },
-                     { label: 'Blocked Students', value: Math.round((currentCourse.blockedStudents / currentCourse.studentCount) * 100) || 0, color: '#f43f5e', icon: ShieldOff }
-                   ].map((item, idx) => (
-                     <div key={idx}>
-                        <div className="flex justify-between items-center mb-2">
-                          <span className="text-[10px] font-black text-gray-900 dark:text-white uppercase tracking-tight flex items-center gap-2">
-                            <item.icon size={12} style={{ color: item.color }}/> {item.label}
-                          </span>
-                          <span className="text-[11px] font-black tabular-nums" style={{ color: item.color }}>{item.value}%</span>
+               {/* Student Engagement Pictograph */}
+               <div className="bg-white dark:bg-gray-900 p-6 rounded-[40px] border border-gray-100 dark:border-gray-800 shadow-sm">
+                  <div className="flex items-center justify-between mb-6">
+                    <div>
+                       <h3 className="text-[10px] font-black text-gray-900 dark:text-white uppercase tracking-widest">Active Engagement Pictograph</h3>
+                       <p className="text-[8px] font-bold text-gray-400 mt-1 uppercase">Visual status matrix of all enrolled units</p>
+                    </div>
+                    <div className="flex gap-2">
+                       <div className="flex items-center gap-1"><div className="w-1.5 h-1.5 rounded-full bg-emerald-500"/><span className="text-[7px] font-black text-emerald-600 uppercase">Stable</span></div>
+                       <div className="flex items-center gap-1"><div className="w-1.5 h-1.5 rounded-full bg-amber-500"/><span className="text-[7px] font-black text-amber-600 uppercase">Warning</span></div>
+                       <div className="flex items-center gap-1"><div className="w-1.5 h-1.5 rounded-full bg-rose-500"/><span className="text-[7px] font-black text-rose-600 uppercase">Critical</span></div>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-10 gap-2 overflow-hidden">
+                    {activeCourseStudents.length > 0 ? activeCourseStudents.map((st, sidx) => {
+                       const isLow = Math.random() > 0.8; // Simulated for visual variety in pictograph
+                       const isBlocked = Math.random() > 0.95;
+                       return (
+                         <motion.div key={st._id} initial={{ opacity: 0, scale: 0 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: sidx * 0.01 }}
+                           className={`aspect-square rounded-lg flex items-center justify-center relative group cursor-help ${isBlocked ? 'bg-rose-100 text-rose-600' : isLow ? 'bg-amber-100 text-amber-600' : 'bg-emerald-50 text-emerald-600'}`}>
+                            <Users size={12} fill={isBlocked ? '#f43f5e' : isLow ? '#f59e0b' : '#10b981'} opacity={0.3}/>
+                            <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 bg-gray-900 text-white text-[8px] font-black px-2 py-1 rounded-md opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-50 pointer-events-none uppercase tracking-widest">
+                               {st.name}
+                            </div>
+                         </motion.div>
+                       );
+                    }) : Array.from({length: 40}).map((_, idx) => (
+                      <div key={idx} className="aspect-square rounded-lg bg-gray-50 dark:bg-gray-800 animate-pulse"/>
+                    ))}
+                  </div>
+               </div>
+
+               {/* Multi-Metric Visualization Grid */}
+               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                 {/* Stacked Attendance Velocity */}
+                 <div className="bg-white dark:bg-gray-900 p-8 rounded-[40px] border border-gray-100 dark:border-gray-800 shadow-sm relative overflow-hidden">
+                    <div className="flex items-center justify-between mb-8">
+                       <h3 className="text-[10px] font-black text-gray-900 dark:text-white uppercase tracking-widest flex items-center gap-2"><TrendingUp size={14} className="text-indigo-500"/> Attendance Flux</h3>
+                       <span className="text-[8px] font-black text-indigo-500 bg-indigo-50 px-2 py-0.5 rounded-md uppercase">14-Day Cycle</span>
+                    </div>
+                    <div className="h-[200px] w-full">
+                       {isMounted && (
+                         <ResponsiveContainer width="100%" height="100%">
+                            <AreaChart data={[
+                              { d: 'M', p: 85, a: 15 }, { d: 'T', p: 88, a: 12 }, { d: 'W', p: 82, a: 18 }, { d: 'T', p: 90, a: 10 }, { d: 'F', p: 85, a: 15 }, 
+                              { d: 'S', p: 78, a: 22 }, { d: 'M', p: 92, a: 8 }, { d: 'T', p: 89, a: 11 }
+                            ]}>
+                              <defs>
+                                <linearGradient id="fluxGrad" x1="0" y1="0" x2="0" y2="1">
+                                  <stop offset="5%" stopColor="#4361ee" stopOpacity={0.3}/>
+                                  <stop offset="95%" stopColor="#4361ee" stopOpacity={0}/>
+                                </linearGradient>
+                              </defs>
+                              <Tooltip contentStyle={{ borderRadius: '20px', border: 'none', background: '#ffffff', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.2)' }} />
+                              <Area type="monotone" dataKey="p" stroke="#4361ee" strokeWidth={4} fill="url(#fluxGrad)" />
+                            </AreaChart>
+                         </ResponsiveContainer>
+                       )}
+                    </div>
+                 </div>
+
+                 {/* Bar Chart: Subject Integrity Comparison */}
+                 <div className="bg-white dark:bg-gray-900 p-8 rounded-[40px] border border-gray-100 dark:border-gray-800 shadow-sm">
+                    <div className="flex items-center justify-between mb-8">
+                       <h3 className="text-[10px] font-black text-gray-900 dark:text-white uppercase tracking-widest flex items-center gap-2"><LayoutGrid size={14} className="text-emerald-500"/> Peer Comparison</h3>
+                       <span className="text-[8px] font-black text-gray-400 uppercase tracking-widest">Global Avg: 82%</span>
+                    </div>
+                    <div className="h-[200px] w-full">
+                       {isMounted && (
+                         <ResponsiveContainer width="100%" height="100%">
+                            <BarChart data={stats.slice(0, 5).map(s => ({ name: s.courseCode, val: s.avgAttendance }))}>
+                               <XAxis dataKey="name" axisLine={false} tickLine={false} fontSize={8} />
+                               <Tooltip cursor={{fill: '#f8fafc'}} contentStyle={{ borderRadius: '20px', border: 'none', background: '#000', color: '#fff' }} />
+                               <Bar dataKey="val" radius={[8, 8, 8, 8]} barSize={20}>
+                                 {stats.map((entry, index) => (
+                                   <Cell key={`cell-${index}`} fill={index === activeCourseIndex ? '#4361ee' : '#e2e8f0'} />
+                                 ))}
+                               </Bar>
+                            </BarChart>
+                         </ResponsiveContainer>
+                       )}
+                    </div>
+                 </div>
+               </div>
+             </>
+           ) : (
+             <div className="py-40 text-center animate-pulse">
+                <LayoutGrid size={48} className="mx-auto text-gray-200 mb-4"/>
+                <p className="text-[10px] font-black text-gray-300 uppercase tracking-widest">Initializing Neural Dashboard...</p>
+             </div>
+           )}
+        </div>
+
+        {/* Right: Active Units Action Sidebar */}
+        <div className="lg:col-span-1 space-y-6">
+           <div className="bg-white dark:bg-gray-900 p-6 rounded-[40px] border border-gray-100 dark:border-gray-800 shadow-sm flex flex-col h-[600px]">
+             <div className="flex items-center justify-between mb-6 shrink-0">
+               <div>
+                 <h3 className="text-[10px] font-black text-gray-900 dark:text-white uppercase tracking-widest">Live Unit Matrix</h3>
+                 <p className="text-[8px] font-bold text-gray-400 mt-0.5 uppercase tracking-tighter">Real-time status updates</p>
+               </div>
+               <span className="text-[8px] font-black text-indigo-500 bg-indigo-50 px-2 py-1 rounded-full uppercase tabular-nums">{activeCourseStudents.length}</span>
+             </div>
+             
+             <div className="flex-1 overflow-y-auto space-y-2 pr-1 custom-scrollbar">
+               {isStudentsLoading ? (
+                 [1,2,3,4,5,6].map(i => <div key={i} className="h-16 bg-gray-50 dark:bg-gray-800/40 rounded-3xl animate-pulse"/>)
+               ) : activeCourseStudents.length > 0 ? (
+                 activeCourseStudents.map((student, sidx) => (
+                   <motion.div key={student._id} initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: sidx * 0.05 }}
+                     className="flex items-center justify-between p-3 rounded-3xl hover:bg-gray-50 dark:hover:bg-gray-800/30 transition-all border border-transparent hover:border-gray-100 group">
+                     <div className="flex items-center gap-3">
+                       <div className="w-10 h-10 rounded-2xl bg-gray-50 dark:bg-gray-800 flex items-center justify-center font-black text-gray-400 group-hover:bg-white dark:group-hover:bg-gray-700 transition-all text-xs border border-transparent group-hover:border-gray-100">
+                         {student.profilePic ? <img src={student.profilePic} className="w-full h-full object-cover rounded-2xl" /> : student.name[0]}
+                       </div>
+                       <div className="min-w-0">
+                         <p className="text-[11px] font-black text-gray-900 dark:text-white uppercase truncate tracking-tight">{student.name}</p>
+                         <p className="text-[8px] font-bold text-gray-400 uppercase tracking-widest mt-0.5">{student.rollNumber}</p>
+                       </div>
+                     </div>
+                     <div className="flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-all scale-90 group-hover:scale-100">
+                        {markingId === student._id ? (
+                          <div className="w-4 h-4 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />
+                        ) : (
+                          <>
+                            <button onClick={() => handleQuickMark(student._id, 'present')} className="p-2 rounded-xl bg-emerald-500 text-white shadow-lg shadow-emerald-200 dark:shadow-none transition-all hover:scale-105 active:scale-95"><Check size={10}/></button>
+                            <button onClick={() => handleQuickMark(student._id, 'absent')} className="p-2 rounded-xl bg-rose-500 text-white shadow-lg shadow-rose-200 dark:shadow-none transition-all hover:scale-105 active:scale-95"><X size={10}/></button>
+                          </>
+                        )}
+                     </div>
+                   </motion.div>
+                 ))
+               ) : (
+                 <div className="text-center py-20 px-8">
+                    <ShieldOff size={40} className="mx-auto text-gray-200 mb-4 opacity-40"/>
+                    <p className="text-[9px] font-black text-gray-300 uppercase leading-relaxed tracking-widest">Select a synchronization node to view units</p>
+                 </div>
+               )}
+             </div>
+
+              <button 
+               onClick={() => navigate('/attendance')}
+               className="mt-6 w-full py-4 bg-gray-900 dark:bg-white dark:text-gray-900 text-white text-[10px] font-black uppercase tracking-widest rounded-[2rem] hover:opacity-90 hover:-translate-y-1 active:translate-y-0 transition-all shadow-2xl shadow-gray-200 dark:shadow-none shrink-0">
+                Access Full Control View
+              </button>
+
+              <div className="mt-8 pt-8 border-t border-gray-100 dark:border-gray-800 shrink-0">
+                <div className="flex items-center justify-between mb-6">
+                   <h3 className="text-[10px] font-black text-gray-900 dark:text-white uppercase tracking-widest flex items-center gap-2"><Trophy size={14} className="text-amber-500"/> Global Top Achievers</h3>
+                   <span className="text-[8px] font-black text-amber-500 bg-amber-50 px-2 py-0.5 rounded-full uppercase italic">Performance XP</span>
+                </div>
+                <div className="space-y-4">
+                   {globalLeaderboard.slice(0, 5).map((l, lidx) => (
+                     <div key={l._id} className="flex items-center justify-between group">
+                        <div className="flex items-center gap-3">
+                           <div className="w-8 h-8 rounded-full bg-gray-50 dark:bg-gray-800 flex items-center justify-center text-[10px] font-black text-gray-400 border border-transparent group-hover:border-amber-200 transition-all">
+                              {lidx + 1}
+                           </div>
+                           <div className="min-w-0">
+                              <p className="text-[10px] font-black text-gray-900 dark:text-white uppercase truncate tracking-tight">{l.name}</p>
+                              <p className="text-[7px] font-bold text-gray-400 uppercase tracking-widest">{l.department} · SEM {l.semester}</p>
+                           </div>
                         </div>
-                        <div className="h-2 bg-gray-50 dark:bg-gray-800 rounded-full overflow-hidden">
-                          <motion.div initial={{ width: 0 }} animate={{ width: `${item.value}%` }} transition={{ duration: 0.8, delay: idx * 0.1 }}
-                            className="h-full rounded-full" style={{ backgroundColor: item.color }}/>
+                        <div className="text-right">
+                           <p className="text-[10px] font-black text-amber-500">{l.xp}</p>
                         </div>
                      </div>
                    ))}
                 </div>
               </div>
-
-              {/* Attendance Trends (Fake data for visualization) */}
-              <div className="md:col-span-2 bg-white dark:bg-gray-900 p-8 rounded-[36px] border border-gray-100 dark:border-gray-800 shadow-sm">
-                <div className="flex items-center justify-between mb-8">
-                  <div>
-                    <h3 className="text-sm font-black text-gray-900 dark:text-white uppercase tracking-tighter flex items-center gap-2">
-                      <TrendingUp size={18} className="text-indigo-500"/> Attendance Velocity
-                    </h3>
-                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mt-1">Growth trends over the last 14 days</p>
-                  </div>
-                  <div className="flex items-center gap-2 p-1 bg-gray-50 dark:bg-gray-800 rounded-xl">
-                    <span className="px-3 py-1 bg-white dark:bg-gray-700 rounded-lg text-[9px] font-black uppercase text-indigo-600 shadow-sm">14 Days</span>
-                    <span className="px-3 py-1 text-[9px] font-black uppercase text-gray-400">30 Days</span>
-                  </div>
-                </div>
-                <div className="h-[280px] w-full">
-                  <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
-                    <AreaChart data={[
-                      { name: 'W1 D1', val: 82 }, { name: 'D2', val: 78 }, { name: 'D3', val: 85 }, 
-                      { name: 'D4', val: 92 }, { name: 'D5', val: 88 }, { name: 'D6', val: 80 }, 
-                      { name: 'W2 D1', val: 84 }, { name: 'D2', val: 89 }, { name: 'D3', val: 95 }, 
-                      { name: 'D4', val: 91 }, { name: 'D5', val: 93 }, { name: 'D6', val: 96 }
-                    ]}>
-                      <defs>
-                        <linearGradient id="velocityGrad" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor="#4361ee" stopOpacity={0.15}/>
-                          <stop offset="95%" stopColor="#7209b7" stopOpacity={0.01}/>
-                        </linearGradient>
-                      </defs>
-                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E5E7EB66" />
-                      <XAxis dataKey="name" fontSize={10} axisLine={false} tickLine={false} />
-                      <YAxis domain={[0, 100]} fontSize={10} axisLine={false} tickLine={false} />
-                      <Tooltip contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)' }} />
-                      <Area type="monotone" dataKey="val" stroke="#4361ee" strokeWidth={3} fillOpacity={1} fill="url(#velocityGrad)" />
-                    </AreaChart>
-                  </ResponsiveContainer>
-                </div>
-              </div>
             </div>
-          )}
-        </div>
-
-        {/* Right Sidebar: Active Students List */}
-        <div className="lg:col-span-1 space-y-6">
-          <div className="bg-white dark:bg-gray-900 p-6 rounded-[32px] border border-gray-100 dark:border-gray-800 shadow-sm flex flex-col h-full max-h-[800px]">
-            <div className="flex items-center justify-between mb-6">
-              <h3 className="text-xs font-black text-gray-900 dark:text-white uppercase tracking-widest">Active Students</h3>
-              <span className="text-[9px] font-black text-indigo-500 bg-indigo-50 px-2 py-1 rounded-full uppercase">{activeCourseStudents.length} Students</span>
-            </div>
-            
-            <div className="flex-1 overflow-y-auto space-y-3 pr-2 scrollbar-hide">
-              {isStudentsLoading ? (
-                [1,2,3,4,5].map(i => <div key={i} className="h-16 bg-gray-50 dark:bg-gray-800 rounded-2xl animate-pulse"/>)
-              ) : activeCourseStudents.length > 0 ? (
-                activeCourseStudents.map((student) => (
-                  <motion.div key={student._id} initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }}
-                    className="flex items-center justify-between p-3 rounded-2xl hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-all border border-transparent hover:border-gray-100 group">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-xl bg-indigo-50 dark:bg-indigo-900/30 flex items-center justify-center font-black text-indigo-600 border border-indigo-100 text-xs">
-                        {student.profilePic ? <img src={student.profilePic} className="w-full h-full object-cover rounded-xl" /> : student.name[0]}
-                      </div>
-                      <div className="min-w-0">
-                        <p className="text-xs font-black text-gray-900 dark:text-white uppercase truncate tracking-tight">{student.name}</p>
-                        <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">{student.rollNumber}</p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                       {markingId === student._id ? (
-                         <div className="w-5 h-5 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />
-                       ) : (
-                         <>
-                           <button onClick={() => handleQuickMark(student._id, 'present')} title="Mark Present"
-                             className="p-2 rounded-lg bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 hover:bg-emerald-500 hover:text-white transition-all">
-                             <Check size={12}/>
-                           </button>
-                           <button onClick={() => handleQuickMark(student._id, 'absent')} title="Mark Absent"
-                             className="p-2 rounded-lg bg-rose-50 dark:bg-rose-900/20 text-rose-600 hover:bg-rose-500 hover:text-white transition-all">
-                             <X size={12}/>
-                           </button>
-                         </>
-                       )}
-                    </div>
-                  </motion.div>
-                ))
-              ) : (
-                <div className="text-center py-20">
-                  <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">No students found</p>
-                </div>
-              )}
-            </div>
-
-            <button className="mt-6 w-full py-4 bg-gray-900 dark:bg-white dark:text-gray-900 text-white text-[10px] font-black uppercase tracking-widest rounded-2xl hover:opacity-90 transition-all shadow-xl shadow-gray-200 dark:shadow-none">
-              View All Students
-            </button>
-          </div>
         </div>
       </div>
     </div>

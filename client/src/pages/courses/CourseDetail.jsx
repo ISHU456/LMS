@@ -123,9 +123,11 @@ const CourseDetail = () => {
     (courseInfo?.department?.name === user?.department || courseInfo?.department?.code === user?.department) &&
     Number(courseInfo?.semester) <= Number(user?.semester)
   );
+  
+  const isExcluded = isStudent && courseInfo?.excludedStudents?.includes(user?._id);
 
   const isFutureSemester = isStudent && Number(courseInfo?.semester) > Number(user?.semester);
-  const isLocked = courseInfo && !(isAuthorizedTeacher || isEnrolledStudent);
+  const isLocked = courseInfo && !(isAuthorizedTeacher || (isEnrolledStudent && !isExcluded));
   const [dbProgress, setDbProgress] = useState({ percentage: 0, completedCount: 0, totalItems: 0 });
   
   // New Schedule Item State (deprecated for sidebar, moved to Schedule.jsx)
@@ -545,10 +547,10 @@ const CourseDetail = () => {
       if (user?.token) config.headers = { Authorization: `Bearer ${user.token}` };
       
       if (activeSection === 'assignments') {
-        await axios.delete(`http://localhost:5001/api/assignments/${item._id}`, config);
+        await axios.delete(`http://localhost:5001/api/assignments/${item._id}?courseId=${courseId}`, config);
         setAssignments(assignments.filter(a => a._id !== item._id));
       } else {
-        await axios.delete(`http://localhost:5001/api/resources/${item._id}`, config); 
+        await axios.delete(`http://localhost:5001/api/resources/${item._id}?courseId=${courseId}`, config); 
         setResources(resources.filter(r => r._id !== item._id)); 
       }
       
@@ -699,16 +701,41 @@ const CourseDetail = () => {
             );
       case 'youtube':
         return (
-          <div className="w-full bg-white dark:bg-black flex items-center justify-center h-full p-4 md:p-8">
-            <div className="w-full h-auto max-h-full aspect-video shadow-2xl rounded-2xl overflow-hidden border border-gray-200 dark:border-white/10 flex items-center justify-center">
-              <iframe
-                src={previewItem.url}
-                className="w-full h-full border-0"
-                title=""
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                allowFullScreen
-                loading="lazy"
-              />
+          <div className="w-full bg-white dark:bg-black flex flex-col h-full overflow-hidden">
+            <div className="flex-1 p-4 md:p-8 flex items-center justify-center min-h-0">
+              <div className="w-full h-auto max-h-full aspect-video shadow-2xl rounded-3xl overflow-hidden border-4 border-gray-200 dark:border-white/10 flex items-center justify-center bg-black">
+                <iframe
+                  src={previewItem.url}
+                  className="w-full h-full border-0"
+                  title="Video Content"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowFullScreen
+                  loading="lazy"
+                />
+              </div>
+            </div>
+            {/* Legal Attribution Footer */}
+            <div className="shrink-0 bg-gray-50 dark:bg-gray-800/50 border-t border-gray-200 dark:border-white/5 px-8 py-4 flex flex-wrap items-center justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-full bg-red-100 dark:bg-red-900/20 text-red-600 flex items-center justify-center animate-pulse">
+                  <Youtube size={16} fill="currentColor" />
+                </div>
+                <div>
+                  <p className="text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest">Digital Content Source</p>
+                  <p className="text-xs font-bold text-gray-900 dark:text-white uppercase">Sourced from YouTube API</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-4">
+                <a 
+                  href={previewItem.url?.split('?')[0].replace('embed/', 'watch?v=')} 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-2 px-6 py-2.5 bg-gray-900 dark:bg-white text-white dark:text-gray-900 text-[10px] font-black uppercase tracking-widest rounded-full hover:scale-105 active:scale-95 transition-all shadow-lg"
+                >
+                  <ExternalLink size={14} />
+                  Watch on Original Channel
+                </a>
+              </div>
             </div>
           </div>
         );
@@ -887,7 +914,7 @@ const CourseDetail = () => {
                                  Return to HUB
                                </button>
                             </header>
-                            <div className="flex-1 overflow-hidden">
+                            <div className="flex-1 min-h-0 overflow-y-auto relative">
                                <CompletionPreview 
                                  progress={progress}
                                  completedItems={completedItems}
@@ -898,6 +925,7 @@ const CourseDetail = () => {
                                  courseId={courseId}
                                  isTeacher={isAuthorizedTeacher}
                                  gamificationState={gamificationState}
+                                 studentSubmissions={studentSubmissions}
                                 />
                             </div>
                          </div>

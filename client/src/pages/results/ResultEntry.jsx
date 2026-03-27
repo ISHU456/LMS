@@ -3,7 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { getStudentsForEntry, saveMarks, submitMarksForApproval, reset } from '../../features/results/resultSlice';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Save, Send, Upload, Download, CheckCircle, AlertCircle, FileText, ChevronRight, Lock, Unlock } from 'lucide-react';
+import { Save, Send, Upload, Download, CheckCircle, AlertCircle, FileText, ChevronRight, Lock, Unlock, Clock } from 'lucide-react';
 import Papa from 'papaparse';
 import axios from 'axios';
 
@@ -115,16 +115,35 @@ const ResultEntry = () => {
             updatedAbsences = updatedAbsences.filter(f => f !== field);
         }
 
+        // Calculate Grade immediately for persistent saving
+        let total = 0;
+        if (currentCourse?.type?.toUpperCase() === 'THEORY') {
+            const msts = [Number(updatedMarks.mst1)||0, Number(updatedMarks.mst2)||0, Number(updatedMarks.mst3)||0].sort((a,b) => b-a);
+            total = msts[0] + msts[1] + (Number(updatedMarks.endSem)||0);
+        } else if (currentCourse?.type?.toUpperCase() === 'PRACTICAL') {
+            total = (Number(updatedMarks.internalPractical)||0) + (Number(updatedMarks.externalPractical)||0);
+        }
+
+        let calculatedGrade = 'F';
+        if (total >= 90) calculatedGrade = 'O';
+        else if (total >= 80) calculatedGrade = 'A+';
+        else if (total >= 70) calculatedGrade = 'A';
+        else if (total >= 60) calculatedGrade = 'B+';
+        else if (total >= 50) calculatedGrade = 'B';
+        else if (total >= 40) calculatedGrade = 'C';
+
         return { 
             ...student, 
-            marks: { ...updatedMarks, absentFields: updatedAbsences } 
+            marks: { ...updatedMarks, absentFields: updatedAbsences },
+            grade: calculatedGrade,
+            totalMarks: total
         };
       }
       return student;
     }));
   };
 
-  const isLocked = localResults[0]?.isLocked || false;
+  const isLocked = localResults.length > 0 && localResults.some(r => r.isLocked);
   const currentCourse = courses.find(c => c._id === courseId);
 
   const handleSaveSingleMark = async (studentId) => {
@@ -136,7 +155,12 @@ const ResultEntry = () => {
       courseId,
       semester,
       academicYear,
-      results: [{ studentId: student._id, marks: student.marks, grade: student.grade }]
+      results: [{ 
+        studentId: student._id, 
+        marks: student.marks, 
+        grade: student.grade,
+        totalMarks: student.totalMarks 
+      }]
     };
     
     try {
@@ -148,26 +172,25 @@ const ResultEntry = () => {
       }, 2000);
     } catch (err) {
       setSavingStudentId(null);
+      console.error("Save failed:", err);
     }
   };
 
   const handleToggleRowLock = async (resultId, studentId) => {
     if (!resultId) {
-        toast.error("Save marks first to lock/unlock");
+        alert("Persistence Required: Save marks for this student profile before attempting to modify record lock status.");
         return;
     }
     try {
-        const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5001/api'}/results/toggle-lock/${resultId}`, {
-            method: 'POST',
-            headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
-        });
-        const data = await response.json();
-        if (response.ok) {
-            setLocalResults(prev => prev.map(r => r._id === studentId ? { ...r, isLocked: data.isLocked } : r));
-            toast.success(data.message);
-        }
+        const config = { headers: { Authorization: `Bearer ${user.token}` } };
+        const { data } = await axios.post(`http://localhost:5001/api/results/toggle-lock/${resultId}`, {}, config);
+        
+        setLocalResults(prev => prev.map(r => r._id === studentId ? { ...r, isLocked: data.isLocked } : r));
+        setShowSuccess(true);
+        setTimeout(() => setShowSuccess(false), 2000);
     } catch (err) {
-        toast.error("Failed to toggle lock");
+        console.error("TOGGLE LOCK ERROR:", err);
+        alert(err.response?.data?.message || "Protocol Failure: Unable to toggle record lock state.");
     }
   };
 
@@ -222,6 +245,21 @@ const ResultEntry = () => {
     }
   };
 
+  const handleUnlockMarks = async () => {
+    if (!courseId) return alert('Select course first.');
+    if (window.confirm('ADMIN ACTION: This will UNLOCK marks for ALL students in this sector for further editing. Proceed?')) {
+        try {
+            await axios.post('http://localhost:5001/api/results/unlock', { courseId, semester, academicYear }, {
+                headers: { Authorization: `Bearer ${user.token}` }
+            });
+            setShowSuccess(true);
+            dispatch(getStudentsForEntry({ courseId, semester, academicYear }));
+        } catch (err) {
+            alert(err.response?.data?.message || 'Failed to unlock marks');
+        }
+    }
+  };
+
   const handleCSVUpload = (e) => {
     const file = e.target.files[0];
     if (file) {
@@ -235,10 +273,10 @@ const ResultEntry = () => {
               return {
                 ...student,
                 marks: {
-                  mst1: Number(entry.MST1) || 0,
-                  mst2: Number(entry.MST2) || 0,
-                  mst3: Number(entry.MST3) || 0,
-                  endSem: Number(entry.EndSem) || 0,
+                  mst1: entry.MST1 || '',
+                  mst2: entry.MST2 || '',
+                  mst3: entry.MST3 || '',
+                  endSem: entry.EndSem || '',
                 }
               };
             }
@@ -246,6 +284,20 @@ const ResultEntry = () => {
           }));
         }
       });
+    }
+  };
+
+  const handleUpdateDeadline = async (deadline) => {
+    if (!courseId || !currentCourse) return;
+    try {
+      const config = { headers: { Authorization: `Bearer ${user.token}` } };
+      await axios.put(`http://localhost:5001/api/courses/${currentCourse.code}/deadline`, { marksDeadline: deadline }, config);
+      setShowSuccess(true);
+      // Reload courses to get updated deadline
+      const { data } = await axios.get('http://localhost:5001/api/courses', config);
+      setCourses(data);
+    } catch (err) {
+      alert("Failed to update locking deadline");
     }
   };
 
@@ -342,15 +394,15 @@ const ResultEntry = () => {
             </select>
           </div>
           <div>
-            <label className="block text-[10px] font-black text-gray-400 mb-2 uppercase tracking-[0.2em]">Academic Year</label>
-            <select 
-              value={academicYear} 
-              onChange={(e) => setAcademicYear(e.target.value)}
-              className="w-full bg-gray-50 border border-gray-200 rounded-2xl p-4 focus:ring-2 focus:ring-blue-500 outline-none font-black uppercase text-xs text-gray-700"
-            >
-              <option value="2023-24">2023-24</option>
-              <option value="2024-25">2024-25</option>
-            </select>
+            <label className="block text-[10px] font-black text-gray-400 mb-2 uppercase tracking-[0.2em] flex items-center gap-2">
+                <Clock size={10}/> Scheduled Result Lock
+            </label>
+            <input 
+              type="datetime-local" 
+              value={currentCourse?.marksDeadline ? new Date(new Date(currentCourse.marksDeadline).getTime() - (new Date().getTimezoneOffset() * 60000)).toISOString().slice(0, 16) : ''}
+              onChange={(e) => handleUpdateDeadline(e.target.value)}
+              className="w-full bg-gray-50 border border-gray-200 rounded-2xl p-4 focus:ring-2 focus:ring-rose-500 outline-none font-black uppercase text-xs text-gray-700"
+            />
           </div>
         </div>
 
@@ -390,9 +442,10 @@ const ResultEntry = () => {
               </thead>
               <tbody className="divide-y divide-gray-100 bg-white">
                 {(Array.isArray(localResults) ? localResults : []).map((student) => {
-                  const m = student.marks || { mst1: 0, mst2: 0, mst3: 0, endSem: 0, internalPractical: 0, externalPractical: 0, absentFields: [] };
+                  const m = student.marks || { mst1: '', mst2: '', mst3: '', endSem: '', internalPractical: '', externalPractical: '', absentFields: [] };
                   const isApproved = student.status === 'approved' || student.status === 'published';
-                  const isRowLocked = student.isLocked || isLocked;
+                  const isPastDeadline = currentCourse?.marksDeadline && new Date() > new Date(currentCourse.marksDeadline);
+                  const isRowLocked = student.isLocked || isLocked || isPastDeadline;
                   const disabled = isApproved || isRowLocked;
 
                   return (
@@ -476,6 +529,7 @@ const ResultEntry = () => {
                                 value={m.absentFields?.includes('internalPractical') ? 'NA' : (m.internalPractical ?? '')} 
                                 placeholder="0"
                                 onChange={(e) => handleMarkChange(student._id, 'internalPractical', e.target.value)} 
+                                onBlur={() => handleSaveSingleMark(student._id)}
                                 disabled={disabled} 
                                 className={`w-16 border rounded-xl p-3 text-center text-xs font-black transition-all outline-none focus:ring-2 focus:ring-blue-500 ${
                                     m.absentFields?.includes('internalPractical') 
@@ -490,6 +544,7 @@ const ResultEntry = () => {
                                 value={m.absentFields?.includes('externalPractical') ? 'NA' : (m.externalPractical ?? '')} 
                                 placeholder="0"
                                 onChange={(e) => handleMarkChange(student._id, 'externalPractical', e.target.value)} 
+                                onBlur={() => handleSaveSingleMark(student._id)}
                                 disabled={disabled} 
                                 className={`w-16 border rounded-xl p-3 text-center text-xs font-black transition-all outline-none focus:ring-2 focus:ring-blue-500 ${
                                     m.absentFields?.includes('externalPractical') 
@@ -640,10 +695,13 @@ const ResultEntry = () => {
               )}
 
               {isLocked && (
-                  <div className="flex items-center gap-2 text-rose-600 font-black text-[10px] uppercase tracking-[0.2em] bg-rose-50 px-8 py-3.5 rounded-xl border border-rose-100 shadow-sm">
-                      <CheckCircle size={16} />
-                      SYSTEM LOCKED
-                  </div>
+                  <button 
+                    onClick={handleUnlockMarks}
+                    className="px-8 py-3.5 bg-amber-50 hover:bg-amber-600 text-amber-600 hover:text-white rounded-xl font-extrabold text-[10px] uppercase tracking-widest flex items-center gap-2 shadow-sm transition-all border border-amber-100"
+                  >
+                    <Unlock size={16} />
+                    Administrative Unlock
+                  </button>
               )}
             </div>
           )}

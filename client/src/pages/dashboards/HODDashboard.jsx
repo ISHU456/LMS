@@ -6,7 +6,12 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip,
 const HODDashboard = () => {
   const [activeTab, setActiveTab] = useState('overview');
   const [isLoading, setIsLoading] = useState(true);
+  const [isMounted, setIsMounted] = useState(false);
   const navigate = useNavigate();
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   useEffect(() => {
     setIsLoading(true);
@@ -72,8 +77,9 @@ const HODDashboard = () => {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
                <div className="glass p-8 rounded-2xl shadow-lg border border-gray-100 dark:border-gray-800">
                  <h3 className="text-xl font-bold dark:text-white mb-6">Subject Pass Rates</h3>
-                 <div className="h-[250px] w-full">
-                    <ResponsiveContainer width="100%" height="100%">
+                 <div className="h-[250px] w-full relative">
+                    {isMounted && (
+                      <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
                       <BarChart data={chartData}>
                         <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
                         <XAxis dataKey="subject" />
@@ -82,6 +88,7 @@ const HODDashboard = () => {
                         <Bar dataKey="passRate" fill="#a855f7" radius={[4, 4, 0, 0]} />
                       </BarChart>
                     </ResponsiveContainer>
+                    )}
                  </div>
                </div>
                <div className="glass p-8 rounded-2xl shadow-lg border border-gray-100 dark:border-gray-800">

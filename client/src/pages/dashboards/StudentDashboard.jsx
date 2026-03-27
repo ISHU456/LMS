@@ -42,12 +42,14 @@ const StudentDashboard = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
   const [leaderboardSem, setLeaderboardSem] = useState(user?.semester || 'All');
+  const [isMounted, setIsMounted] = useState(false);
   const itemsPerPage = 25;
 
-  // Filter courses by student's current semester
-  const semesterCourses = useMemo(() => {
-    return STUDENT_COURSE_CATALOG.filter(c => !c.semester || c.semester === user?.semester);
-  }, [user?.semester]);
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
+  const [semesterCourses, setSemesterCourses] = useState([]);
 
   const [resourceMetaByCourseId, setResourceMetaByCourseId] = useState({});
   const [globalLeaderboard, setGlobalLeaderboard] = useState([]);
@@ -63,36 +65,62 @@ const StudentDashboard = () => {
     let cancelled = false;
 
     const load = async () => {
-      // Fetch resources to compute total lectures/videos/docs for progress tracking.
-      const map = {};
-      await Promise.all(
-        semesterCourses.map(async (course) => {
-          try {
-            const res = await axios.get(`http://localhost:5001/api/resources?courseId=${course.id}`);
-            const resources = res.data || [];
-            const totalLectures = resources.length;
-            const totalVideos = resources.filter((r) => r.type === 'youtube' || r.type === 'yt').length;
-            map[course.id] = {
-              totalLectures,
-              totalVideos,
-              totalDocs: Math.max(0, totalLectures - totalVideos),
-            };
-          } catch {
-            // Fallback values for demo even if backend is not fully populated.
-            map[course.id] = { totalLectures: 12, totalVideos: 3, totalDocs: 9 };
-          }
-        })
-      );
-      if (!cancelled) setResourceMetaByCourseId(map);
+      try {
+        const config = { headers: { Authorization: `Bearer ${user.token}` } };
+        const res = await axios.get(`http://localhost:5001/api/courses`, config);
+        
+        // Filter by student's semester and department
+        const studentCourses = res.data.filter(c => 
+          c.semester === user?.semester && 
+          (c.department?.name === user?.department || c.department?.code === user?.department)
+        ).map(c => ({
+          id: c.code,
+          name: c.name,
+          accent: '#4361ee', // Default, can be refined
+          excludedStudents: c.excludedStudents || []
+        }));
+
+        if (!cancelled) setSemesterCourses(studentCourses);
+
+        // Fetch resources for each course to compute total counts
+        const map = {};
+        await Promise.all(
+          studentCourses.map(async (course) => {
+            try {
+              const rRes = await axios.get(`http://localhost:5001/api/resources?courseId=${course.id}`);
+              const resources = rRes.data || [];
+              const totalLectures = resources.length;
+              const totalVideos = resources.filter((r) => r.type === 'youtube' || r.type === 'yt').length;
+              map[course.id] = {
+                totalLectures,
+                totalVideos,
+                totalDocs: Math.max(0, totalLectures - totalVideos),
+              };
+            } catch {
+              map[course.id] = { totalLectures: 0, totalVideos: 0, totalDocs: 0 };
+            }
+          })
+        );
+        if (!cancelled) setResourceMetaByCourseId(map);
+      } catch (err) {
+        console.error("Failed to load courses", err);
+      }
     };
 
     load();
     fetchLeaderboard();
     fetchClassroomAttendance();
+
+    const interval = setInterval(() => {
+      fetchLeaderboard();
+      load(); 
+    }, 60000); 
+
     return () => {
       cancelled = true;
+      clearInterval(interval);
     };
-  }, []);
+  }, [user?._id, user?.token, user?.semester, user?.department]);
 
   const fetchLeaderboard = async () => {
     try {
@@ -191,8 +219,8 @@ const StudentDashboard = () => {
        ? list 
        : list.filter(p => p.semester === Number(leaderboardSem) || p.semester === leaderboardSem);
 
-    // Sort by name alphabetically (Ascending) as requested by user
-    filteredList = [...filteredList].sort((a, b) => a.name.localeCompare(b.name));
+    // Sort by Score (Descending) as requested by user for real-time leader tracking
+    filteredList = [...filteredList].sort((a, b) => b.xp - a.xp);
 
     // Calculate user's rank in their ACTUAL current active semester (based on XP, not name)
     const activeSemList = [...list].filter(p => p.semester === Number(user?.semester) || p.semester === user?.semester);
@@ -629,8 +657,9 @@ const StudentDashboard = () => {
 
                   <div className="mt-6">
                     <div className="text-xs font-black uppercase tracking-widest text-gray-500 dark:text-gray-400 mb-3">Weekly performance</div>
-                    <div className="h-[220px] w-full">
-                      <ResponsiveContainer width="100%" height="100%">
+                    <div className="h-[220px] w-full relative">
+                      {isMounted && (
+                        <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
                         <AreaChart data={weeklyPerformance}>
                           <defs>
                             <linearGradient id="perfGrad" x1="0" y1="0" x2="0" y2="1">
@@ -645,6 +674,7 @@ const StudentDashboard = () => {
                           <Area type="monotone" dataKey="performance" stroke="#4361ee" fill="url(#perfGrad)" strokeWidth={3} />
                         </AreaChart>
                       </ResponsiveContainer>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -668,37 +698,43 @@ const StudentDashboard = () => {
                   </div>
 
                   <div className="mt-5 space-y-4">
-                    {courseProgressCards.map((card) => (
-                      <div key={card.course.id} className="flex items-center justify-between gap-4 p-4 rounded-3xl border border-gray-100 dark:border-gray-800 bg-white/35 dark:bg-gray-900/25">
-                        <div className="flex items-center gap-4 min-w-0">
-                          <div
-                            className="w-12 h-12 rounded-3xl flex items-center justify-center text-white shadow-lg shadow-primary-500/20 shrink-0"
-                            style={{ background: `linear-gradient(135deg, ${card.course.accent}, rgba(114,9,183,0.7))` }}
-                          >
-                            <BookOpen size={20} />
-                          </div>
-                          <div className="min-w-0">
-                            <div className="text-sm font-extrabold text-gray-900 dark:text-white truncate">{card.course.id} · {card.course.name}</div>
-                            <div className="text-[10px] font-black uppercase tracking-widest text-gray-500 dark:text-gray-400 mt-1">
-                              Videos {card.videoCompleted}/{card.totals.totalVideos} · Docs {card.docsCompleted}/{card.totals.totalDocs}
+                    {courseProgressCards.map((card) => {
+                      const isBlocked = card.course.excludedStudents?.includes(user?._id);
+                      return (
+                        <div key={card.course.id} className={`flex items-center justify-between gap-4 p-4 rounded-3xl border border-gray-100 dark:border-gray-800 bg-white/35 dark:bg-gray-900/25 ${isBlocked ? 'opacity-60' : ''}`}>
+                          <div className="flex items-center gap-4 min-w-0">
+                            <div
+                              className={`w-12 h-12 rounded-3xl flex items-center justify-center text-white shadow-lg shrink-0 ${isBlocked ? 'bg-gray-400' : 'shadow-primary-500/20'}`}
+                              style={!isBlocked ? { background: `linear-gradient(135deg, ${card.course.accent}, rgba(114,9,183,0.7))` } : {}}
+                            >
+                              <BookOpen size={20} />
+                            </div>
+                            <div className="min-w-0">
+                              <div className="text-sm font-extrabold text-gray-900 dark:text-white truncate">
+                                {card.course.id} · {card.course.name}
+                                {isBlocked && <span className="ml-2 text-[8px] px-1.5 py-0.5 rounded-full bg-rose-500 text-white font-black uppercase tracking-widest align-middle">Blocked</span>}
+                              </div>
+                              <div className="text-[10px] font-black uppercase tracking-widest text-gray-500 dark:text-gray-400 mt-1">
+                                Videos {card.videoCompleted}/{card.totals.totalVideos} · Docs {card.docsCompleted}/{card.totals.totalDocs}
+                              </div>
                             </div>
                           </div>
-                        </div>
 
-                        <div className="flex items-center gap-4">
-                          <div className="text-center">
-                            <div className="text-3xl font-extrabold text-gray-900 dark:text-white">{card.summary.progressPercentage}%</div>
-                            <div className="text-[10px] font-black uppercase tracking-widest text-gray-500 dark:text-gray-400 mt-1">Captured</div>
+                          <div className="flex items-center gap-4">
+                            <div className="text-center">
+                              <div className="text-3xl font-extrabold text-gray-900 dark:text-white">{card.summary.progressPercentage}%</div>
+                              <div className="text-[10px] font-black uppercase tracking-widest text-gray-500 dark:text-gray-400 mt-1">Captured</div>
+                            </div>
+                            <button
+                              onClick={() => !isBlocked && navigate(`/course-inner/${card.course.id}`)}
+                              className={`px-4 py-2 rounded-2xl font-black text-xs uppercase tracking-widest transition shadow-md ${isBlocked ? 'bg-gray-200 text-gray-400 cursor-not-allowed' : 'bg-primary-600 text-white hover:opacity-90 shadow-primary-500/20'}`}
+                            >
+                              {isBlocked ? 'Access Denied' : 'Open Course'}
+                            </button>
                           </div>
-                          <button
-                            onClick={() => navigate(`/course-inner/${card.course.id}`)}
-                            className="px-4 py-2 rounded-2xl font-black text-xs uppercase tracking-widest bg-primary-600 text-white hover:opacity-90 transition shadow-md shadow-primary-500/20"
-                          >
-                            Open Course
-                          </button>
                         </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 </div>
 

@@ -17,14 +17,14 @@ const CompletionPreview = ({
   courseInfo,
   courseId,
   isTeacher,
-  gamificationState
+  gamificationState,
+  studentSubmissions = []
 }) => {
   const { user } = useSelector(state => state.auth);
   const [students, setStudents] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
 
   const fetchStudents = async () => {
-    if (!isTeacher) return;
     setIsLoading(true);
     try {
       const res = await axios.get(`http://localhost:5001/api/courses/${courseId}/students`, {
@@ -38,6 +38,7 @@ const CompletionPreview = ({
   };
 
   const removeStudent = async (studentId) => {
+    if (!isTeacher) return;
     if (!window.confirm("Are you sure you want to remove this student from the course?")) return;
     try {
       await axios.delete(`http://localhost:5001/api/courses/${courseId}/students/${studentId}`, {
@@ -55,13 +56,18 @@ const CompletionPreview = ({
 
   const isCompleted = progress >= 100;
   const canPreview = progress >= 75;
-  const studentXp = gamificationState?.xp || 0;
+
+  // Sync personal XP with backend leaderboard data if available
+  const currentUserData = students.find(s => s._id === user?._id);
+  const studentXp = currentUserData ? currentUserData.xp : (gamificationState?.xp || 0);
   
-  let earnedBadge = "Student";
-  if (progress >= 100) earnedBadge = "Quantum Scholar";
-  else if (progress >= 80) earnedBadge = "Neural Navigator";
-  else if (progress >= 50) earnedBadge = "Rapid Resolver";
-  else if (progress >= 20) earnedBadge = "Core Guardian";
+  let earnedBadge = currentUserData ? currentUserData.badge : "Student";
+  if (!currentUserData) {
+    if (progress >= 100) earnedBadge = "Quantum Scholar";
+    else if (progress >= 80) earnedBadge = "Neural Navigator";
+    else if (progress >= 50) earnedBadge = "Rapid Resolver";
+    else if (progress >= 20) earnedBadge = "Core Guardian";
+  }
 
   const getRankBadge = (rank) => {
     if (rank === 1) return { label: 'GOLD MEDALIST', color: 'bg-amber-500', icon: Crown, shadow: 'shadow-amber-500/50' };
@@ -79,7 +85,7 @@ const CompletionPreview = ({
     ];
 
     return (
-      <div className="flex flex-col gap-8 h-full overflow-y-auto p-4 md:p-8 custom-scrollbar relative bg-white dark:bg-[#0b0f19]">
+      <div className="flex flex-col gap-8 min-h-full pb-20 p-4 md:p-8 relative bg-white dark:bg-[#0b0f19]">
         
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 relative z-10 w-full">
           {/* Leaderboard Section */}
@@ -191,7 +197,7 @@ const CompletionPreview = ({
 
   // Student View (Existing)
   return (
-    <div className="flex flex-col gap-8 h-full overflow-y-auto p-4 md:p-8 custom-scrollbar relative bg-white dark:bg-[#0b0f19]">
+    <div className="flex flex-col gap-8 min-h-full pb-20 p-4 md:p-8 relative bg-white dark:bg-[#0b0f19]">
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 relative z-10">
         <div className="glass p-8 rounded-[3rem] border border-white dark:border-gray-800 bg-white/60 dark:bg-gray-900/60 shadow-2xl relative overflow-hidden group">
           <div className="absolute top-0 right-0 w-32 h-32 bg-primary-500/5 rounded-bl-full pointer-events-none group-hover:bg-primary-500/10 transition-colors duration-700" />
@@ -201,8 +207,8 @@ const CompletionPreview = ({
           <div className="space-y-4">
             {[
               { label: 'Resources Mastered', val: `${completedItems.size} / ${resources.length}`, icon: Book, color: 'text-emerald-500', bg: 'bg-emerald-50 dark:bg-emerald-900/20' },
-              { label: 'Assignments Submitted', val: `${assignments.filter(a => completedItems.has(a._id)).length} / ${assignments.length}`, icon: ClipboardCheck, color: 'text-rose-500', bg: 'bg-rose-50 dark:bg-rose-900/20' },
-              { label: 'Mastery Level', val: `${Math.floor(progress / 20)} Rank`, icon: GraduationCap, color: 'text-indigo-500', bg: 'bg-indigo-50 dark:bg-indigo-900/20' },
+              { label: 'Assignments Submitted', val: `${studentSubmissions.length} / ${assignments.length}`, icon: ClipboardCheck, color: 'text-rose-500', bg: 'bg-rose-50 dark:bg-rose-900/20' },
+              { label: 'Mastery Level', val: `${currentUserData?.rank || Math.floor(progress / 20) + 1} Rank`, icon: GraduationCap, color: 'text-indigo-500', bg: 'bg-indigo-50 dark:bg-indigo-900/20' },
               { label: 'Time Invested', val: `${Math.round(progress * 1.5)}h Approx`, icon: Clock, color: 'text-blue-500', bg: 'bg-blue-50 dark:bg-blue-900/20' }
             ].map((stat, idx) => (
               <div key={idx} className="flex items-center justify-between p-4 bg-white/40 dark:bg-gray-800/30 rounded-2xl border border-white/40 dark:border-white/5 hover:border-primary-500/20 transition-all group/stat">
@@ -249,7 +255,7 @@ const CompletionPreview = ({
              <h3 className="text-xl font-black dark:text-white uppercase tracking-tighter mb-2">Digital Credentials</h3>
              <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest leading-relaxed">Generated upon verified completion of all sector modules.</p>
            </div>
-           {/* ... Certificate JSX stays largely same ... */}
+           
            <div className="relative w-full max-w-sm aspect-[1.4/1] rounded-2xl p-0.5 overflow-hidden group/cert shadow-[0_20px_60px_rgba(0,0,0,0.1)] hover:-translate-y-2 transition-transform duration-500">
               <div className="absolute inset-0 bg-gradient-to-r from-primary-500 via-indigo-600 to-primary-500 animate-[spin_4s_linear_infinite] opacity-40 group-hover/cert:opacity-100 transition-opacity" />
               <div className="relative h-full bg-white dark:bg-[#0a0a0a] rounded-[14px] p-6 flex flex-col justify-between items-center text-center border-4 border-gray-100 dark:border-gray-800 z-10">
@@ -276,9 +282,10 @@ const CompletionPreview = ({
                  <div className="flex justify-between w-full mt-4 items-end relative z-10"><div className="w-6 h-6 border-b-[3px] border-l-[3px] border-primary-500/50 rounded-bl-sm" /><div className="w-8 h-8 flex items-center justify-center text-amber-500 group-hover/cert:rotate-[360deg] duration-1000 bg-gray-50 dark:bg-gray-900 rounded-full"><Award size={18} /></div><div className="w-6 h-6 border-b-[3px] border-r-[3px] border-primary-500/50 rounded-br-sm" /></div>
               </div>
            </div>
+           
            <div className="mt-8 grid grid-cols-2 gap-4 w-full max-w-sm">
               <button disabled={!isCompleted} className={`px-6 py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest transition-all ${isCompleted ? 'bg-primary-600 text-white shadow-xl hover:scale-[1.02]' : 'bg-gray-100 text-gray-400 cursor-not-allowed opacity-60'}`}><Download size={14} /> Download</button>
-              <button className="px-6 py-4 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-xl hover:scale-[1.02]transition-all"><ExternalLink size={14} /> Share</button>
+              <button className="px-6 py-4 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-xl hover:scale-[1.02] transition-all"><ExternalLink size={14} /> Share</button>
            </div>
         </div>
       </div>

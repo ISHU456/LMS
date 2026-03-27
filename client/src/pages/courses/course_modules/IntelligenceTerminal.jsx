@@ -54,7 +54,7 @@ const IntelligenceTerminal = ({
           <h3 className="text-sm font-black dark:text-white uppercase tracking-tighter flex items-center gap-3">
             <Layout size={18} className="text-primary-500"/> Course Intelligence Terminal
           </h3>
-          {isAdminHOD && (
+          {isTeacher && (
             <button 
               onClick={() => setShowUploadForm(!showUploadForm)}
               className="p-2 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-lg hover:bg-primary-600 hover:text-white transition-all shadow-md"

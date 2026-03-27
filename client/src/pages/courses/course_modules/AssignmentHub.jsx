@@ -351,43 +351,193 @@ const AssignmentHub = ({ courseId, isTeacher, user, selectedAssignment, setSelec
         </form>
     );
 
-    return (
-        <div className="flex flex-col gap-8 h-full">
-            <div className="flex items-center justify-between pb-2 border-b border-gray-100 dark:border-gray-800">
-                <div className="flex items-center gap-6">
-                    <button 
-                        onClick={() => setActiveTab('list')}
-                        className={`text-xs font-black uppercase tracking-widest pb-3 px-2 transition-all relative ${activeTab === 'list' ? 'text-primary-600' : 'text-gray-400 hover:text-gray-600'}`}
-                    >
-                        Active Registry
-                        {activeTab === 'list' && <motion.div layoutId="tab" className="absolute bottom-0 left-0 right-0 h-1 bg-primary-500 rounded-full" />}
-                    </button>
-                    {isTeacher && (
-                        <button 
-                            onClick={() => { setActiveTab('create'); setSelectedAssignment(null); }}
-                            className={`text-xs font-black uppercase tracking-widest pb-3 px-2 transition-all relative ${activeTab === 'create' ? 'text-primary-600' : 'text-gray-400 hover:text-gray-600'}`}
-                        >
-                            Deploy Sector
-                            {activeTab === 'create' && <motion.div layoutId="tab" className="absolute bottom-0 left-0 right-0 h-1 bg-primary-500 rounded-full" />}
-                        </button>
+    const handleGradeSubmission = async (subId) => {
+        try {
+            await axios.put(`http://localhost:5001/api/assignments/grade/${subId}`, {
+                marks: gradingData.marks,
+                feedback: gradingData.feedback,
+                teacherId: user._id
+            }, {
+                headers: { Authorization: `Bearer ${user.token}` }
+            });
+            fetchAssignments();
+            alert("Grade deployed to neural registry.");
+        } catch (err) {
+            alert("Grading protocol failed.");
+        }
+    };
+
+    const handleFileUpload = async (e) => {
+        e.preventDefault();
+        if (!submissionFile && selectedAssignment.type === 'pdf') return alert("Please specify a submission molecule.");
+        
+        setIsSubmitting(true);
+        const formData = new FormData();
+        formData.append('assignmentId', selectedAssignment._id);
+        formData.append('studentId', user._id);
+        if (submissionFile) formData.append('file', submissionFile);
+        if (selectedAssignment.type === 'quiz') formData.append('quizAnswers', JSON.stringify(quizAnswers));
+
+        try {
+            await axios.post('http://localhost:5001/api/assignments/submit', formData, {
+                headers: { Authorization: `Bearer ${user.token}`, 'Content-Type': 'multipart/form-data' }
+            });
+            alert("Neural Submission Successful.");
+            setSubmissionFile(null);
+            fetchAssignments();
+        } catch (err) {
+            alert(err.response?.data?.message || "Submission node rejected.");
+        }
+        setIsSubmitting(false);
+    };
+
+    const renderDetail = () => {
+        const asgn = selectedAssignment;
+        const mySub = studentSubmissions.find(s => (s.assignment?._id === asgn._id) || (s.assignment === asgn._id));
+        const isGraded = mySub?.status === 'graded';
+
+        return (
+            <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="h-full flex flex-col gap-6 bg-white/40 dark:bg-gray-900/40 p-8 rounded-[2.5rem] border border-gray-100 dark:border-gray-800">
+                <div className="flex items-center justify-between border-b border-gray-100 dark:border-gray-800 pb-6">
+                    <div className="flex items-center gap-4">
+                        <button onClick={() => setSelectedAssignment(null)} className="p-3 bg-gray-100 dark:bg-gray-800 text-gray-400 rounded-2xl hover:bg-primary-500 hover:text-white transition-all"><X size={18}/></button>
+                        <div>
+                            <h3 className="text-xl font-black dark:text-white uppercase tracking-tighter">{asgn.title}</h3>
+                            <p className="text-[10px] font-black text-primary-500 uppercase tracking-widest">{asgn.type} Sector Profile</p>
+                        </div>
+                    </div>
+                    {mySub && (
+                        <div className={`px-4 py-2 rounded-2xl border flex items-center gap-2 ${isGraded ? 'bg-emerald-50 border-emerald-100 text-emerald-600' : 'bg-amber-50 border-amber-100 text-amber-600'}`}>
+                            {isGraded ? <CheckCircle2 size={16}/> : <Clock size={16}/>}
+                            <span className="text-[10px] font-black uppercase tracking-widest">{isGraded ? 'APPROVED & GRADED' : 'PENDING REVIEW'}</span>
+                        </div>
                     )}
                 </div>
-            </div>
 
-            <div className="flex-1 min-h-0">
-                <AnimatePresence mode="wait">
-                    {activeTab === 'list' && (
-                        <motion.div key="list" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
-                            {renderList()}
-                        </motion.div>
+                <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar space-y-8">
+                    {/* Protocol Meta */}
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <div className="p-6 bg-white dark:bg-gray-800/30 rounded-3xl border border-gray-100 dark:border-gray-700 shadow-sm">
+                            <span className="text-[8px] font-black text-gray-400 uppercase tracking-widest block mb-2">Maximum Marks</span>
+                            <div className="text-xl font-black dark:text-white flex items-center gap-2"><Trophy size={18} className="text-amber-500"/> {asgn.totalMarks}</div>
+                        </div>
+                        <div className="p-6 bg-white dark:bg-gray-800/30 rounded-3xl border border-gray-100 dark:border-gray-700 shadow-sm">
+                            <span className="text-[8px] font-black text-gray-400 uppercase tracking-widest block mb-2">Protocol Deadline</span>
+                            <div className="text-xs font-black dark:text-white flex items-center gap-2 text-rose-500"><Clock size={16}/> {new Date(asgn.dueDate).toLocaleString()}</div>
+                        </div>
+                        <div className="p-6 bg-primary-600 rounded-3xl text-white shadow-xl shadow-primary-500/20">
+                            <span className="text-[8px] font-black uppercase tracking-widest block mb-2 opacity-80">Sync Progress</span>
+                            <div className="text-xl font-black flex items-center gap-2">{mySub ? (isGraded ? `${mySub.marksObtained} / ${asgn.totalMarks}` : 'SUBMITTED') : 'NOT STARTED'}</div>
+                        </div>
+                    </div>
+
+                    {/* Operational Guidelines */}
+                    <div className="space-y-4">
+                        <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] px-2">Operational Guidelines</h4>
+                        <div className="p-6 bg-gray-50 dark:bg-gray-950/30 rounded-3xl border border-gray-100 dark:border-gray-800 text-xs font-bold leading-relaxed dark:text-gray-300">
+                            {asgn.description}
+                        </div>
+                    </div>
+
+                    {/* Submission Node */}
+                    {mySub ? (
+                        <div className="space-y-6">
+                            <div className="flex flex-col gap-6">
+                                <div className="p-8 bg-emerald-500/5 dark:bg-emerald-500/10 border-2 border-emerald-500/20 rounded-[2.5rem] relative overflow-hidden">
+                                    <div className="flex items-center justify-between mb-6">
+                                        <div className="flex items-center gap-4">
+                                            <div className="w-12 h-12 bg-emerald-500 text-white rounded-2xl flex items-center justify-center shadow-lg"><Send size={20}/></div>
+                                            <div>
+                                                <h4 className="text-sm font-black dark:text-white uppercase">Your Protocol Submission</h4>
+                                                <p className="text-[9px] font-bold text-emerald-600 uppercase tracking-widest">Digital Node: {mySub._id.substring(mySub._id.length-8)}</p>
+                                            </div>
+                                        </div>
+                                        {isGraded && (
+                                            <div className="text-right">
+                                                <div className="text-2xl font-black text-emerald-600 dark:text-emerald-400">{mySub.marksObtained} <span className="text-xs text-gray-400">/ {asgn.totalMarks}</span></div>
+                                                <div className="text-[8px] font-black text-gray-400 uppercase tracking-widest">Verified Multiplier</div>
+                                            </div>
+                                        )}
+                                    </div>
+                                    {mySub.facultyFeedback && (
+                                        <div className="p-6 bg-white/50 dark:bg-gray-900/50 rounded-2xl border border-emerald-200 dark:border-emerald-800/30">
+                                            <div className="flex items-center gap-2 mb-2">
+                                                <Sparkles size={12} className="text-primary-500"/>
+                                                <span className="text-[9px] font-black text-primary-500 uppercase tracking-widest">Faculty Feedback Matrix</span>
+                                            </div>
+                                            <p className="text-xs font-bold font-sans dark:text-gray-300 italic">"{mySub.facultyFeedback}"</p>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+                    ) : (
+                        !isTeacher && (
+                            <form onSubmit={handleFileUpload} className="space-y-6">
+                                <h4 className="text-[10px] font-black text-rose-500 uppercase tracking-[0.2em] px-2">Initiate Pulse Submission</h4>
+                                {asgn.type === 'pdf' ? (
+                                    <div className="relative group/up">
+                                        <input type="file" required onChange={e=>setSubmissionFile(e.target.files[0])} className="absolute inset-0 opacity-0 cursor-pointer z-10" />
+                                        <div className="py-12 border-2 border-dashed border-gray-200 dark:border-gray-800 rounded-3xl flex flex-col items-center justify-center gap-2 group-hover/up:border-primary-500/50 transition-all bg-white dark:bg-gray-950/20">
+                                            <Download className="text-gray-300 group-hover/up:text-primary-500 transition-all" size={32}/>
+                                            <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{submissionFile ? submissionFile.name : 'Inject Solution Molecule (PDF)'}</span>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <div className="h-40 flex items-center justify-center bg-amber-500/5 rounded-3xl border border-amber-500/20 border-dashed">
+                                        <p className="text-[10px] font-black text-amber-500 uppercase tracking-widest">Quiz protocol should be initiated from the master link.</p>
+                                    </div>
+                                )}
+                                <button type="submit" disabled={isSubmitting} className="w-full py-4 bg-primary-600 text-white rounded-2xl font-black text-xs uppercase tracking-[0.2em] hover:bg-primary-700 shadow-xl transition-all">DEPOY SUBMISSION PROTOCOL</button>
+                            </form>
+                        )
                     )}
-                    {activeTab === 'create' && (
-                        <motion.div key="create" initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.98 }}>
-                            {renderCreate()}
-                        </motion.div>
-                    )}
-                </AnimatePresence>
-            </div>
+                </div>
+            </motion.div>
+        );
+    };
+
+    return (
+        <div className="flex flex-col gap-8 h-full">
+            {selectedAssignment ? renderDetail() : (
+                <>
+                    <div className="flex items-center justify-between pb-2 border-b border-gray-100 dark:border-gray-800">
+                        <div className="flex items-center gap-6">
+                            <button 
+                                onClick={() => setActiveTab('list')}
+                                className={`text-xs font-black uppercase tracking-widest pb-3 px-2 transition-all relative ${activeTab === 'list' ? 'text-primary-600' : 'text-gray-400 hover:text-gray-600'}`}
+                            >
+                                Active Registry
+                                {activeTab === 'list' && <motion.div layoutId="tab" className="absolute bottom-0 left-0 right-0 h-1 bg-primary-500 rounded-full" />}
+                            </button>
+                            {isTeacher && (
+                                <button 
+                                    onClick={() => { setActiveTab('create'); setSelectedAssignment(null); }}
+                                    className={`text-xs font-black uppercase tracking-widest pb-3 px-2 transition-all relative ${activeTab === 'create' ? 'text-primary-600' : 'text-gray-400 hover:text-gray-600'}`}
+                                >
+                                    Deploy Sector
+                                    {activeTab === 'create' && <motion.div layoutId="tab" className="absolute bottom-0 left-0 right-0 h-1 bg-primary-500 rounded-full" />}
+                                </button>
+                            )}
+                        </div>
+                    </div>
+
+                    <div className="flex-1 min-h-0">
+                        <AnimatePresence mode="wait">
+                            {activeTab === 'list' && (
+                                <motion.div key="list" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
+                                    {renderList()}
+                                </motion.div>
+                            )}
+                            {activeTab === 'create' && (
+                                <motion.div key="create" initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.98 }}>
+                                    {renderCreate()}
+                                </motion.div>
+                            )}
+                        </AnimatePresence>
+                    </div>
+                </>
+            )}
         </div>
     );
 };

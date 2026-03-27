@@ -78,7 +78,7 @@ export const getStudentsForEntry = async (req, res) => {
         name: student.name,
         rollNumber: student.rollNumber,
         enrollmentNumber: student.enrollmentNumber,
-        marks: result ? result.marks : { mst1: 0, mst2: 0, mst3: 0, endSem: 0, internalPractical: 0, externalPractical: 0 },
+        marks: result ? result.marks : { mst1: '', mst2: '', mst3: '', endSem: '', internalPractical: '', externalPractical: '' },
         totalMarks: result ? result.totalMarks : 0,
         grade: result ? result.grade : null,
         status: result ? result.status : 'not_started',
@@ -154,9 +154,14 @@ export const getSemesterSummary = async (req, res) => {
 export const saveMarks = async (req, res) => {
   try {
     const { courseId, semester, academicYear, results } = req.body;
-    // results is an array of { studentId, marks }
+    if (!courseId || !semester || !results) {
+      return res.status(400).json({ message: 'Missing required parameters (courseId, semester, results)' });
+    }
 
     const semNum = parseInt(semester);
+    const course = await Course.findById(courseId);
+    if (!course) return res.status(404).json({ message: 'Course not found' });
+
     const savedResults = await Promise.all(results.map(async (item) => {
       let result = await Result.findOne({
         student: item.studentId, 
@@ -166,41 +171,41 @@ export const saveMarks = async (req, res) => {
       });
 
       if (!result) {
-        const course = await Course.findById(courseId);
         result = new Result({
           student: item.studentId,
           course: courseId,
           semester: semNum,
           academicYear,
           courseType: course.type,
-          createdBy: req.user._id
+          createdBy: req.user._id,
+          marks: { mst1: '', mst2: '', mst3: '', endSem: '', internalPractical: '', externalPractical: '' }
         });
       }
 
       if (result.isLocked) return result;
 
-      // Deep merge marks to avoid wiping out fields not sent in request
-      // (Though frontend sends full currently, this is more robust)
+      // Deep merge marks
       if (item.marks) {
         Object.keys(item.marks).forEach(field => {
           if (item.marks[field] !== undefined && item.marks[field] !== null) {
             result.marks[field] = item.marks[field];
           }
         });
-        // Handle absentFields specifically if provided
         if (item.marks.absentFields) {
           result.marks.absentFields = item.marks.absentFields;
         }
       }
 
       if (item.grade) result.grade = item.grade;
-      result.status = 'draft';
+      if (item.totalMarks !== undefined) result.totalMarks = item.totalMarks;
       
+      result.status = 'draft';
       return await result.save();
     }));
 
     res.json({ message: 'Marks saved as draft', results: savedResults });
   } catch (error) {
+    console.error('SAVE MARKS ERROR:', error);
     res.status(500).json({ message: 'Server Error', error: error.message });
   }
 };
@@ -506,3 +511,22 @@ export const toggleResultLock = async (req, res) => {
     res.status(500).json({ message: 'Error toggling lock', error: error.message });
   }
 };
+
+// @desc    Unlock results for a course
+// @route   POST /api/results/unlock
+// @access  Teacher/Admin/HOD
+export const unlockResults = async (req, res) => {
+    try {
+      const { courseId, semester, academicYear } = req.body;
+      const semNum = parseInt(semester);
+  
+      await Result.updateMany(
+        { course: courseId, semester: semNum, academicYear },
+        { isLocked: false }
+      );
+  
+      res.json({ message: 'Marks have been unlocked for editing.' });
+    } catch (error) {
+      res.status(500).json({ message: 'Server Error', error: error.message });
+    }
+  };

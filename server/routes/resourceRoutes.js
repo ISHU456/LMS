@@ -12,9 +12,10 @@ const upload = multer({ storage });
 
 // Unified CRUD
 router.get('/', getResources);
+router.post('/', protect, teacher, isCourseTeacher, uploadResource);
 router.post('/upload', protect, teacher, isCourseTeacher, upload.single('file'), uploadResource);
 router.get('/file/:id', getFileFromDB);
-router.delete('/:id', protect, teacher, deleteResource);
-router.put('/:id', protect, teacher, updateResource);
+router.delete('/:id', protect, teacher, isCourseTeacher, deleteResource);
+router.put('/:id', protect, teacher, isCourseTeacher, updateResource);
 
 export default router;
