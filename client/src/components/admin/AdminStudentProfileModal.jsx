@@ -1,0 +1,269 @@
+import { useState, useEffect } from 'react';
+import axios from 'axios';
+import { 
+    X, Shield, GraduationCap, Award, Building, 
+    CheckCircle2, AlertCircle, Save, Calendar, TrendingUp, Book, Plus
+} from 'lucide-react';
+import { motion } from 'framer-motion';
+import AdminAttendanceInsight from './AdminAttendanceInsight';
+
+const AdminStudentProfileModal = ({ studentId, user, onClose }) => {
+    const [details, setDetails] = useState(null);
+    const [allCourses, setAllCourses] = useState([]);
+    const [excludedCourses, setExcludedCourses] = useState([]);
+    const [department, setDepartment] = useState('');
+    const [semester, setSemester] = useState(1);
+    const [isLoading, setIsLoading] = useState(true);
+    const [isSaving, setIsSaving] = useState(false);
+
+    // Academic Stats
+    const [cgpa, setCgpa] = useState(0);
+    const [percentage, setPercentage] = useState(0);
+    const [aboutMe, setAboutMe] = useState('');
+    const [results, setResults] = useState([]);
+
+    useEffect(() => {
+        const fetchData = async () => {
+            try {
+                const res = await axios.get(`http://localhost:5000/api/admin/students/${studentId}`, {
+                    headers: { Authorization: `Bearer ${user.token}` }
+                });
+                setDetails(res.data.student);
+                setDepartment(res.data.student.department || '');
+                setSemester(res.data.student.semester || 1);
+                
+                // Determine which courses this student is currently excluded from
+                const excluded = res.data.allCourses.filter(c => 
+                    c.excludedStudents?.some(id => id === studentId || id._id === studentId)
+                ).map(c => c._id);
+                
+                setExcludedCourses(excluded);
+                setAllCourses(res.data.allCourses);
+
+                // Set Results & Stats
+                setResults(res.data.results || []);
+                setCgpa(res.data.student.cgpa || 0);
+                setPercentage(res.data.student.percentage || 0);
+                setAboutMe(res.data.student.aboutMe || '');
+            } catch (err) {
+                console.error(err);
+            } finally {
+                setIsLoading(false);
+            }
+        };
+        fetchData();
+    }, [studentId, user.token]);
+
+    const handleSave = async () => {
+        setIsSaving(true);
+        try {
+            await axios.put(`http://localhost:5000/api/admin/students/${studentId}/enrollment`, {
+                semester,
+                department,
+                excludedCourseIds: excludedCourses,
+                cgpa,
+                percentage,
+                aboutMe
+            }, {
+                headers: { Authorization: `Bearer ${user.token}` }
+            });
+            alert('Student enrollment and access status synchronized.');
+            onClose();
+        } catch (err) {
+            alert('Failed to update student enrollment.');
+        } finally {
+            setIsSaving(false);
+        }
+    };
+
+    if (isLoading) return (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-[100] flex items-center justify-center">
+            <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin" />
+        </div>
+    );
+
+    if (!details) return (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-[100] flex items-center justify-center p-4">
+            <div className="bg-white dark:bg-[#0f172a] p-10 rounded-3xl text-center">
+                <AlertCircle className="mx-auto text-rose-500 mb-4" size={48} />
+                <p className="text-sm font-black text-gray-900 dark:text-white uppercase tracking-widest">Failed to retrieve identity record.</p>
+                <button onClick={onClose} className="mt-6 px-8 py-3 bg-gray-100 dark:bg-gray-800 rounded-xl text-xs font-black uppercase">Dismiss</button>
+            </div>
+        </div>
+    );
+
+    return (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-[100] flex items-center justify-center p-4">
+            <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }}
+                className="bg-white dark:bg-[#0f172a] w-full max-w-4xl rounded-[40px] overflow-hidden shadow-2xl border border-white/10 flex flex-col max-h-[90vh]">
+                
+                <div className="p-8 border-b border-gray-100 dark:border-gray-800 flex justify-between items-center bg-gray-50/50 dark:bg-gray-800/30">
+                    <div className="flex items-center gap-4">
+                        <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white font-black text-2xl shadow-lg uppercase">
+                            {details.name[0]}
+                        </div>
+                        <div>
+                            <h2 className="text-2xl font-black text-gray-900 dark:text-white uppercase tracking-tighter">{details.name}</h2>
+                            <p className="text-xs font-black text-gray-400 uppercase tracking-widest italic">{details.email} • {details.rollNumber || 'NO-ROLL'}</p>
+                        </div>
+                    </div>
+                    <button onClick={onClose} className="p-4 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-2xl transition-all"><X/></button>
+                </div>
+
+                <div className="flex-1 overflow-y-auto p-10 space-y-12 text-sm">
+                    {/* ENROLLMENT CONFIG */}
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                        <section>
+                            <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-blue-500 mb-6 flex items-center gap-2 italic">
+                                <Building size={14} /> Sector Allocation
+                            </h3>
+                            <div className="grid grid-cols-2 gap-3">
+                            {['CSE', 'ECE', 'ME', 'CE', 'IT', 'AI'].map(dept => (
+                                <button key={dept} onClick={() => setDepartment(dept)}
+                                    className={`p-4 rounded-2xl border-2 transition-all text-[10px] font-black uppercase tracking-widest ${department === dept ? 'bg-blue-50 border-blue-500 dark:bg-blue-900/20 text-blue-600' : 'bg-gray-50 border-transparent dark:bg-gray-800 text-gray-400 hover:border-gray-200'}`}>
+                                    {dept}
+                                </button>
+                            ))}
+                            </div>
+                        </section>
+
+                        <section>
+                            <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-blue-500 mb-6 flex items-center gap-2 italic">
+                                <Award size={14} /> Active Semester
+                            </h3>
+                            <div className="grid grid-cols-4 gap-2">
+                            {[1,2,3,4,5,6,7,8].map(sem => (
+                                <button key={sem} onClick={() => setSemester(sem)}
+                                    className={`w-12 h-12 rounded-xl border-2 flex flex-col items-center justify-center transition-all ${semester === sem ? 'bg-blue-600 border-blue-600 text-white shadow-lg' : 'bg-gray-50 border-transparent dark:bg-gray-800 text-gray-400 hover:border-gray-200'}`}>
+                                    <span className="text-[9px] font-black leading-none">{sem}</span>
+                                    <span className="text-[7px] font-bold">SEM</span>
+                                </button>
+                            ))}
+                            </div>
+                        </section>
+
+                        <section className="space-y-4">
+                            <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-blue-500 mb-6 flex items-center gap-2 italic">
+                                <GraduationCap size={14} /> Academic Trajectory
+                            </h3>
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label className="text-[8px] font-bold text-gray-400 uppercase tracking-widest block mb-1">CGPA</label>
+                                    <input 
+                                        type="number" step="0.01" value={cgpa} onChange={(e) => setCgpa(parseFloat(e.target.value))}
+                                        className="w-full bg-gray-50 dark:bg-gray-800 border-none rounded-xl p-3 text-sm font-black focus:ring-2 focus:ring-blue-500 outline-none dark:text-white"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="text-[8px] font-bold text-gray-400 uppercase tracking-widest block mb-1">Percentage (%)</label>
+                                    <input 
+                                        type="number" step="0.1" value={percentage} onChange={(e) => setPercentage(parseFloat(e.target.value))}
+                                        className="w-full bg-gray-50 dark:bg-gray-800 border-none rounded-xl p-3 text-sm font-black focus:ring-2 focus:ring-blue-500 outline-none dark:text-white"
+                                    />
+                                </div>
+                            </div>
+                        </section>
+                    </div>
+
+                    {/* Performance Matrix */}
+                    <section>
+                         <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-blue-500 mb-6 flex items-center gap-2 italic">
+                            <Plus size={14} /> Performance Matrix (Graded Results)
+                        </h3>
+                        <div className="bg-gray-50 dark:bg-gray-800/50 rounded-[32px] border border-gray-100 dark:border-gray-700 overflow-hidden">
+                            {results.length > 0 ? (
+                                <table className="w-full text-left">
+                                    <thead>
+                                        <tr className="bg-gray-100 dark:bg-gray-700/50">
+                                            <th className="px-6 py-4 text-[9px] font-black uppercase tracking-widest text-gray-400">Resource / Exam</th>
+                                            <th className="px-6 py-4 text-[9px] font-black uppercase tracking-widest text-gray-400 text-center">Outcome</th>
+                                            <th className="px-6 py-4 text-[9px] font-black uppercase tracking-widest text-gray-400 text-right">Synchronization</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
+                                        {results.map(res => (
+                                            <tr key={res._id} className="hover:bg-white dark:hover:bg-gray-800/50 transition-colors">
+                                                <td className="px-6 py-4">
+                                                    <p className="text-xs font-black uppercase text-gray-900 dark:text-white">{res.assignment?.title}</p>
+                                                    <p className="text-[9px] font-bold text-gray-500 uppercase tracking-widest italic">{res.assignment?.course?.name}</p>
+                                                </td>
+                                                <td className="px-6 py-4 text-center">
+                                                    <span className="text-sm font-black text-blue-600">{res.marksObtained} / {res.assignment?.maxMarks}</span>
+                                                </td>
+                                                <td className="px-6 py-4 text-right">
+                                                    <span className="text-[9px] font-black uppercase tracking-widest text-emerald-500 bg-emerald-50 px-2 py-1 rounded-md">Validated</span>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            ) : (
+                                <div className="p-10 text-center text-[10px] font-black uppercase tracking-widest text-gray-400 italic">No historical data records found for this identity.</div>
+                            )}
+                        </div>
+                    </section>
+
+                    <section>
+                         <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-blue-500 mb-6 flex items-center gap-2 italic">
+                            <Plus size={14} /> Personal Synopsis (Bio)
+                        </h3>
+                        <textarea 
+                            rows="4" value={aboutMe} onChange={(e) => setAboutMe(e.target.value)}
+                            placeholder="Student's background, aspirations, and summary..."
+                            className="w-full bg-gray-50 dark:bg-gray-800 border-none rounded-[24px] p-6 text-xs font-bold focus:ring-2 focus:ring-blue-500 outline-none dark:text-white resize-none italic"
+                        />
+                    </section>
+
+                    {/* COURSE ACCESS MGMT */}
+                    <section>
+                        <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-blue-500 mb-6 flex items-center gap-2 italic">
+                            <Shield size={14} /> Access Restrictions
+                        </h3>
+                        <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-4">Click to restrict student access to specific modules permanently.</p>
+                        <div className="bg-gray-50 dark:bg-gray-800/50 p-6 rounded-[32px] border border-gray-100 dark:border-gray-700">
+                           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                {allCourses.filter(c => c.semester === semester).map(course => {
+                                    const isExcluded = excludedCourses.includes(course._id);
+                                    return (
+                                        <button key={course._id} 
+                                            onClick={() => {
+                                                if (isExcluded) setExcludedCourses(excludedCourses.filter(id => id !== course._id));
+                                                else setExcludedCourses([...excludedCourses, course._id]);
+                                            }}
+                                            className={`p-4 rounded-2xl border text-left flex items-center justify-between group transition-all ${isExcluded ? 'bg-rose-50 dark:bg-rose-900/10 border-rose-200 dark:border-rose-900 shadow-inner' : 'bg-white dark:bg-gray-700 border-gray-100 dark:border-gray-600 shadow-sm'}`}>
+                                            <div>
+                                                <p className={`text-xs font-black uppercase tracking-tight ${isExcluded ? 'text-rose-600' : 'text-gray-900 dark:text-white'}`}>{course.name}</p>
+                                                <p className="text-[9px] font-bold text-gray-500 uppercase tracking-widest mt-0.5">{course.code}</p>
+                                            </div>
+                                            <div className={`w-6 h-6 rounded-lg border-2 flex items-center justify-center transition-all ${isExcluded ? 'bg-rose-600 border-rose-600 shadow-lg' : 'border-gray-200 dark:border-gray-600 group-hover:border-blue-300'}`}>
+                                                {isExcluded ? <X size={14} className="text-white" /> : <div className="w-2 h-2 rounded-full bg-emerald-500" />}
+                                            </div>
+                                        </button>
+                                    );
+                                })}
+                           </div>
+                        </div>
+                    </section>
+
+                    {/* ATTENDANCE CALENDAR & REPORT (NEW) */}
+                    <section className="space-y-6">
+                        <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-red-500 mb-6 flex items-center gap-2 italic">
+                            <Calendar size={14} /> Attendance Pulse & Annual Metrics
+                        </h3>
+                        <AdminAttendanceInsight userId={studentId} type="student" user={user} />
+                    </section>
+                </div>
+
+                <div className="p-8 border-t border-gray-100 dark:border-gray-800 flex justify-end gap-4 bg-gray-50/50 dark:bg-gray-800/30">
+                    <button onClick={onClose} className="px-6 py-4 font-black uppercase tracking-widest text-gray-400 hover:text-gray-600 transition-colors">Abort</button>
+                    <button onClick={handleSave} disabled={isSaving}
+                        className="px-10 py-4 bg-blue-600 text-white rounded-2xl font-black uppercase tracking-widest hover:bg-blue-700 shadow-xl shadow-blue-500/20 flex items-center gap-2 disabled:bg-gray-400">
+                        <Save size={18}/> {isSaving ? 'Synchronizing...' : 'Save Enrollment'}
+                    </button>
+                </div>
+            </motion.div>
+        </div>
+    );
+};
+
+export default AdminStudentProfileModal;

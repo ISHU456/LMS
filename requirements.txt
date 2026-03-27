@@ -1,0 +1,51 @@
+# Project Requirements - LMS
+
+## Technology Stack
+- **Frontend**: React + Vite + Tailwind CSS + Framer Motion
+- **Backend**: Node.js + Express + MongoDB + Socket.io
+- **Database**: MongoDB (Local or Atlas)
+- **AI Integration**: Google Generative AI (Gemini) + Groq SDK
+- **Face Authentication**: Face-api.js (Browser-side)
+
+## Development Prerequisites
+- Node.js (v18.0 or higher)
+- npm or yarn
+- MongoDB Server
+
+## Core Backend Dependencies (server/package.json)
+- express
+- mongoose
+- socket.io
+- @google/generative-ai
+- grocery-sdk
+- bcryptjs
+- jsonwebtoken
+- dotenv
+- cloudinary
+- multer
+- multer-storage-cloudinary
+
+## Core Frontend Dependencies (client/package.json)
+- react
+- react-dom
+- react-router-dom
+- @reduxjs/toolkit
+- react-redux
+- framer-motion
+- face-api.js
+- lucide-react
+- axios
+- chart.js
+- react-chartjs-2
+- recharts
+- date-fns
+- papaparse
+- jspdf
+
+## Scripts
+- Run `npm install` in the root folder to install all dependencies.
+- Run `npm run dev` in the root folder to start both frontend and backend.
+- Use `npm run seed` to seed the database with initial data.
+
+---
+*Note: This file provides a high-level overview of project requirements. Direct dependencies are managed via package.json files in the client and server directories.*
