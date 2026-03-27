@@ -4,7 +4,7 @@ import {
   Users, BookOpen, Clock, AlertTriangle, 
   TrendingUp, TrendingDown, LayoutGrid, 
   CalendarDays, ChevronRight, ArrowUpRight,
-  ShieldCheck, ShieldAlert, Sparkles, Bell, Check, X,
+  ShieldCheck, ShieldAlert, ShieldOff, Sparkles, Bell, Check, X,
   FileText
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
@@ -38,7 +38,7 @@ const DashboardOverview = ({ user }) => {
   const fetchStats = async () => {
     try {
       const config = { headers: { Authorization: `Bearer ${user.token}` } };
-      const res = await axios.get('http://localhost:5000/api/attendance/stats/teacher', config);
+      const res = await axios.get('http://localhost:5001/api/attendance/stats/teacher', config);
       setStats(res.data);
       if (res.data.length > 0) {
         fetchActiveCourseStudents(res.data[activeCourseIndex].courseCode);
@@ -54,7 +54,7 @@ const DashboardOverview = ({ user }) => {
     setIsStudentsLoading(true);
     try {
       const config = { headers: { Authorization: `Bearer ${user.token}` } };
-      const res = await axios.get(`http://localhost:5000/api/courses/${courseCode}/students`, config);
+      const res = await axios.get(`http://localhost:5001/api/courses/${courseCode}/students`, config);
       setActiveCourseStudents(res.data);
     } catch (error) {
       console.error('Error fetching course students:', error);
@@ -71,6 +71,7 @@ const DashboardOverview = ({ user }) => {
 
   const totalStudents = stats.reduce((acc, curr) => acc + curr.studentCount, 0);
   const totalRestricted = stats.reduce((acc, curr) => acc + curr.restrictedStudents, 0);
+  const totalBlocked = stats.reduce((acc, curr) => acc + (curr.blockedStudents || 0), 0);
   const totalLowAttendance = stats.reduce((acc, curr) => acc + curr.studentsBelow75, 0);
   const avgAttendanceForAll = stats.length > 0 
     ? stats.reduce((acc, curr) => acc + curr.avgAttendance, 0) / stats.length 
@@ -81,7 +82,7 @@ const DashboardOverview = ({ user }) => {
     try {
       const course = stats[activeCourseIndex];
       const config = { headers: { Authorization: `Bearer ${user.token}` } };
-      await axios.post('http://localhost:5000/api/attendance/bulk-mark', {
+      await axios.post('http://localhost:5001/api/attendance/bulk-mark', {
         courseId: course.courseId,
         date: todayStr,
         semester: course.semester || 1, // Defaulting to 1 if not found
@@ -140,7 +141,7 @@ const DashboardOverview = ({ user }) => {
         {[
           { label: 'Total Enrolled', value: totalStudents, sub: 'Across subjects', icon: Users, color: '#4361ee', accent: 'bg-indigo-50 text-indigo-600' },
           { label: 'Avg Attendance', value: `${Math.round(avgAttendanceForAll)}%`, sub: 'Current Semester', icon: CalendarDays, color: '#10b981', accent: 'bg-emerald-50 text-emerald-600' },
-          { label: 'Access Control', value: totalRestricted, sub: 'Restricted access', icon: ShieldAlert, color: '#f59e0b', accent: 'bg-amber-50 text-amber-600' },
+          { label: 'Total Conflicts', value: totalBlocked + totalRestricted, sub: `${totalBlocked} Blocked / ${totalRestricted} Restricted`, icon: ShieldAlert, color: '#f59e0b', accent: 'bg-amber-50 text-amber-600' },
           { label: 'Performance', value: '88%', sub: 'Avg engagement', icon: Sparkles, color: '#7209b7', accent: 'bg-purple-50 text-purple-600' }
         ].map((s, i) => (
           <motion.div key={i} initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: i * 0.1 }}
@@ -208,7 +209,7 @@ const DashboardOverview = ({ user }) => {
                   <ShieldCheck size={14} className="text-indigo-500"/> Course Access State
                 </h3>
                 <div className="h-[200px] w-full flex items-center">
-                  <ResponsiveContainer width="100%" height="100%">
+                  <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
                     <PieChart>
                       <Pie data={pieData} cx="50%" cy="50%" innerRadius={60} outerRadius={80} paddingAngle={5} dataKey="value">
                         {pieData.map((entry, index) => <Cell key={`cell-${index}`} fill={entry.color} />)}
@@ -236,7 +237,8 @@ const DashboardOverview = ({ user }) => {
                    {[
                      { label: 'Avg Attendance', value: currentCourse.avgAttendance, color: '#4361ee', icon: Clock },
                      { label: 'Students Below 75%', value: Math.round((currentCourse.studentsBelow75 / currentCourse.studentCount) * 100) || 0, color: '#f43f5e', icon: UserMinus },
-                     { label: 'Restricted Students', value: Math.round((currentCourse.restrictedStudents / currentCourse.studentCount) * 100) || 0, color: '#f59e0b', icon: ShieldAlert }
+                     { label: 'Restricted Students', value: Math.round((currentCourse.restrictedStudents / currentCourse.studentCount) * 100) || 0, color: '#f59e0b', icon: ShieldAlert },
+                     { label: 'Blocked Students', value: Math.round((currentCourse.blockedStudents / currentCourse.studentCount) * 100) || 0, color: '#f43f5e', icon: ShieldOff }
                    ].map((item, idx) => (
                      <div key={idx}>
                         <div className="flex justify-between items-center mb-2">
@@ -269,7 +271,7 @@ const DashboardOverview = ({ user }) => {
                   </div>
                 </div>
                 <div className="h-[280px] w-full">
-                  <ResponsiveContainer width="100%" height="100%">
+                  <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
                     <AreaChart data={[
                       { name: 'W1 D1', val: 82 }, { name: 'D2', val: 78 }, { name: 'D3', val: 85 }, 
                       { name: 'D4', val: 92 }, { name: 'D5', val: 88 }, { name: 'D6', val: 80 }, 

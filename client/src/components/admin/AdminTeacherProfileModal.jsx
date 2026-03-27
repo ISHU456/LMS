@@ -29,10 +29,10 @@ const AdminTeacherProfileModal = ({ teacherId, user, onClose }) => {
         const fetchData = async () => {
             try {
                 const [dRes, cRes] = await Promise.all([
-                    axios.get(`http://localhost:5000/api/admin/teachers/${teacherId}`, {
+                    axios.get(`http://localhost:5001/api/admin/teachers/${teacherId}`, {
                         headers: { Authorization: `Bearer ${user.token}` }
                     }),
-                    axios.get(`http://localhost:5000/api/admin/courses`, {
+                    axios.get(`http://localhost:5001/api/admin/courses`, {
                         headers: { Authorization: `Bearer ${user.token}` }
                     })
                 ]);
@@ -63,7 +63,7 @@ const AdminTeacherProfileModal = ({ teacherId, user, onClose }) => {
         setIsSaving(true);
         try {
             // First update assignments and department
-            await axios.put(`http://localhost:5000/api/admin/teachers/${teacherId}/assignments`, {
+            await axios.put(`http://localhost:5001/api/admin/teachers/${teacherId}/assignments`, {
                 assignedCourseIds: selectedCourses,
                 department: department,
                 assignedSemesters: assignedSemesters,
@@ -79,7 +79,7 @@ const AdminTeacherProfileModal = ({ teacherId, user, onClose }) => {
 
             // Then update role if changed
             if (role !== details.role) {
-                await axios.put(`http://localhost:5000/api/admin/users/${teacherId}/role`, { role }, {
+                await axios.put(`http://localhost:5001/api/admin/users/${teacherId}/role`, { role }, {
                     headers: { Authorization: `Bearer ${user.token}` }
                 });
             }

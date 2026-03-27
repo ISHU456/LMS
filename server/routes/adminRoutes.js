@@ -20,7 +20,6 @@ import {
     getSystemSettings,
     updateSystemSettings,
     sendBroadcast,
-    sendBroadcast,
     getBroadcasts,
     getDepartments
 } from '../controllers/adminController.js';

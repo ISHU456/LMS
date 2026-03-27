@@ -5,7 +5,7 @@ const progressSchema = new mongoose.Schema({
   course: { type: mongoose.Schema.Types.ObjectId, ref: 'Course', required: true },
   completedItems: [{
     itemId: { type: mongoose.Schema.Types.ObjectId, ref: 'Resource' },
-    itemType: { type: String, enum: ['video', 'pdf', 'assignment', 'quiz', 'ebook', 'resource', 'lecture', 'lab', 'tutorial', 'seminar'] },
+    itemType: { type: String, enum: ['video', 'pdf', 'assignment', 'quiz', 'ebook', 'resource', 'lecture', 'lab', 'tutorial', 'seminar', 'material', 'pyq', 'mindmap', 'ppt', 'yt', 'youtube', 'project'] },
     completedAt: { type: Date, default: Date.now }
   }],
   lastAccessed: { type: Date, default: Date.now }

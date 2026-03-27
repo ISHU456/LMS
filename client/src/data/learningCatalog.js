@@ -1,237 +1,99 @@
 export const STUDENT_COURSE_CATALOG = [
-  {
-    id: 'CS301',
-    name: 'Data Structures & Algorithms',
-    accent: '#4361ee',
-  },
-  {
-    id: 'CS401',
-    name: 'Operating Systems',
-    accent: '#7209b7',
-  },
-  {
-    id: 'CS899',
-    name: 'Capstone Implementation',
-    accent: '#f72585',
-  },
+  // Semester 1
+  { id: 'BT-101', name: 'Engineering Chemistry', accent: '#10b981', semester: 1 },
+  { id: 'BT-102', name: 'Mathematics-I', accent: '#3b82f6', semester: 1 },
+  { id: 'BT-103', name: 'English for Communication', accent: '#8b5cf6', semester: 1 },
+  { id: 'BT-104', name: 'Basic Electrical & Electronics Engineering', accent: '#f59e0b', semester: 1 },
+  { id: 'BT-105', name: 'Engineering Graphics', accent: '#ec4899', semester: 1 },
+  { id: 'BT-106', name: 'Manufacturing Practices (Lab)', accent: '#475569', semester: 1 },
+  { id: 'BT-CLAB', name: 'English Language / Communication Lab', accent: '#0f172a', semester: 1 },
+
+  // Semester 2
+  { id: 'BT-201', name: 'Engineering Physics', accent: '#14b8a6', semester: 2 },
+  { id: 'BT-202', name: 'Mathematics-II', accent: '#f59e0b', semester: 2 },
+  { id: 'BT-203', name: 'Basic Mechanical Engineering', accent: '#ef4444', semester: 2 },
+  { id: 'BT-204', name: 'Basic Civil Engineering', accent: '#826011', semester: 2 },
+  { id: 'BT-205', name: 'Basic Computer Engineering', accent: '#2563eb', semester: 2 },
+
+  // Semester 3
+  { id: 'BT-301', name: 'Mathematics-III', accent: '#6366f1', semester: 3 },
+  { id: 'BT-302', name: 'Data Structures', accent: '#4361ee', semester: 3 },
+  { id: 'BT-303', name: 'Digital Systems', accent: '#06b6d4', semester: 3 },
+  { id: 'BT-304', name: 'Computer Organization', accent: '#f97316', semester: 3 },
+  { id: 'BT-305', name: 'Discrete Mathematics', accent: '#d946ef', semester: 3 },
+
+  // Semester 4
+  { id: 'BT-401', name: 'Analysis & Design of Algorithms', accent: '#ef4444', semester: 4 },
+  { id: 'BT-402', name: 'Operating Systems', accent: '#7209b7', semester: 4 },
+  { id: 'BT-403', name: 'Software Engineering', accent: '#10b981', semester: 4 },
+  { id: 'BT-404', name: 'Theory of Computation', accent: '#8b5cf6', semester: 4 },
+  { id: 'BT-405', name: 'Database Management Systems', accent: '#f59e0b', semester: 4 },
+
+  // Semester 5
+  { id: 'BT-501', name: 'Computer Networks', accent: '#3b82f6', semester: 5 },
+  { id: 'BT-502', name: 'Compiler Design', accent: '#f43f5e', semester: 5 },
+  { id: 'BT-503', name: 'Machine Learning / AI', accent: '#10b981', semester: 5 },
+  { id: 'BT-OE1', name: 'Open Elective-I', accent: '#64748b', semester: 5 },
+  { id: 'BT-DE1', name: 'Department Elective-I', accent: '#475569', semester: 5 },
+
+  // Semester 6
+  { id: 'BT-601', name: 'Cloud Computing', accent: '#0ea5e9', semester: 6 },
+  { id: 'BT-602', name: 'Information Security', accent: '#dc2626', semester: 6 },
+  { id: 'BT-603', name: 'Data Mining / Big Data', accent: '#fbbf24', semester: 6 },
+  { id: 'BT-OE2', name: 'Open Elective-II', accent: '#94a3b8', semester: 6 },
+  { id: 'BT-DE2', name: 'Department Elective-II', accent: '#334155', semester: 6 },
+
+  // Semester 7
+  { id: 'BT-701', name: 'Artificial Intelligence', accent: '#7c3aed', semester: 7 },
+  { id: 'BT-DE3', name: 'Blockchain / IoT', accent: '#2563eb', semester: 7 },
+  { id: 'BT-PROJ1', name: 'Major Project - Phase 1', accent: '#f72585', semester: 7 },
+  { id: 'BT-TRAIN', name: 'Industrial Training', accent: '#10b981', semester: 7 },
+
+  // Semester 8
+  { id: 'BT-PROJ2', name: 'Major Project - Phase 2', accent: '#f72585', semester: 8 },
+  { id: 'BT-SEM', name: 'Seminar', accent: '#64748b', semester: 8 },
+  { id: 'BT-INTERN', name: 'Internship / Industry Work', accent: '#10b981', semester: 8 },
 ];
 
 export const QUIZZIES_BY_COURSE = {
-  CS301: [
+  'BT-302': [
     {
-      quizId: 'CS301-q1',
+      quizId: 'BT302-q1',
       title: 'DSA Quickfire',
       timeLimitSec: 120,
       passingPercentage: 70,
       maxAttempts: 3,
       questionsPerAttempt: 5,
       questions: [
-        {
-          id: 'CS301-q1-1',
-          type: 'mcq',
-          question: 'Which data structure is best for implementing a LIFO (Last In, First Out) behavior?',
-          options: ['Queue', 'Stack', 'Heap', 'Graph'],
-          correctIndex: 1,
-          marks: 10,
-        },
-        {
-          id: 'CS301-q1-2',
-          type: 'mcq',
-          question: 'The worst-case time complexity of Binary Search is:',
-          options: ['O(n)', 'O(log n)', 'O(n log n)', 'O(1)'],
-          correctIndex: 1,
-          marks: 10,
-        },
-        {
-          id: 'CS301-q1-3',
-          type: 'mcq',
-          question: 'Which traversal visits nodes in the order: Root, Left, Right?',
-          options: ['In-order', 'Pre-order', 'Post-order', 'Level-order'],
-          correctIndex: 1,
-          marks: 10,
-        },
-        {
-          id: 'CS301-q1-4',
-          type: 'mcq',
-          question: 'What does a min-heap guarantee?',
-          options: ['The root is the maximum element', 'The root is the minimum element', 'All leaves are sorted', 'Every node has two children'],
-          correctIndex: 1,
-          marks: 10,
-        },
-        {
-          id: 'CS301-q1-5',
-          type: 'mcq',
-          question: 'In BFS, the shortest path (in an unweighted graph) is found because:',
-          options: ['It uses a stack', 'It explores neighbors in increasing distance order', 'It sorts all edges first', 'It only works for trees'],
-          correctIndex: 1,
-          marks: 10,
-        },
-        {
-          id: 'CS301-q1-6',
-          type: 'mcq',
-          question: 'Dynamic Programming is typically useful when an algorithm has:',
-          options: ['No overlapping subproblems', 'Overlapping subproblems and optimal substructure', 'Only optimal substructure', 'Only overlapping subproblems'],
-          correctIndex: 1,
-          marks: 10,
-        },
+        { id: 'BT302-q1-1', type: 'mcq', question: 'Which data structure is LIFO?', options: ['Queue', 'Stack', 'Heap', 'Graph'], correctIndex: 1, marks: 10 },
+        { id: 'BT302-q1-2', type: 'mcq', question: 'Binary Search complexity?', options: ['O(n)', 'O(log n)', 'O(n log n)', 'O(1)'], correctIndex: 1, marks: 10 }
       ],
     },
   ],
-  CS401: [
+  'BT-402': [
     {
-      quizId: 'CS401-q1',
-      title: 'OS Fundamentals Test',
+      quizId: 'BT402-q1',
+      title: 'OS Fundamentals',
       timeLimitSec: 150,
       passingPercentage: 70,
       maxAttempts: 3,
       questionsPerAttempt: 5,
       questions: [
-        {
-          id: 'CS401-q1-1',
-          type: 'mcq',
-          question: 'Which scheduling algorithm is based on the principle of "First Come, First Served"?',
-          options: ['SJF', 'FCFS', 'Round Robin', 'Priority Scheduling'],
-          correctIndex: 1,
-          marks: 10,
-        },
-        {
-          id: 'CS401-q1-2',
-          type: 'mcq',
-          question: 'A process in waiting state is typically waiting for:',
-          options: ['CPU execution', 'I/O completion', 'Memory allocation', 'Thread creation'],
-          correctIndex: 1,
-          marks: 10,
-        },
-        {
-          id: 'CS401-q1-3',
-          type: 'mcq',
-          question: 'Which of the following is a non-preemptive scheduling algorithm?',
-          options: ['SRTF', 'RR', 'SJF (non-preemptive)', 'Priority (preemptive)'],
-          correctIndex: 2,
-          marks: 10,
-        },
-        {
-          id: 'CS401-q1-4',
-          type: 'mcq',
-          question: 'What is the primary purpose of an operating system?',
-          options: ['To compile programs', 'To manage hardware resources and provide services', 'To replace the CPU', 'To store databases only'],
-          correctIndex: 1,
-          marks: 10,
-        },
-        {
-          id: 'CS401-q1-5',
-          type: 'mcq',
-          question: 'Deadlock can be prevented by ensuring that:',
-          options: ['At least one of the Coffman conditions is not satisfied', 'The OS uses a bigger clock', 'All processes are identical', 'Memory is unlimited'],
-          correctIndex: 0,
-          marks: 10,
-        },
-        {
-          id: 'CS401-q1-6',
-          type: 'mcq',
-          question: 'In virtual memory, the system uses disk space to act as:',
-          options: ['Cache', 'RAM extension', 'Printer storage', 'Network memory'],
-          correctIndex: 1,
-          marks: 10,
-        },
-      ],
-    },
-  ],
-  CS899: [
-    {
-      quizId: 'CS899-q1',
-      title: 'Capstone Readiness Quiz',
-      timeLimitSec: 180,
-      passingPercentage: 70,
-      maxAttempts: 3,
-      questionsPerAttempt: 5,
-      questions: [
-        {
-          id: 'CS899-q1-1',
-          type: 'mcq',
-          question: 'Which best describes a "deliverable" in a project-based course?',
-          options: ['A required output with success criteria', 'A random task with no evaluation', 'Only the final presentation', 'An optional document'],
-          correctIndex: 0,
-          marks: 10,
-        },
-        {
-          id: 'CS899-q1-2',
-          type: 'mcq',
-          question: 'A good project scope should be:',
-          options: ['Vague and unbounded', 'Clear, measurable, and realistic', 'Only one line long', 'Changed every hour'],
-          correctIndex: 1,
-          marks: 10,
-        },
-        {
-          id: 'CS899-q1-3',
-          type: 'mcq',
-          question: 'What is the purpose of version control?',
-          options: ['To delete old code', 'To track changes and collaborate safely', 'To store only screenshots', 'To avoid testing'],
-          correctIndex: 1,
-          marks: 10,
-        },
-        {
-          id: 'CS899-q1-4',
-          type: 'mcq',
-          question: 'In an iterative development process, you should:',
-          options: ['Wait until everything is perfect', 'Deliver small increments and refine', 'Avoid feedback', 'Skip documentation entirely'],
-          correctIndex: 1,
-          marks: 10,
-        },
-        {
-          id: 'CS899-q1-5',
-          type: 'mcq',
-          question: 'Which practice improves maintainability the most?',
-          options: ['Hard-coded constants everywhere', 'Consistent code structure and documentation', 'Removing tests', 'Using deeply nested logic'],
-          correctIndex: 1,
-          marks: 10,
-        },
-        {
-          id: 'CS899-q1-6',
-          type: 'mcq',
-          question: 'A retrospective meeting helps because it:',
-          options: ['Blames individuals', 'Identifies improvements for the next iteration', 'Repeats issues', 'Stops the project'],
-          correctIndex: 1,
-          marks: 10,
-        },
+        { id: 'BT402-q1-1', type: 'mcq', question: 'LIFO scheduling?', options: ['SJF', 'FCFS', 'RR', 'None'], correctIndex: 1, marks: 10 }
       ],
     },
   ],
 };
 
 export const ASSIGNMENTS_SEED = [
-  {
-    id: 1,
-    title: 'Build Full-Stack LMS',
-    type: 'project',
-    course: 'CS899',
-    maxMarks: 100,
-    deadline: '2026-04-15T23:59:00',
-  },
-  {
-    id: 2,
-    title: 'Algorithm Complexity Analysis',
-    type: 'assignment',
-    course: 'CS301',
-    maxMarks: 20,
-    deadline: '2026-03-22T23:59:00',
-  },
-  {
-    id: 3,
-    title: 'Operating Systems PCB Design',
-    type: 'assignment',
-    course: 'CS401',
-    maxMarks: 50,
-    deadline: '2026-03-10T23:59:00',
-  },
+  { id: 1, title: 'Build Full-Stack LMS', type: 'project', course: 'BT-PROJ2', maxMarks: 100, deadline: '2026-04-15T23:59:00' },
+  { id: 2, title: 'Algorithm Analysis', type: 'assignment', course: 'BT-401', maxMarks: 20, deadline: '2026-03-22T23:59:00' },
+  { id: 3, title: 'PCB Design', type: 'assignment', course: 'BT-104', maxMarks: 50, deadline: '2026-03-10T23:59:00' },
 ];
 
 export const getAllQuizzes = () => {
   return Object.entries(QUIZZIES_BY_COURSE).flatMap(([courseId, quizzes]) =>
-    (quizzes || []).map((q) => ({
-      ...q,
-      courseId,
-    }))
+    (quizzes || []).map((q) => ({ ...q, courseId }))
   );
 };
 
@@ -243,4 +105,3 @@ export const getQuizById = (quizId) => {
 export const getCoursesWithQuizzes = () => {
   return Object.keys(QUIZZIES_BY_COURSE);
 };
-

@@ -38,6 +38,7 @@ const AIMode = () => {
   const [sessionId, setSessionId] = useState(`session_${Date.now()}`);
   
   const scrollRef = useRef(null);
+  const fileInputRef = useRef(null);
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -54,7 +55,7 @@ const AIMode = () => {
 
   const fetchHistory = async () => {
     try {
-      const res = await axios.get('http://localhost:5000/api/chatbot/history', {
+      const res = await axios.get('http://localhost:5001/api/chatbot/history', {
         headers: { Authorization: `Bearer ${user.token}` }
       });
       setChatHistory(res.data);
@@ -73,7 +74,7 @@ const AIMode = () => {
     setIsLoading(true);
 
     try {
-      const res = await axios.post('http://localhost:5000/api/chatbot/ask', {
+      const res = await axios.post('http://localhost:5001/api/chatbot/ask', {
         message: input,
         sessionId: sessionId,
         history: messages.map(m => ({ role: m.sender === 'bot' ? 'model' : 'user', parts: [{ text: m.text }] }))
@@ -109,9 +110,47 @@ const AIMode = () => {
     }
   };
 
+  const handleFileUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file || !user || isLoading || credits < 2) return;
+
+    const userMsg = { id: Date.now(), text: `[Protocol: Analyze file "${file.name}"]`, sender: 'user', timestamp: new Date() };
+    setMessages(prev => [...prev, userMsg]);
+    setIsLoading(true);
+
+    const formData = new FormData();
+    formData.append('file', file);
+
+    try {
+      const res = await axios.post('http://localhost:5001/api/chatbot/analyze', formData, {
+        headers: { 
+          Authorization: `Bearer ${user.token}`,
+          'Content-Type': 'multipart/form-data'
+        }
+      });
+
+      const botMsg = { 
+        id: Date.now() + 1, 
+        text: res.data.response, 
+        sender: 'bot', 
+        timestamp: new Date() 
+      };
+      setMessages(prev => [...prev, botMsg]);
+      setCredits(res.data.remainingCredits);
+      dispatch(updateProfile({ credits: res.data.remainingCredits }));
+      
+      playNotificationSound();
+    } catch (err) {
+      alert(err.response?.data?.response || "File analysis protocol failed.");
+    } finally {
+      setIsLoading(false);
+      e.target.value = ''; // Reset input
+    }
+  };
+
   const requestCredits = async () => {
     try {
-      await axios.post('http://localhost:5000/api/chatbot/request-credits', {}, {
+      await axios.post('http://localhost:5001/api/chatbot/request-credits', {}, {
         headers: { Authorization: `Bearer ${user.token}` }
       });
       setRequestSent(true);
@@ -139,7 +178,7 @@ const AIMode = () => {
   const deleteSession = async (sessionId) => {
     if (!window.confirm("Terminate this neural log indefinitely?")) return;
     try {
-      await axios.delete(`http://localhost:5000/api/chatbot/delete/${sessionId}`, {
+      await axios.delete(`http://localhost:5001/api/chatbot/delete/${sessionId}`, {
         headers: { Authorization: `Bearer ${user.token}` }
       });
       setChatHistory(prev => prev.filter(s => s.sessionId !== sessionId));
@@ -155,7 +194,7 @@ const AIMode = () => {
       // We need a backend endpoint to grant by email or we can use the existing grant/:userId
       // For now, let's assume we fetch user by email first or have an endpoint that takes email
       // To keep it simple and within existing logic, I'll update the backend to support email or just use email as ID if we handle it
-      await axios.post(`http://localhost:5000/api/chatbot/grant-by-email`, { email }, {
+      await axios.post(`http://localhost:5001/api/chatbot/grant-by-email`, { email }, {
         headers: { Authorization: `Bearer ${user.token}` }
       });
       alert(`Credits synchronized for ${email}`);
@@ -240,7 +279,7 @@ const AIMode = () => {
             <div className={`px-5 py-2.5 rounded-2xl border ${credits > 0 ? 'bg-indigo-600/10 border-indigo-500/20' : 'bg-rose-600/10 border-rose-500/20'} flex items-center gap-3`}>
                {credits > 0 ? <Zap size={14} className="text-indigo-400" /> : <ZapOff size={14} className="text-rose-400" />}
                <span className={`text-[10px] font-black uppercase tracking-widest ${credits > 0 ? 'text-indigo-400' : 'text-rose-400'}`}>
-                 Credits: {credits} / 10
+                 {user?.role === 'teacher' ? 'Faculty Focus: ' : 'Neural Bank: '} {credits} Credits
                </span>
             </div>
           </div>
@@ -407,9 +446,20 @@ const AIMode = () => {
             <div className="p-4 md:px-12 md:pb-6">
                <div className="max-w-4xl mx-auto bg-white rounded-2xl p-2 shadow-[0_0_30px_rgba(255,255,255,0.1)]">
                  <form onSubmit={handleSend} className="flex items-center gap-2">
-                   <button type="button" className="pl-3 pr-2 py-2 text-gray-800 hover:text-orange-600 transition-colors">
-                     <Paperclip size={20} />
-                   </button>
+                  <input 
+                    type="file" 
+                    ref={fileInputRef} 
+                    className="hidden" 
+                    onChange={handleFileUpload} 
+                    accept=".pdf,.txt,.docx" 
+                  />
+                  <button 
+                    type="button" 
+                    onClick={() => fileInputRef.current.click()}
+                    className="pl-3 pr-2 py-2 text-gray-800 hover:text-orange-600 transition-colors"
+                  >
+                    <Paperclip size={20} />
+                  </button>
                    <input 
                      type="text"
                      value={input}

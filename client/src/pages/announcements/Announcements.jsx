@@ -23,7 +23,7 @@ const Announcements = () => {
   useEffect(() => {
     const fetchTrending = async () => {
       try {
-        const res = await axios.get('http://localhost:5000/api/announcements', {
+        const res = await axios.get('http://localhost:5001/api/announcements', {
           params: { limit: 50 },
           headers: { Authorization: `Bearer ${user.token}` }
         });
@@ -44,13 +44,13 @@ const Announcements = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#f8fafc] dark:bg-[#0b0f19] transition-colors duration-500">
-      <div className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="flex flex-col lg:flex-row gap-8">
+    <div className="h-[calc(100vh-5rem)] overflow-hidden bg-[#f8fafc] dark:bg-[#0b0f19] transition-colors duration-500">
+      <div className="h-full max-w-[1700px] mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        <div className="h-full flex flex-col lg:flex-row gap-8">
           
           {/* LEFT SIDEBAR - User Profile & Navigation */}
-          <aside className="hidden lg:block w-[320px] sticky top-8">
-            <div className="h-[calc(100vh-4rem)] overflow-y-auto pr-4 -mr-4 flex flex-col gap-6">
+          <aside className="hidden lg:block w-[320px] shrink-0 h-full overflow-y-auto overflow-x-hidden custom-scrollbar pr-2">
+            <div className="flex flex-col gap-6 pt-8 pb-24">
               {/* Profile Card */}
               <div className="bg-white dark:bg-gray-900 rounded-[2.5rem] border border-gray-100 dark:border-gray-800 p-8 shadow-2xl shadow-gray-200/50 dark:shadow-none overflow-hidden relative group">
                 <div className="absolute top-0 left-0 w-full h-24 bg-gradient-to-br from-primary-600 via-indigo-600 to-purple-600 z-0" />
@@ -110,15 +110,17 @@ const Announcements = () => {
           </aside>
 
           {/* MAIN CENTER FEED */}
-          <main className="flex-1 max-w-[700px] w-full flex flex-col gap-8 mx-auto lg:mx-0 h-[calc(100vh-4rem)] overflow-y-auto pr-4 -mr-4">
+          <main className="flex-1 h-full max-w-[800px] min-w-0 w-full flex flex-col gap-8 mx-auto lg:mx-0 overflow-y-auto overflow-x-hidden custom-scrollbar px-6 pt-8 pb-32">
             {/* Announcement Banner */}
-            <div className="relative h-48 rounded-[3rem] overflow-hidden bg-gradient-to-r from-indigo-600 via-purple-600 to-rose-600 p-8 flex flex-col justify-end shadow-2xl shadow-indigo-500/20">
-              <div className="absolute top-0 right-0 p-8 opacity-20">
+            <div className="relative h-64 rounded-[3rem] overflow-hidden shadow-2xl shadow-indigo-500/20 group">
+              <img src="/banner.png" alt="Academic Feed" className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-1000" />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent z-0" />
+              <div className="absolute top-0 right-0 p-12 opacity-30 z-10">
                 <Sparkles size={120} className="text-white" />
               </div>
-              <div className="relative z-10">
-                <span className="px-3 py-1 rounded-full bg-white/20 backdrop-blur-md text-white text-[10px] font-black uppercase tracking-[0.2em]">Live Campus</span>
-                <h1 className="text-3xl font-black text-white mt-2 leading-none">Smart Academic Feed</h1>
+              <div className="relative z-10 p-10 h-full flex flex-col justify-end">
+                <span className="px-3 py-1 w-fit rounded-full bg-primary-600/50 backdrop-blur-md text-white text-[10px] font-black uppercase tracking-[0.2em]">Live Campus</span>
+                <h1 className="text-4xl font-black text-white mt-3 leading-none uppercase tracking-tighter">Smart Academic Feed</h1>
                 <p className="text-white/80 text-sm font-medium mt-2">Connecting students and faculty through real-time updates.</p>
               </div>
             </div>
@@ -128,8 +130,8 @@ const Announcements = () => {
           </main>
 
           {/* RIGHT SIDEBAR - Trending & Highlights */}
-          <aside className="hidden xl:block w-[350px] sticky top-8">
-            <div className="h-[calc(100vh-4rem)] overflow-y-auto pr-4 -mr-4 flex flex-col gap-6">
+          <aside className="hidden xl:block w-[350px] shrink-0 h-full overflow-y-auto overflow-x-hidden custom-scrollbar pl-2">
+            <div className="flex flex-col gap-6 pt-8 pb-24">
               {/* Trending Posts */}
               <div className="bg-white dark:bg-gray-900 rounded-[2.5rem] border border-gray-100 dark:border-gray-800 p-8 shadow-2xl shadow-gray-200/50 dark:shadow-none">
                 <div className="flex items-center justify-between mb-8">
@@ -201,6 +203,31 @@ const Announcements = () => {
 
         </div>
       </div>
+      <style>
+        {`
+          .custom-scrollbar::-webkit-scrollbar {
+            width: 4px;
+            height: 4px;
+          }
+          .custom-scrollbar::-webkit-scrollbar-track {
+            background: transparent;
+          }
+          .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: rgba(0, 0, 0, 0.05);
+            border-radius: 10px;
+          }
+          .dark .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.05);
+          }
+          .custom-scrollbar:hover::-webkit-scrollbar-thumb {
+            background: rgba(67, 97, 238, 0.2);
+          }
+           /* Hide main page scrollbar to enforce 3-column independent scrolling */
+          html, body {
+            overflow: hidden !important;
+          }
+        `}
+      </style>
     </div>
   );
 };

@@ -284,7 +284,7 @@ const Community = () => {
   useEffect(() => {
     const load = async () => {
       try {
-        const res = await axios.get('http://localhost:5000/api/announcements');
+        const res = await axios.get('http://localhost:5001/api/announcements');
         if (res.data?.length) {
           setAnnouncements(res.data);
         } else {
@@ -421,7 +421,7 @@ const Community = () => {
         <div className="flex gap-6">
 
           {/* ── Left Filter Panel ── */}
-          <aside className="hidden lg:flex flex-col gap-4 w-64 shrink-0 sticky top-4 self-start">
+          <aside className="hidden lg:flex flex-col gap-4 w-72 shrink-0 sticky top-4 self-start max-h-[calc(100vh-100px)] overflow-y-auto pr-2 custom-scrollbar">
             {/* Category filters */}
             <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 overflow-hidden shadow-sm">
               <div className="px-4 py-3 border-b border-gray-100 dark:border-gray-800 flex items-center gap-2">
@@ -477,7 +477,7 @@ const Community = () => {
           </aside>
 
           {/* ── Right Feed ── */}
-          <div ref={feedRef} className="flex-1 min-w-0 space-y-4">
+          <div ref={feedRef} className="flex-1 min-w-0 space-y-4 max-h-[calc(100vh-100px)] overflow-y-auto pr-2 custom-scrollbar">
             {/* Mobile Filter Toggle */}
             <div className="lg:hidden flex items-center gap-2 mb-2">
               <button onClick={() => setMobileFilters(!mobileFilters)} className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 text-xs font-black uppercase text-gray-600 dark:text-gray-300 shadow-sm">
@@ -563,6 +563,31 @@ const Community = () => {
           </motion.div>
         )}
       </AnimatePresence>
+      <style>
+        {`
+          .custom-scrollbar::-webkit-scrollbar {
+            width: 5px;
+          }
+          .custom-scrollbar::-webkit-scrollbar-track {
+            background: transparent;
+          }
+          .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #4361ee30;
+            border-radius: 10px;
+            transition: all 0.3s;
+          }
+          .dark .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #ffffff15;
+          }
+          .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: #4361ee80;
+          }
+          .custom-scrollbar {
+            scrollbar-width: thin;
+            scrollbar-color: #4361ee30 transparent;
+          }
+        `}
+      </style>
     </div>
   );
 };

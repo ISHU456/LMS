@@ -4,7 +4,8 @@ import {
   getCourseAttendance, 
   getStudentAttendance, 
   updateAttendance, 
-  getTeacherStats 
+  getTeacherStats,
+  getClassroomAttendance
 } from '../controllers/attendanceController.js';
 import { protect, authorize } from '../middlewares/authMiddleware.js';
 
@@ -18,5 +19,6 @@ router.put('/:id', protect, authorize('teacher', 'admin'), updateAttendance);
 
 // Student/Teacher/Admin can view student's attendance
 router.get('/student/:studentId', protect, getStudentAttendance);
+router.get('/classroom', protect, getClassroomAttendance);
 
 export default router;

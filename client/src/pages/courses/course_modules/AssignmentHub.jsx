@@ -37,7 +37,7 @@ const AssignmentHub = ({ courseId, isTeacher, user, selectedAssignment, setSelec
         if (!newAssignment.title) return alert("Please specify a Protocol Title first for Neural Mapping.");
         setIsGeneratingQuiz(true);
         try {
-            const res = await axios.post('http://localhost:5000/api/chatbot/generate-quiz', {
+            const res = await axios.post('http://localhost:5001/api/chatbot/generate-quiz', {
                 topic: newAssignment.title,
                 count: 5
             }, {
@@ -55,7 +55,7 @@ const AssignmentHub = ({ courseId, isTeacher, user, selectedAssignment, setSelec
         e.stopPropagation();
         if (!window.confirm('Permanently eradicate this assignment and all its submissions?')) return;
         try {
-            await axios.delete(`http://localhost:5000/api/assignments/${asgnId}`, {
+            await axios.delete(`http://localhost:5001/api/assignments/${asgnId}`, {
                 headers: { Authorization: `Bearer ${user.token}` }
             });
             if (selectedAssignment?._id === asgnId) setSelectedAssignment(null);
@@ -87,7 +87,7 @@ const AssignmentHub = ({ courseId, isTeacher, user, selectedAssignment, setSelec
         if (pdfFile) formData.append('file', pdfFile);
 
         try {
-            await axios.post('http://localhost:5000/api/assignments/create', formData, {
+            await axios.post('http://localhost:5001/api/assignments/create', formData, {
                 headers: { 
                     Authorization: `Bearer ${user.token}`,
                     'Content-Type': 'multipart/form-data'

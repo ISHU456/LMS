@@ -60,7 +60,7 @@ const Chatbot = ({ variant = 'floating', className = '', noAutoScroll = false })
 
     try {
       const subject = getSubjectContext();
-      const res = await axios.post('http://localhost:5000/api/chatbot/ask', { 
+      const res = await axios.post('http://localhost:5001/api/chatbot/ask', { 
         message: input,
         subject: subject,
         history: messages 

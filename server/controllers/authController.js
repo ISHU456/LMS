@@ -1,6 +1,12 @@
 import User from '../models/User.js';
+import Progress from '../models/Progress.js';
+import FacultyFace from '../models/FacultyFace.js';
+import Course from '../models/Course.js';
+import Department from '../models/Department.js';
+import Submission from '../models/Submission.js';
 import generateToken from '../utils/generateToken.js';
 import { cloudinary } from '../config/cloudinary.js';
+import mongoose from 'mongoose';
 
 // Verify college email domain helper
 const isValidCollegeEmail = (email) => {
@@ -32,16 +38,22 @@ export const registerUser = async (req, res) => {
       return res.status(400).json({ message: 'User already exists' });
     }
 
+    const initialCredits = (role === 'teacher' || role === 'hod' || role === 'admin') ? 50 : 10;
+    const userEmailVerified = (role === 'teacher' || role === 'hod' || role === 'admin');
+
     const user = await User.create({
       name, email: normalizedEmail, password, role, dob, address, contact, 
       enrollmentNumber, batch, department, year, semester, rollNumber,
-      employeeId, securityQuestion, securityAnswer, profilePic: finalProfilePic
+      employeeId, securityQuestion, securityAnswer, profilePic: finalProfilePic,
+      credits: initialCredits,
+      isEmailVerified: userEmailVerified
     });
 
     if (user) {
       res.status(201).json({
         _id: user._id, name: user.name, email: user.email, role: user.role,
         department: user.department, assignedSemesters: user.assignedSemesters,
+        semester: user.semester, enrollmentNumber: user.enrollmentNumber, batch: user.batch,
         profilePic: user.profilePic, token: generateToken(user._id),
       });
     } else {
@@ -66,6 +78,7 @@ export const loginUser = async (req, res) => {
       res.json({
         _id: user._id, name: user.name, email: user.email, role: user.role,
         department: user.department, assignedSemesters: user.assignedSemesters,
+        semester: user.semester, enrollmentNumber: user.enrollmentNumber, batch: user.batch,
         profilePic: user.profilePic, token: generateToken(user._id),
       });
     } else {
@@ -99,6 +112,7 @@ export const updateUserProfile = async (req, res) => {
       user.name = req.body.name || user.name;
       user.contact = req.body.contact || user.contact;
       user.address = req.body.address || user.address;
+      user.department = req.body.department || user.department;
       
       if (req.body.profilePic && req.body.profilePic.startsWith('data:image')) {
         const uploadRes = await cloudinary.uploader.upload(req.body.profilePic, {
@@ -256,5 +270,156 @@ export const getCourseActivity = async (req, res) => {
     res.json({ onlineCount: count || 0 });
   } catch (error) {
     res.status(500).json({ message: error.message });
+  }
+};
+// @desc    Get Global Student Leaderboard
+// @route   GET /api/auth/leaderboard
+// @access  Public
+export const getLeaderboard = async (req, res) => {
+  try {
+    const { semester, limit = 500 } = req.query;
+    const filter = { role: 'student', isActive: true };
+    if (semester && semester !== 'All') filter.semester = Number(semester);
+
+    const students = await User.find(filter)
+      .select('name department semester profilePic _id enrollmentNumber')
+      .lean();
+    
+    const studentIds = students.map(s => s._id);
+    const allProgress = await Progress.find({ user: { $in: studentIds } }).lean();
+
+    const leaderboard = students.map(student => {
+      const studentProgressDocs = allProgress.filter(p => p.user.toString() === student._id.toString());
+      const totalItems = studentProgressDocs.reduce((sum, p) => sum + (p.completedItems?.length || 0), 0);
+      
+      return {
+        ...student,
+        xp: totalItems * 10
+      };
+    });
+
+    const sortedLeaderboard = leaderboard.sort((a, b) => b.xp - a.xp);
+    
+    // Return all or limited but enough for pagination
+    res.json(sortedLeaderboard);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+// @desc    Get student profile for teacher
+// @route   GET /api/auth/student-profile/:studentId
+// @access  Private (Teacher/HOD/Admin)
+export const getStudentProfileByTeacher = async (req, res) => {
+  try {
+    if (!['teacher', 'hod', 'admin'].includes(req.user.role)) {
+      return res.status(403).json({ message: 'Authorization Revoked: Permission denied' });
+    }
+
+    const { studentId } = req.params;
+    const student = await User.findById(studentId).select('-password -securityAnswer -securityQuestion');
+    if (!student) return res.status(404).json({ message: 'Student identity not found' });
+
+    // Potential courses for this student's current sem/dept
+    const allCourses = await Course.find().select('name code semester department excludedStudents');
+
+    // Fetch Student Results (Graded Submissions)
+    const results = await Submission.find({ 
+      student: student._id, 
+      status: 'graded' 
+    }).populate({
+      path: 'assignment',
+      select: 'title type maxMarks',
+      populate: { path: 'course', select: 'name code' }
+    });
+
+    res.json({ student, allCourses, results });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// @desc    Get attendance history (reused for teachers)
+// @route   GET /api/auth/attendance/history
+// @access  Private
+export const getAttendanceHistory = async (req, res) => {
+  try {
+      const { userId, type } = req.query; // type: 'teacher' or 'student'
+      const startOfMonth = new Date();
+      startOfMonth.setDate(1);
+      startOfMonth.setHours(0, 0, 0, 0);
+
+      const Attendance = (await import('../models/Attendance.js')).default;
+      const TeacherAttendance = (await import('../models/TeacherAttendance.js')).default;
+
+      if (type === 'teacher') {
+          const history = await TeacherAttendance.find({
+              teacher: userId,
+              date: { $gte: startOfMonth }
+          }).sort({ date: 1 });
+          return res.json(history);
+      } else {
+          // Students: aggregated attendance from all courses
+          const history = await Attendance.find({
+              student: userId,
+              date: { $gte: startOfMonth }
+          }).populate('course', 'name code').sort({ date: 1 });
+          return res.json(history);
+      }
+  } catch (e) {
+      res.status(500).json({ message: e.message });
+  }
+};
+
+// @desc    Get annual attendance report
+// @route   GET /api/auth/attendance/annual-report
+// @access  Private
+export const getAnnualAttendanceReport = async (req, res) => {
+  try {
+      const { userId, type } = req.query;
+      const currentYear = new Date().getFullYear();
+      const startOfYear = new Date(currentYear, 0, 1);
+
+      const Attendance = (await import('../models/Attendance.js')).default;
+      const TeacherAttendance = (await import('../models/TeacherAttendance.js')).default;
+
+      let aggregateData;
+      if (type === 'teacher') {
+          aggregateData = await TeacherAttendance.aggregate([
+              { $match: { 
+                  teacher: new mongoose.Types.ObjectId(userId),
+                  date: { $gte: startOfYear },
+                  status: 'present'
+              }},
+              { $group: {
+                  _id: { $month: "$date" },
+                  count: { $sum: 1 }
+              }}
+          ]);
+      } else {
+          aggregateData = await Attendance.aggregate([
+              { $match: { 
+                  student: new mongoose.Types.ObjectId(userId),
+                  date: { $gte: startOfYear },
+                  status: 'present'
+              }},
+              { $group: {
+                  _id: { $month: "$date" },
+                  count: { $sum: 1 }
+              }}
+          ]);
+      }
+
+      // Fill monthly gaps
+      const report = Array.from({ length: 12 }, (_, i) => {
+          const monthData = aggregateData.find(d => d._id === i + 1);
+          return {
+              month: new Date(0, i).toLocaleString('default', { month: 'short' }),
+              presentDays: monthData ? monthData.count : 0
+          };
+      });
+
+      res.json(report);
+  } catch (e) {
+      res.status(500).json({ message: e.message });
   }
 };

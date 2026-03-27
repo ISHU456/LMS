@@ -22,7 +22,7 @@ const DepartmentDetail = () => {
   useEffect(() => {
     const fetchDept = async () => {
       try {
-        const res = await axios.get(`http://localhost:5000/api/departments/code/${code}`);
+        const res = await axios.get(`http://localhost:5001/api/departments/code/${code}`);
         setDept(res.data);
       } catch (err) {
         console.error("Failed to fetch department details", err);

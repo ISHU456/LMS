@@ -171,8 +171,8 @@ export const getCourseStudents = async (req, res) => {
       };
     }));
 
-    // Rank by XP then Progress
-    const sorted = studentData.sort((a, b) => (b.xp + b.progress) - (a.xp + a.progress));
+    // Sort students alphabetically by Name as requested
+    const sorted = studentData.sort((a, b) => a.name.localeCompare(b.name));
     const ranked = sorted.map((s, idx) => ({ ...s, rank: idx + 1 }));
 
     res.json(ranked);

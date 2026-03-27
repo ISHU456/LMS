@@ -179,16 +179,27 @@ export const saveMarks = async (req, res) => {
 
       if (result.isLocked) return result;
 
-      // Update basic fields, pre-save hook will handle totalMarks/grade calculation
-      result.marks = item.marks;
+      // Deep merge marks to avoid wiping out fields not sent in request
+      // (Though frontend sends full currently, this is more robust)
+      if (item.marks) {
+        Object.keys(item.marks).forEach(field => {
+          if (item.marks[field] !== undefined && item.marks[field] !== null) {
+            result.marks[field] = item.marks[field];
+          }
+        });
+        // Handle absentFields specifically if provided
+        if (item.marks.absentFields) {
+          result.marks.absentFields = item.marks.absentFields;
+        }
+      }
+
       if (item.grade) result.grade = item.grade;
       result.status = 'draft';
-      // Only lock if status is submitted or explicitly requested in a different route
       
       return await result.save();
     }));
 
-    res.json({ message: 'Marks saved as draft', count: savedResults.length });
+    res.json({ message: 'Marks saved as draft', results: savedResults });
   } catch (error) {
     res.status(500).json({ message: 'Server Error', error: error.message });
   }

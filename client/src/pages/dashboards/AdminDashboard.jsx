@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
-import { Book, Users, Building, Shield, Activity, Bell, Home, Settings, Search, Zap, CalendarDays, X, Save, TrendingUp } from 'lucide-react';
+import { Book, Users, Building, Shield, Activity, Bell, Home, Settings, Search, Zap, CalendarDays, X, Save, TrendingUp, BrainCircuit } from 'lucide-react';
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, AreaChart, Area } from 'recharts';
 import axios from 'axios';
+import { useNavigate } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import AdminUserManagement from '../../components/admin/AdminUserProvisioning';
 import AdminTeacherAttendance from '../../components/admin/AdminTeacherAttendance';
@@ -13,6 +14,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 
 const AdminDashboard = () => {
   const { user } = useSelector(state => state.auth);
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState(() => localStorage.getItem('adminActiveTab') || 'overview');
   const [isLoading, setIsLoading] = useState(true);
   const [stats, setStats] = useState({
@@ -47,7 +49,7 @@ const AdminDashboard = () => {
 
   const fetchStats = async () => {
     try {
-      const res = await axios.get('http://localhost:5000/api/admin/stats', {
+      const res = await axios.get('http://localhost:5001/api/admin/stats', {
         headers: { Authorization: `Bearer ${user.token}` }
       });
       setStats(res.data);
@@ -63,6 +65,7 @@ const AdminDashboard = () => {
     { id: 'courses', icon: Book, label: 'Academic Lattice' },
     { id: 'global-alerts', icon: Bell, label: 'Global Broadcasts' },
     { id: 'results-hub', icon: TrendingUp, label: 'Results & Transcripts' },
+    { id: 'ai-management', icon: BrainCircuit, label: 'Neural Governance Hub' },
     { id: 'system', icon: Settings, label: 'System Settings' },
   ];
 
@@ -84,7 +87,14 @@ const AdminDashboard = () => {
     <div className="flex min-h-[calc(100vh-73px)] flex-col lg:flex-row bg-gray-50 dark:bg-[#0f172a]">
       <aside className="w-full lg:w-64 glass border-b lg:border-r border-gray-200 dark:border-gray-800 flex flex-col p-4 space-y-2 overflow-y-auto max-h-[40vh] lg:max-h-none">
         {menuItems.map(item => (
-           <button key={item.id} onClick={() => setActiveTab(item.id)} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all font-medium ${activeTab === item.id ? 'bg-red-50 text-red-600 dark:bg-red-900/40 dark:text-red-400' : 'text-gray-600 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800'}`}>
+           <button 
+             key={item.id} 
+             onClick={() => {
+               if (item.id === 'ai-management') navigate('/admin/ai-management');
+               else setActiveTab(item.id);
+             }} 
+             className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all font-medium ${activeTab === item.id ? 'bg-red-50 text-red-600 dark:bg-red-900/40 dark:text-red-400' : 'text-gray-600 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800'}`}
+           >
               <item.icon size={20} /> {item.label}
            </button>
         ))}
@@ -209,7 +219,7 @@ const AdminDashboard = () => {
                       { label: 'Lattice Sync', color: 'emerald', action: () => setActiveTab('courses') },
                       { label: 'Broadcast', color: 'rose', action: () => {} },
                     ].map(btn => (
-                      <button 
+                       <button 
                         key={btn.label}
                         onClick={btn.action}
                         className={`p-6 bg-${btn.color}-50 dark:bg-${btn.color}-900/10 text-${btn.color}-600 rounded-[24px] font-black uppercase tracking-widest text-[10px] hover:bg-${btn.color}-600 hover:text-white transition-all transform hover:-translate-y-1 hover:shadow-xl active:scale-95`}
@@ -217,6 +227,12 @@ const AdminDashboard = () => {
                         {btn.label}
                       </button>
                     ))}
+                    <button 
+                      onClick={() => navigate('/admin/ai-management')}
+                      className="p-6 bg-indigo-50 dark:bg-indigo-900/10 text-indigo-600 rounded-[24px] font-black uppercase tracking-widest text-[10px] hover:bg-indigo-600 hover:text-white transition-all transform hover:-translate-y-1 hover:shadow-xl active:scale-95 col-span-2"
+                    >
+                      Neural Governance Hub
+                    </button>
                  </div>
                </motion.div>
 

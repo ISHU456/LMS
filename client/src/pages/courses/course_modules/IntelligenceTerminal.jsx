@@ -184,7 +184,7 @@ const IntelligenceTerminal = ({
                 <div className="flex flex-wrap gap-2 shrink-0 self-start md:self-center">
                   {(item.fileUrl || item.fileData) && item.type !== 'youtube' && item.type !== 'yt' && (
                     <button
-                      onClick={(e) => { e.stopPropagation(); window.open(item.fileUrl || `http://localhost:5000/api/resources/file/${item._id}`, '_blank'); }}
+                      onClick={(e) => { e.stopPropagation(); window.open(item.fileUrl || `http://localhost:5001/api/resources/file/${item._id}`, '_blank'); }}
                       className="p-2 text-emerald-600 hover:bg-emerald-100 rounded-lg transition-all"
                       title="Download"
                     >

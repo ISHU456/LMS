@@ -40,7 +40,7 @@ const QuickSchedulePage = () => {
         try {
             setIsLoading(true);
             const code = courseId.toUpperCase();
-            const res = await axios.get(`http://localhost:5000/api/courses/${code}`, {
+            const res = await axios.get(`http://localhost:5001/api/courses/${code}`, {
                 headers: { Authorization: `Bearer ${user.token}` }
             });
             setTimetable(res.data.schedule || []);
@@ -55,7 +55,7 @@ const QuickSchedulePage = () => {
         try {
             setIsSaving(true);
             const code = courseId.toUpperCase();
-            const res = await axios.put(`http://localhost:5000/api/courses/${code}/schedule`, 
+            const res = await axios.put(`http://localhost:5001/api/courses/${code}/schedule`, 
                 { schedule: newSchedule },
                 { headers: { Authorization: `Bearer ${user.token}` } }
             );

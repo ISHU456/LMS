@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { Sun, Moon, Star, UserCircle, LogOut, Menu, X, LayoutDashboard, GraduationCap, Building2, Megaphone, Home, Flame, Award, Edit, Bot, ArrowLeft, FileText, CheckCircle, TrendingUp } from 'lucide-react';
+import { Sun, Moon, Star, UserCircle, LogOut, Menu, X, LayoutDashboard, GraduationCap, Building2, Megaphone, Home, Flame, Award, Edit, Bot, ArrowLeft, FileText, CheckCircle, TrendingUp, Terminal } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useSelector, useDispatch } from 'react-redux';
 import { logout } from '../features/auth/authSlice';
@@ -141,6 +141,16 @@ const Navbar = ({ darkMode, toggleDarkMode }) => {
                 </Link>
               );
             })}
+            
+            {/* Display Semester on every page for students */}
+            {user?.role === 'student' && user?.semester && (
+              <div className="ml-4 px-3 py-1.5 rounded-xl border border-primary-500/20 bg-primary-500/10 text-primary-600 dark:text-primary-400">
+                <div className="text-[10px] font-black uppercase tracking-widest flex items-center gap-2">
+                  <GraduationCap size={14} className="opacity-70" />
+                  Semester {user.semester}
+                </div>
+              </div>
+            )}
             </div>
           </div>
           

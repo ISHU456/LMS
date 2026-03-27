@@ -16,11 +16,12 @@ const AdminAttendanceInsight = ({ userId, type, user }) => {
     useEffect(() => {
         const fetchData = async () => {
             try {
+                const base = (user.role === 'admin' || user.role === 'hod') ? 'admin' : 'auth';
                 const [hRes, rRes] = await Promise.all([
-                    axios.get(`http://localhost:5000/api/admin/attendance/history?userId=${userId}&type=${type}`, {
+                    axios.get(`http://localhost:5001/api/${base}/attendance/history?userId=${userId}&type=${type}`, {
                         headers: { Authorization: `Bearer ${user.token}` }
                     }),
-                    axios.get(`http://localhost:5000/api/admin/attendance/annual-report?userId=${userId}&type=${type}`, {
+                    axios.get(`http://localhost:5001/api/${base}/attendance/annual-report?userId=${userId}&type=${type}`, {
                         headers: { Authorization: `Bearer ${user.token}` }
                     })
                 ]);

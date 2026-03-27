@@ -197,7 +197,9 @@ export const getTeacherStats = async (req, res) => {
       const studentCount = accessData.length;
       
       const lowAttendanceCount = accessData.filter(a => a.attendancePercent < 75).length;
-      const restrictedCount = accessData.filter(a => a.accessState !== 'ACTIVE').length;
+      const restrictedOnlyCount = accessData.filter(a => a.accessState === 'RESTRICTED').length;
+      const blockedCount = accessData.filter(a => a.accessState === 'BLOCKED').length;
+      const restrictedTotalCount = restrictedOnlyCount + blockedCount;
       
       const avgAttendance = accessData.length > 0 
         ? accessData.reduce((acc, curr) => acc + curr.attendancePercent, 0) / accessData.length 
@@ -207,17 +209,61 @@ export const getTeacherStats = async (req, res) => {
         courseId: course._id,
         courseName: course.name,
         courseCode: course.code,
+        semester: course.semester,
         studentCount,
         avgAttendance: Math.round(avgAttendance),
         studentsBelow75: lowAttendanceCount,
-        activeStudents: studentCount - restrictedCount,
-        restrictedStudents: restrictedCount
+        activeStudents: studentCount - restrictedTotalCount,
+        restrictedStudents: restrictedOnlyCount,
+        blockedStudents: blockedCount
       };
     }));
 
     res.status(200).json(stats);
   } catch (error) {
     console.error('Error fetching teacher stats:', error);
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+};
+
+// @desc    Get full classroom attendance for a semester/department (Student View)
+// @route   GET /api/attendance/classroom
+// @access  Student/Teacher/Admin
+export const getClassroomAttendance = async (req, res) => {
+  try {
+    // We use the logged-in student's own class context for security, 
+    // but allow overrides for Admin/Teachers if needed.
+    let { semester, department } = req.user;
+    
+    if (req.query.semester && req.user.role !== 'student') semester = req.query.semester;
+    if (req.query.department && req.user.role !== 'student') department = req.query.department;
+
+    const { month, year } = req.query;
+    
+    // 1. Find all students in this same class
+    const students = await User.find({ 
+      role: 'student', 
+      semester: Number(semester),
+      department: department 
+    }).select('name enrollmentNumber profilePic _id').sort({ name: 1 });
+
+    const studentIds = students.map(s => s._id);
+
+    // 2. Define Month range
+    const targetMonth = Number(month) || new Date().getMonth() + 1;
+    const targetYear = Number(year) || new Date().getFullYear();
+
+    const start = new Date(Date.UTC(targetYear, targetMonth - 1, 1));
+    const end = new Date(Date.UTC(targetYear, targetMonth, 0, 23, 59, 59, 999));
+
+    // 3. Fetch all attendance records for these students in this month
+    const records = await Attendance.find({
+      student: { $in: studentIds },
+      date: { $gte: start, $lte: end }
+    }).select('student status date').lean();
+
+    res.status(200).json({ students, records, year: targetYear, month: targetMonth });
+  } catch (error) {
     res.status(500).json({ message: 'Server error', error: error.message });
   }
 };

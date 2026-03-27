@@ -4,7 +4,7 @@ import {
   Calculator, Cpu, Code as CodeIcon, 
   ArrowRight, GraduationCap, 
   Activity, Zap, Layout, Building2, FlaskConical as Flask, Atom,
-  Flag, Map, Compass, Target, Rocket, Star, Crown, Layers, Layers3 
+  Flag, Map, Compass, Target, Rocket, Star, Crown, Layers, Layers3, Lock, CheckCircle2 
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useSelector } from 'react-redux';
@@ -67,11 +67,11 @@ const Courses = () => {
         setLoading(true);
         const deptId = selectedDept?._id;
         const [coursesRes, deptsRes] = await Promise.all([
-          axios.get(`http://localhost:5000/api/courses`, {
+          axios.get(`http://localhost:5001/api/courses`, {
             params: { departmentId: deptId, semester: activeSem === 'All' ? undefined : activeSem.split('-')[1] },
             headers: { Authorization: `Bearer ${user.token}` }
           }),
-          axios.get('http://localhost:5000/api/departments')
+          axios.get('http://localhost:5001/api/departments')
         ]);
         setCourses(coursesRes.data);
         setDepartments(deptsRes.data);
@@ -93,7 +93,7 @@ const Courses = () => {
       const counts = {};
       for (const course of courses) {
         try {
-          const res = await axios.get(`http://localhost:5000/api/auth/course-activity/${course.code}`);
+          const res = await axios.get(`http://localhost:5001/api/auth/course-activity/${course.code}`);
           counts[course.code] = res.data.onlineCount;
         } catch (err) { counts[course.code] = 0; }
       }
@@ -116,17 +116,31 @@ const Courses = () => {
     return BookOpen;
   };
 
+  // Role Checks
+  const isHOD = user?.role === 'hod' || user?.role === 'admin';
+  const isStudent = user?.role === 'student';
+
+  const isSemLocked = (semId) => {
+    if (!isStudent || semId === 'All') return false;
+    const semNum = parseInt(semId.split('-')[1]);
+    return semNum > (user.semester || 1);
+  };
+
+  const isSemCompleted = (semId) => {
+    if (!isStudent || semId === 'All') return false;
+    const semNum = parseInt(semId.split('-')[1]);
+    return semNum < (user.semester || 1);
+  };
+
   const filteredCourses = (courses || []).filter(c => {
      if (activeSem !== 'All' && `Sem-${c.semester}` !== activeSem) return false;
+     if (isStudent && c.semester !== (user.semester || 1)) return false;
      if (courseType !== 'all' && c.type !== courseType) return false;
      if (search && !c.name.toLowerCase().includes(search.toLowerCase()) && !c.code.toLowerCase().includes(search.toLowerCase())) return false;
      return true;
   }).sort((a, b) => (a.facultyAssigned?.[0]?.name || '').localeCompare(b.facultyAssigned?.[0]?.name || ''));
 
   const totalCredits = filteredCourses.reduce((sum, c) => sum + c.credits, 0);
-
-  // Role Checks
-  const isHOD = user?.role === 'hod' || user?.role === 'admin';
 
   const handleOpenModal = () => {
     setFormData({
@@ -145,14 +159,14 @@ const Courses = () => {
     e.preventDefault();
     setIsSaving(true);
     try {
-      await axios.post('http://localhost:5000/api/admin/courses', formData, {
+      await axios.post('http://localhost:5001/api/admin/courses', formData, {
         headers: { Authorization: `Bearer ${user.token}` }
       });
       alert('New academic module established.');
       setShowModal(false);
       // Re-fetch courses
       const deptId = selectedDept?._id;
-      const res = await axios.get(`http://localhost:5000/api/courses`, {
+      const res = await axios.get(`http://localhost:5001/api/courses`, {
         params: { departmentId: deptId, semester: activeSem === 'All' ? undefined : activeSem.split('-')[1] },
         headers: { Authorization: `Bearer ${user.token}` }
       });
@@ -204,15 +218,15 @@ const Courses = () => {
         <nav className={`flex-1 py-8 space-y-2 overflow-y-auto min-h-0 custom-scrollbar pr-2 ${sidebarOpen ? 'px-6' : 'px-3'}`}>
              <p className={`text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] whitespace-nowrap transition-opacity ${sidebarOpen ? 'opacity-100 mb-4 pl-4' : 'opacity-0 h-0 hidden'}`}>Semester Filter</p>
              {semesters.map((sem) => (
-                <button 
+                 <button 
                   key={sem.id} 
                   onClick={() => setActiveSem(sem.id)} 
-                  className={`w-full flex items-center gap-4 relative rounded-2xl transition-all duration-300 group ${activeSem === sem.id ? sem.active + ' shadow-lg' : 'bg-transparent text-gray-500 hover:text-gray-900 dark:hover:text-white'} ${sidebarOpen ? 'px-4 py-2' : 'h-12 justify-center'}`}
+                  className={`w-full flex items-center gap-4 relative rounded-2xl transition-all duration-300 group ${activeSem === sem.id ? sem.active + ' shadow-lg' : 'bg-transparent text-gray-500 hover:text-gray-900 dark:hover:text-white'} ${sidebarOpen ? 'px-4 py-2' : 'h-12 justify-center'} ${isSemLocked(sem.id) ? 'opacity-60 grayscale' : ''}`}
                 >
                   <div className={`flex items-center relative z-10 ${sidebarOpen ? 'w-full justify-between' : 'justify-center w-full'}`}>
                     <div className={`flex items-center ${sidebarOpen ? 'gap-3' : 'justify-center'}`}>
                       <div className={`w-8 h-8 shrink-0 rounded-xl flex items-center justify-center transition-colors ${activeSem === sem.id ? 'bg-white/20 text-white' : sem.color}`}>
-                        <sem.icon size={16} />
+                        {isSemLocked(sem.id) ? <Lock size={14} className="text-gray-400 group-hover:text-rose-500" /> : isSemCompleted(sem.id) ? <CheckCircle2 size={16} className="text-emerald-500" /> : <sem.icon size={16} />}
                       </div>
                       {sidebarOpen && (
                         <span className="text-[9px] font-black uppercase tracking-widest leading-none whitespace-nowrap">{sem.label}</span>
@@ -220,6 +234,12 @@ const Courses = () => {
                     </div>
                     {activeSem === sem.id && sidebarOpen && (
                       <div className="w-1.5 h-1.5 bg-white rounded-full relative z-10 animate-pulse" />
+                    )}
+                    {isSemLocked(sem.id) && sidebarOpen && (
+                      <Lock size={10} className="text-gray-400" />
+                    )}
+                    {isSemCompleted(sem.id) && sidebarOpen && activeSem !== sem.id && (
+                      <span className="text-[7px] font-black text-emerald-500 uppercase tracking-tight">Completed</span>
                     )}
                   </div>
                 </button>
@@ -328,11 +348,33 @@ const Courses = () => {
                      <div className="w-12 h-12 border-4 border-primary-600 border-t-transparent rounded-full animate-spin" />
                      <p className="text-sm font-black text-gray-400 uppercase tracking-widest">Accessing Mainframe...</p>
                    </div>
-                 ) : filteredCourses.length === 0 ? (
-                   <div className="col-span-full py-20 text-center">
-                     <p className="text-base font-black text-gray-400 uppercase tracking-widest">No subjects found in this matrix</p>
-                   </div>
-                 ) : (
+                  ) : isSemLocked(activeSem) ? (
+                    <div className="col-span-full py-20 flex flex-col items-center justify-center text-center">
+                      <div className="w-20 h-20 rounded-[2.5rem] bg-gray-100 dark:bg-gray-800 flex items-center justify-center mb-6 shadow-inner relative overflow-hidden group">
+                         <div className="absolute inset-0 bg-gradient-to-br from-primary-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                         <Lock size={32} className="text-gray-400 dark:text-gray-600 relative z-10" />
+                      </div>
+                      <h3 className="text-xl font-black text-gray-900 dark:text-white uppercase tracking-tighter mb-2">Semester Access Restricted</h3>
+                      <p className="text-xs font-black text-gray-400 uppercase tracking-widest max-w-xs mx-auto leading-relaxed">
+                        Curriculum protocol for {activeSem} is currently inactive. You will gain access once you reach this academic milestone.
+                      </p>
+                    </div>
+                  ) : isSemCompleted(activeSem) ? (
+                    <div className="col-span-full py-20 flex flex-col items-center justify-center text-center">
+                      <div className="w-20 h-20 rounded-[2.5rem] bg-emerald-50 dark:bg-emerald-900/20 flex items-center justify-center mb-6 shadow-inner relative overflow-hidden group border border-emerald-100 dark:border-emerald-800">
+                         <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                         <CheckCircle2 size={32} className="text-emerald-500 relative z-10" />
+                      </div>
+                      <h3 className="text-xl font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-tighter mb-2">Semester Achieved</h3>
+                      <p className="text-xs font-black text-gray-400 uppercase tracking-widest max-w-xs mx-auto leading-relaxed">
+                        You have successfully completed all modules for {activeSem}. This curriculum is now part of your academic archive.
+                      </p>
+                    </div>
+                  ) : filteredCourses.length === 0 ? (
+                    <div className="col-span-full py-20 text-center">
+                      <p className="text-base font-black text-gray-400 uppercase tracking-widest">No subjects found in this matrix</p>
+                    </div>
+                  ) : (
                    filteredCourses.map((course) => {
                      const Icon = getCourseIcon(course.name);
                      const activeNow = liveCounts[course.code] || 0;

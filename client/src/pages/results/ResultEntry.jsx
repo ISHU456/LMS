@@ -16,17 +16,27 @@ const ResultEntry = () => {
 
   const [courseId, setCourseId] = useState(searchParams.get('courseId') || '');
   const [semester, setSemester] = useState(searchParams.get('semester') || '');
-  const [academicYear, setAcademicYear] = useState('2023-24');
+  const [academicYear, setAcademicYear] = useState(searchParams.get('academicYear') || '2023-24');
   const [courses, setCourses] = useState([]);
   const [localResults, setLocalResults] = useState([]);
   const [showSuccess, setShowSuccess] = useState(false);
+  const [savingStudentId, setSavingStudentId] = useState(null);
+
+  // Sync URL with filters
+  useEffect(() => {
+    const params = new URLSearchParams();
+    if (courseId) params.set('courseId', courseId);
+    if (semester) params.set('semester', semester);
+    if (academicYear) params.set('academicYear', academicYear);
+    navigate({ search: params.toString() }, { replace: true });
+  }, [courseId, semester, academicYear, navigate]);
 
   // Fetch courses assigned to teacher
   useEffect(() => {
     const fetchCourses = async () => {
       try {
         const config = { headers: { Authorization: `Bearer ${user.token}` } };
-        const { data } = await axios.get('http://localhost:5000/api/courses', config);
+        const { data } = await axios.get('http://localhost:5001/api/courses', config);
         
         // Flexible Filtering for Admin / HOD / Teacher
         const myCourses = data.filter(c => {
@@ -43,8 +53,10 @@ const ResultEntry = () => {
         });
         
         setCourses(Array.isArray(myCourses) ? myCourses : []);
-        if (myCourses.length > 0 && (!courseId || !semester)) {
-           const initialCourse = courseId ? (myCourses.find(c => c._id.toString() === courseId.toString()) || myCourses[0]) : myCourses[0];
+        
+        // Only set initial defaults if nothing is in URL
+        if (myCourses.length > 0 && !searchParams.get('courseId')) {
+           const initialCourse = myCourses[0];
            setCourseId(initialCourse._id.toString());
            setSemester(initialCourse.semester.toString());
         }
@@ -53,7 +65,7 @@ const ResultEntry = () => {
       }
     };
     fetchCourses();
-  }, [user.token]);
+  }, [user.token, searchParams]);
 
   // Fetch students when filters change
   useEffect(() => {
@@ -115,25 +127,28 @@ const ResultEntry = () => {
   const isLocked = localResults[0]?.isLocked || false;
   const currentCourse = courses.find(c => c._id === courseId);
 
-  const handleSaveSingleMark = (studentId) => {
+  const handleSaveSingleMark = async (studentId) => {
     const student = localResults.find(r => r._id === studentId);
     if (!student) return;
 
-    if (currentCourse?.type?.toUpperCase() === 'THEORY') {
-        // Validation check if user wants it, but we'll allow partial save for draft
-    }
-
+    setSavingStudentId(studentId);
     const data = {
       courseId,
       semester,
       academicYear,
       results: [{ studentId: student._id, marks: student.marks, grade: student.grade }]
     };
-    dispatch(saveMarks(data));
-    // After saving, we set the local state to locked to reflect the backend auto-lock
-    setLocalResults(prev => prev.map(r => r._id === studentId ? { ...r, isLocked: true } : r));
-    setShowSuccess(true);
-    setTimeout(() => setShowSuccess(false), 3000);
+    
+    try {
+      await dispatch(saveMarks(data)).unwrap();
+      setShowSuccess(true);
+      setTimeout(() => {
+        setShowSuccess(false);
+        setSavingStudentId(null);
+      }, 2000);
+    } catch (err) {
+      setSavingStudentId(null);
+    }
   };
 
   const handleToggleRowLock = async (resultId, studentId) => {
@@ -142,7 +157,7 @@ const ResultEntry = () => {
         return;
     }
     try {
-        const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/results/toggle-lock/${resultId}`, {
+        const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5001/api'}/results/toggle-lock/${resultId}`, {
             method: 'POST',
             headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
         });
@@ -187,7 +202,7 @@ const ResultEntry = () => {
     if (!courseId) return alert('Select course first.');
     if (window.confirm('PERMANENT ACTION: This will lock marks for ALL students in this sector. Proceed?')) {
         try {
-            await axios.post('http://localhost:5000/api/results/lock', { courseId, semester, academicYear }, {
+            await axios.post('http://localhost:5001/api/results/lock', { courseId, semester, academicYear }, {
                 headers: { Authorization: `Bearer ${user.token}` }
             });
             setShowSuccess(true);
@@ -396,6 +411,7 @@ const ResultEntry = () => {
                                 value={m.absentFields?.includes('mst1') ? 'NA' : (m.mst1 ?? '')} 
                                 placeholder="0"
                                 onChange={(e) => handleMarkChange(student._id, 'mst1', e.target.value)} 
+                                onBlur={() => handleSaveSingleMark(student._id)}
                                 disabled={disabled} 
                                 className={`w-16 border rounded-xl p-3 text-center text-xs font-black transition-all outline-none focus:ring-2 focus:ring-blue-500 ${
                                     m.absentFields?.includes('mst1') 
@@ -410,6 +426,7 @@ const ResultEntry = () => {
                                 value={m.absentFields?.includes('mst2') ? 'NA' : (m.mst2 ?? '')} 
                                 placeholder="0"
                                 onChange={(e) => handleMarkChange(student._id, 'mst2', e.target.value)} 
+                                onBlur={() => handleSaveSingleMark(student._id)}
                                 disabled={disabled} 
                                 className={`w-16 border rounded-xl p-3 text-center text-xs font-black transition-all outline-none focus:ring-2 focus:ring-blue-500 ${
                                     m.absentFields?.includes('mst2') 
@@ -424,6 +441,7 @@ const ResultEntry = () => {
                                 value={m.absentFields?.includes('mst3') ? 'NA' : (m.mst3 ?? '')} 
                                 placeholder="0"
                                 onChange={(e) => handleMarkChange(student._id, 'mst3', e.target.value)} 
+                                onBlur={() => handleSaveSingleMark(student._id)}
                                 disabled={disabled} 
                                 className={`w-16 border rounded-xl p-3 text-center text-xs font-black transition-all outline-none focus:ring-2 focus:ring-blue-500 ${
                                     m.absentFields?.includes('mst3') 
@@ -438,6 +456,7 @@ const ResultEntry = () => {
                                 value={m.absentFields?.includes('endSem') ? 'NA' : (m.endSem ?? '')} 
                                 placeholder="0"
                                 onChange={(e) => handleMarkChange(student._id, 'endSem', e.target.value)} 
+                                onBlur={() => handleSaveSingleMark(student._id)}
                                 disabled={disabled} 
                                 className={`w-20 border rounded-xl p-3 text-center text-xs font-black transition-all outline-none focus:ring-2 focus:ring-blue-500 ${
                                     m.absentFields?.includes('endSem') 
@@ -551,10 +570,17 @@ const ResultEntry = () => {
                         {!disabled && (
                             <button 
                                 onClick={() => handleSaveSingleMark(student._id)}
-                                className="p-2.5 bg-white hover:bg-blue-600 text-blue-600 hover:text-white rounded-xl transition-all border border-blue-200 shadow-sm"
+                                disabled={savingStudentId === student._id}
+                                className={`p-2.5 rounded-xl transition-all border shadow-sm ${
+                                  savingStudentId === student._id 
+                                  ? 'bg-blue-100 text-blue-600 border-blue-200 animate-pulse' 
+                                  : 'bg-white hover:bg-blue-600 text-blue-600 hover:text-white border-blue-200'
+                                }`}
                                 title="Save Profile"
                             >
-                                <Save size={14} />
+                                {savingStudentId === student._id ? (
+                                  <div className="animate-spin h-3 w-3 border-2 border-blue-600 border-t-transparent rounded-full" />
+                                ) : <Save size={14} />}
                             </button>
                         )}
                       </div>

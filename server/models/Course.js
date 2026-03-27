@@ -26,6 +26,7 @@ const courseSchema = new mongoose.Schema({
     addedBy: { type: String }
   }],
   timetableImageUrl: { type: String },
+  meetingLink: { type: String, default: 'https://meet.google.com/new' },
   excludedStudents: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }]
 }, {
   timestamps: true

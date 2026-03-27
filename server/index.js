@@ -16,6 +16,7 @@ import attendanceRoutes from './routes/attendanceRoutes.js';
 import courseAccessRoutes from './routes/courseAccessRoutes.js';
 import adminRoutes from './routes/adminRoutes.js';
 import resultRoutes from './routes/resultRoutes.js';
+import codingContestRoutes from './routes/codingContestRoutes.js';
 import Department from './models/Department.js';
 import Course from './models/Course.js';
 
@@ -39,9 +40,9 @@ connectDB().then(async () => {
       if (cse) {
         console.log('Seeding initial CSE courses...');
         const initialCourses = [
-          { code: 'CS301', name: 'Data Structures', credits: 4, semester: 3, type: 'theory', department: cse._id, description: 'Core concepts of data organization.' },
-          { code: 'CS401', name: 'Operating Systems', credits: 3, semester: 4, type: 'theory', department: cse._id, description: 'Process management and memory.' },
-          { code: 'CS503', name: 'Computer Networks', credits: 4, semester: 5, type: 'theory', department: cse._id, description: 'OSI model and TCP/IP.' }
+          { code: 'CS301', name: 'Data Structures', credits: 4, semester: 3, type: 'THEORY', department: cse._id, description: 'Core concepts of data organization.' },
+          { code: 'CS401', name: 'Operating Systems', credits: 3, semester: 4, type: 'THEORY', department: cse._id, description: 'Process management and memory.' },
+          { code: 'CS503', name: 'Computer Networks', credits: 4, semester: 5, type: 'THEORY', department: cse._id, description: 'OSI model and TCP/IP.' }
         ];
         await Course.insertMany(initialCourses);
       }

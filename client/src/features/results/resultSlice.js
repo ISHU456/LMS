@@ -141,6 +141,27 @@ export const resultSlice = createSlice({
         state.isLoading = false;
         state.analytics = action.payload;
       })
+      .addCase(saveMarks.fulfilled, (state, action) => {
+        state.isLoading = false;
+        state.isSuccess = true;
+        // Merge saved results back into the list
+        const updatedSaved = action.payload.results || [];
+        state.results = state.results.map(student => {
+          const match = updatedSaved.find(r => r.student.toString() === student._id.toString());
+          if (match) {
+            return {
+              ...student,
+              marks: match.marks,
+              isLocked: match.isLocked,
+              status: match.status,
+              resultId: match._id,
+              grade: match.grade,
+              totalMarks: match.totalMarks
+            };
+          }
+          return student;
+        });
+      })
       .addMatcher(
         (action) => action.type.endsWith('/pending'),
         (state) => { state.isLoading = true; }

@@ -1,6 +1,7 @@
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import { useSelector } from 'react-redux';
+import axios from 'axios';
 
 // Layout
 import Navbar from './components/Navbar';
@@ -45,11 +46,21 @@ import Departments from './pages/general/Departments';
 import DepartmentDetail from './pages/departments/DepartmentDetail';
 import Assignments from './pages/general/Assignments';
 
+// Admin pages
+import AdminAiManagement from './pages/admin/AdminAiManagement';
+import AdminUserAiDetail from './pages/admin/AdminUserAiDetail';
+
 // Result pages
 import ResultEntry from './pages/results/ResultEntry';
 import ResultVerification from './pages/results/ResultVerification';
 import StudentResults from './pages/results/StudentResults';
 import ResultsAnalytics from './pages/results/ResultsAnalytics';
+
+// Coding Contest pages
+import ContestList from './pages/coding_contests/ContestList';
+import ContestArena from './pages/coding_contests/ContestArena';
+import ContestLeaderboard from './pages/coding_contests/ContestLeaderboard';
+import AdminContestManager from './pages/coding_contests/AdminContestManager';
 
 import LockedOverlay from './components/LockedOverlay';
 import NotificationListener from './components/NotificationListener';
@@ -72,8 +83,10 @@ const ProtectedRoute = ({ children, allowedRoles, checkDept = true }) => {
     );
   }
 
-  // Redirect to department selection if not admin and department not selected
-  if (checkDept && user.role !== 'admin' && !selectedDept) {
+  // Redirect to department selection if not admin and department not selected in DB and localStorage
+  const hasDepartment = user.department || selectedDept;
+
+  if (checkDept && user.role !== 'admin' && !hasDepartment) {
     return <Navigate to="/select-department" replace />;
   }
 
@@ -101,11 +114,31 @@ const AppContent = () => {
     }
   }, [darkMode]);
 
+  // Sync department from user profile to localStorage if missing
+  useEffect(() => {
+    const storedDept = localStorage.getItem('selectedDepartment');
+    if (user && user.department && !storedDept) {
+      const fetchAndSyncDept = async () => {
+        try {
+          const res = await axios.get('http://localhost:5001/api/departments');
+          const dept = res.data.find(d => d.code === user.department);
+          if (dept) {
+            localStorage.setItem('selectedDepartment', JSON.stringify(dept));
+            window.dispatchEvent(new CustomEvent('smartlms:department_selected', { detail: dept }));
+          }
+        } catch (err) {
+          console.error('Failed to sync department', err);
+        }
+      };
+      fetchAndSyncDept();
+    }
+  }, [user]);
+
   const toggleDarkMode = () => setDarkMode(!darkMode);
 
   return (
     <div className="h-screen flex flex-col bg-gray-50/50 dark:bg-dark-bg/50 transition-colors duration-300 overflow-hidden">
-      {!isAIMode && <Navbar darkMode={darkMode} toggleDarkMode={toggleDarkMode} />}
+      <Navbar darkMode={darkMode} toggleDarkMode={toggleDarkMode} />
       <main className="flex-grow flex flex-col relative w-full overflow-y-auto smooth-scroll min-h-0">
         <Routes>
           <Route path="/" element={<Home />} />
@@ -155,6 +188,16 @@ const AppContent = () => {
           <Route path="/admin-dashboard" element={
             <ProtectedRoute allowedRoles={['admin']}>
               <AdminDashboard /> 
+            </ProtectedRoute>
+          } />
+          <Route path="/admin/ai-management" element={
+            <ProtectedRoute allowedRoles={['admin']}>
+              <AdminAiManagement />
+            </ProtectedRoute>
+          } />
+          <Route path="/admin/ai-user/:userId" element={
+            <ProtectedRoute allowedRoles={['admin']}>
+              <AdminUserAiDetail />
             </ProtectedRoute>
           } />
 
@@ -241,6 +284,28 @@ const AppContent = () => {
           <Route path="/results/analytics" element={
             <ProtectedRoute allowedRoles={['admin', 'hod']}>
               <ResultsAnalytics />
+            </ProtectedRoute>
+          } />
+
+          {/* Coding Arena System */}
+          <Route path="/coding-arena" element={
+            <ProtectedRoute allowedRoles={['student', 'admin']}>
+              <ContestList />
+            </ProtectedRoute>
+          } />
+          <Route path="/coding-arena/contest/:contestId" element={
+            <ProtectedRoute allowedRoles={['student', 'admin']}>
+              <ContestArena />
+            </ProtectedRoute>
+          } />
+          <Route path="/coding-arena/leaderboard/:contestId" element={
+            <ProtectedRoute allowedRoles={['student', 'admin']}>
+              <ContestLeaderboard />
+            </ProtectedRoute>
+          } />
+          <Route path="/coding-arena/admin" element={
+            <ProtectedRoute allowedRoles={['admin']}>
+              <AdminContestManager />
             </ProtectedRoute>
           } />
 

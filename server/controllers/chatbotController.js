@@ -1,8 +1,14 @@
 import Groq from "groq-sdk";
 import User from "../models/User.js";
 import Chat from "../models/Chat.js";
+import AiCreditLog from "../models/AiCreditLog.js";
+import fs from "fs";
+import { createRequire } from "module";
+const require = createRequire(import.meta.url);
+const pdf = require("pdf-parse");
+import mammoth from "mammoth";
 
-const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
+const groq = process.env.GROQ_API_KEY ? new Groq({ apiKey: process.env.GROQ_API_KEY }) : null;
 
 export const chatbotResponse = async (req, res) => {
   try {
@@ -69,6 +75,15 @@ export const chatbotResponse = async (req, res) => {
     chatSession.messages.push({ role: 'assistant', content: botResponseText });
     chatSession.lastActive = Date.now();
     await chatSession.save();
+
+    // Log Usage
+    await AiCreditLog.create({
+      user: userId,
+      action: 'ask',
+      cost: 1,
+      remainingCredits: userObj.credits,
+      contentSummary: message.substring(0, 50)
+    });
 
     res.json({ 
       response: botResponseText, 
@@ -211,5 +226,131 @@ export const generateQuiz = async (req, res) => {
   } catch (error) {
     console.error("Quiz Generation Error:", error);
     res.status(500).json({ message: "Neural Generation Engine Offline." });
+  }
+};
+
+export const analyzeFile = async (req, res) => {
+  try {
+    const file = req.file;
+    if (!file) return res.status(400).json({ response: "No file received for analysis." });
+
+    const userId = req.user._id;
+    const userObj = await User.findById(userId);
+    if (userObj.credits < 2) return res.status(403).json({ response: "Insufficient Credits for File Analysis (Cost: 2 credits)." });
+
+    let extractedText = "";
+    const extension = file.originalname.split('.').pop().toLowerCase();
+
+    if (extension === 'pdf') {
+      const data = await pdf(file.buffer);
+      extractedText = data.text;
+    } else if (extension === 'docx') {
+      const data = await mammoth.extractRawText({ buffer: file.buffer });
+      extractedText = data.value;
+    } else {
+      extractedText = file.buffer.toString('utf8');
+    }
+
+    if (!extractedText.trim()) return res.status(400).json({ response: "Failed to extract text from the file." });
+
+    const systemPrompt = `You are a specialized document analyzer. Analyze the provided text from the file "${file.originalname}" shared by ${userObj.name} (${userObj.role}). Summarize key points and explain difficult concepts.`;
+
+    const chatCompletion = await groq.chat.completions.create({
+      messages: [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: `Contextual Core Document Input:\n\n${extractedText.substring(0, 10000)}` }
+      ],
+      model: "llama-3.3-70b-versatile",
+      temperature: 0.3,
+    });
+
+    const botResponseText = chatCompletion.choices[0]?.message?.content || "Document scan complete, no derivation generated.";
+
+    userObj.credits -= 2; // Higher cost for file analysis
+    await userObj.save();
+
+    // Log Usage
+    await AiCreditLog.create({
+      user: userId,
+      action: 'analyze',
+      cost: 2,
+      remainingCredits: userObj.credits,
+      contentSummary: `File: ${file.originalname}`
+    });
+
+    // Auto-save session
+    let chatSession = await Chat.findOne({ user: userId, sessionId: `file_${Date.now()}` });
+    if (!chatSession) {
+      chatSession = new Chat({
+        user: userId,
+        sessionId: `file_${Date.now()}`,
+        title: `Analysis: ${file.originalname}`,
+        messages: [
+          { role: 'user', content: `[Uploaded File: ${file.originalname}]` },
+          { role: 'assistant', content: botResponseText }
+        ]
+      });
+      await chatSession.save();
+    }
+
+    res.json({ 
+      response: botResponseText, 
+      remainingCredits: userObj.credits 
+    });
+  } catch (error) {
+    console.error("File Analysis Error:", error);
+    res.status(500).json({ response: "Neural Link fail during file processing." });
+  }
+};
+
+export const getAiUsageSummary = async (req, res) => {
+  try {
+    const usage = await AiCreditLog.aggregate([
+      { $sort: { timestamp: -1 } },
+      { $group: {
+          _id: "$user",
+          lastUsage: { $first: "$timestamp" },
+          totalUsage: { $sum: 1 },
+          lastAction: { $first: "$action" }
+        }
+      },
+      { $lookup: {
+          from: 'users',
+          localField: '_id',
+          foreignField: '_id',
+          as: 'userInfo'
+        }
+      },
+      { $unwind: "$userInfo" },
+      { $project: {
+          _id: 1,
+          lastUsage: 1,
+          totalUsage: 1,
+          lastAction: 1,
+          name: "$userInfo.name",
+          email: "$userInfo.email",
+          role: "$userInfo.role",
+          credits: "$userInfo.credits"
+        }
+      }
+    ]);
+    res.json(usage);
+  } catch (err) {
+    res.status(500).json({ message: "Failed to audit neural core." });
+  }
+};
+
+export const getUserAiAudit = async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const user = await User.findById(userId).select('name role email credits');
+    if (!user) return res.status(404).json({ message: "Subject not found." });
+
+    const logs = await AiCreditLog.find({ user: userId }).sort({ timestamp: -1 });
+    const chats = await Chat.find({ user: userId }).sort({ lastActive: -1 });
+
+    res.json({ user, logs, chats });
+  } catch (err) {
+    res.status(500).json({ message: "Investigation failed." });
   }
 };

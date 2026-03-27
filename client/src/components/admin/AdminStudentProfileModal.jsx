@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { 
     X, Shield, GraduationCap, Award, Building, 
-    CheckCircle2, AlertCircle, Save, Calendar, TrendingUp, Book, Plus
+    CheckCircle2, AlertCircle, Save, Calendar, TrendingUp, Book, Plus, Target
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import AdminAttendanceInsight from './AdminAttendanceInsight';
@@ -25,7 +25,11 @@ const AdminStudentProfileModal = ({ studentId, user, onClose }) => {
     useEffect(() => {
         const fetchData = async () => {
             try {
-                const res = await axios.get(`http://localhost:5000/api/admin/students/${studentId}`, {
+                const endpoint = (user.role === 'admin' || user.role === 'hod') 
+                    ? `http://localhost:5001/api/admin/students/${studentId}`
+                    : `http://localhost:5001/api/auth/student-profile/${studentId}`;
+
+                const res = await axios.get(endpoint, {
                     headers: { Authorization: `Bearer ${user.token}` }
                 });
                 setDetails(res.data.student);
@@ -57,7 +61,7 @@ const AdminStudentProfileModal = ({ studentId, user, onClose }) => {
     const handleSave = async () => {
         setIsSaving(true);
         try {
-            await axios.put(`http://localhost:5000/api/admin/students/${studentId}/enrollment`, {
+            await axios.put(`http://localhost:5001/api/admin/students/${studentId}/enrollment`, {
                 semester,
                 department,
                 excludedCourseIds: excludedCourses,
@@ -111,59 +115,78 @@ const AdminStudentProfileModal = ({ studentId, user, onClose }) => {
                 </div>
 
                 <div className="flex-1 overflow-y-auto p-10 space-y-12 text-sm">
-                    {/* ENROLLMENT CONFIG */}
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                        <section>
-                            <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-blue-500 mb-6 flex items-center gap-2 italic">
-                                <Building size={14} /> Sector Allocation
-                            </h3>
-                            <div className="grid grid-cols-2 gap-3">
-                            {['CSE', 'ECE', 'ME', 'CE', 'IT', 'AI'].map(dept => (
-                                <button key={dept} onClick={() => setDepartment(dept)}
-                                    className={`p-4 rounded-2xl border-2 transition-all text-[10px] font-black uppercase tracking-widest ${department === dept ? 'bg-blue-50 border-blue-500 dark:bg-blue-900/20 text-blue-600' : 'bg-gray-50 border-transparent dark:bg-gray-800 text-gray-400 hover:border-gray-200'}`}>
-                                    {dept}
-                                </button>
-                            ))}
-                            </div>
-                        </section>
-
-                        <section>
-                            <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-blue-500 mb-6 flex items-center gap-2 italic">
-                                <Award size={14} /> Active Semester
-                            </h3>
-                            <div className="grid grid-cols-4 gap-2">
-                            {[1,2,3,4,5,6,7,8].map(sem => (
-                                <button key={sem} onClick={() => setSemester(sem)}
-                                    className={`w-12 h-12 rounded-xl border-2 flex flex-col items-center justify-center transition-all ${semester === sem ? 'bg-blue-600 border-blue-600 text-white shadow-lg' : 'bg-gray-50 border-transparent dark:bg-gray-800 text-gray-400 hover:border-gray-200'}`}>
-                                    <span className="text-[9px] font-black leading-none">{sem}</span>
-                                    <span className="text-[7px] font-bold">SEM</span>
-                                </button>
-                            ))}
-                            </div>
-                        </section>
-
-                        <section className="space-y-4">
-                            <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-blue-500 mb-6 flex items-center gap-2 italic">
-                                <GraduationCap size={14} /> Academic Trajectory
-                            </h3>
-                            <div className="grid grid-cols-2 gap-4">
-                                <div>
-                                    <label className="text-[8px] font-bold text-gray-400 uppercase tracking-widest block mb-1">CGPA</label>
-                                    <input 
-                                        type="number" step="0.01" value={cgpa} onChange={(e) => setCgpa(parseFloat(e.target.value))}
-                                        className="w-full bg-gray-50 dark:bg-gray-800 border-none rounded-xl p-3 text-sm font-black focus:ring-2 focus:ring-blue-500 outline-none dark:text-white"
-                                    />
+                    {(user.role === 'admin' || user.role === 'hod') ? (
+                        /* ENROLLMENT CONFIG - Editable for Admin/HOD */
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                            <section>
+                                <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-blue-500 mb-6 flex items-center gap-2 italic">
+                                    <Building size={14} /> Sector Allocation
+                                </h3>
+                                <div className="grid grid-cols-2 gap-3">
+                                {['CSE', 'ECE', 'ME', 'CE', 'IT', 'AI'].map(dept => (
+                                    <button key={dept} onClick={() => setDepartment(dept)}
+                                        className={`p-4 rounded-2xl border-2 transition-all text-[10px] font-black uppercase tracking-widest ${department === dept ? 'bg-blue-50 border-blue-500 dark:bg-blue-900/20 text-blue-600' : 'bg-gray-50 border-transparent dark:bg-gray-800 text-gray-400 hover:border-gray-200'}`}>
+                                        {dept}
+                                    </button>
+                                ))}
                                 </div>
-                                <div>
-                                    <label className="text-[8px] font-bold text-gray-400 uppercase tracking-widest block mb-1">Percentage (%)</label>
-                                    <input 
-                                        type="number" step="0.1" value={percentage} onChange={(e) => setPercentage(parseFloat(e.target.value))}
-                                        className="w-full bg-gray-50 dark:bg-gray-800 border-none rounded-xl p-3 text-sm font-black focus:ring-2 focus:ring-blue-500 outline-none dark:text-white"
-                                    />
+                            </section>
+
+                            <section>
+                                <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-blue-500 mb-6 flex items-center gap-2 italic">
+                                    <Award size={14} /> Active Semester
+                                </h3>
+                                <div className="grid grid-cols-4 gap-2">
+                                {[1,2,3,4,5,6,7,8].map(sem => (
+                                    <button key={sem} onClick={() => setSemester(sem)}
+                                        className={`w-12 h-12 rounded-xl border-2 flex flex-col items-center justify-center transition-all ${semester === sem ? 'bg-blue-600 border-blue-600 text-white shadow-lg' : 'bg-gray-50 border-transparent dark:bg-gray-800 text-gray-400 hover:border-gray-200'}`}>
+                                        <span className="text-[9px] font-black leading-none">{sem}</span>
+                                        <span className="text-[7px] font-bold">SEM</span>
+                                    </button>
+                                ))}
                                 </div>
-                            </div>
-                        </section>
-                    </div>
+                            </section>
+
+                            <section className="space-y-4">
+                                <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-blue-500 mb-6 flex items-center gap-2 italic">
+                                    <GraduationCap size={14} /> Academic Trajectory
+                                </h3>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label className="text-[8px] font-bold text-gray-400 uppercase tracking-widest block mb-1">CGPA</label>
+                                        <input 
+                                            type="number" step="0.01" value={cgpa} onChange={(e) => setCgpa(parseFloat(e.target.value))}
+                                            className="w-full bg-gray-50 dark:bg-gray-800 border-none rounded-xl p-3 text-sm font-black focus:ring-2 focus:ring-blue-500 outline-none dark:text-white"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="text-[8px] font-bold text-gray-400 uppercase tracking-widest block mb-1">Percentage (%)</label>
+                                        <input 
+                                            type="number" step="0.1" value={percentage} onChange={(e) => setPercentage(parseFloat(e.target.value))}
+                                            className="w-full bg-gray-50 dark:bg-gray-800 border-none rounded-xl p-3 text-sm font-black focus:ring-2 focus:ring-blue-500 outline-none dark:text-white"
+                                        />
+                                    </div>
+                                </div>
+                            </section>
+                        </div>
+                    ) : (
+                        /* READ-ONLY VIEW for Teachers */
+                        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+                            {[
+                                { label: 'Department', value: department, icon: Building, color: 'blue' },
+                                { label: 'Active Semester', value: `Sem ${semester}`, icon: Award, color: 'purple' },
+                                { label: 'Overall CGPA', value: cgpa || 'N/A', icon: Target, color: 'amber' },
+                                { label: 'Aggregate %', value: `${percentage}%` || 'N/A', icon: TrendingUp, color: 'emerald' }
+                            ].map((stat, i) => (
+                                <div key={i} className="p-6 bg-gray-50 dark:bg-gray-800/50 rounded-3xl border border-gray-100 dark:border-gray-700">
+                                    <p className="text-[9px] font-black text-gray-400 uppercase tracking-[0.2em] mb-3 flex items-center gap-2">
+                                        <stat.icon size={12} className={`text-${stat.color}-500`}/> {stat.label}
+                                    </p>
+                                    <p className="text-xl font-black text-gray-900 dark:text-white uppercase truncate">{stat.value}</p>
+                                </div>
+                            ))}
+                        </div>
+                    )}
 
                     {/* Performance Matrix */}
                     <section>
@@ -250,16 +273,19 @@ const AdminStudentProfileModal = ({ studentId, user, onClose }) => {
                         <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-red-500 mb-6 flex items-center gap-2 italic">
                             <Calendar size={14} /> Attendance Pulse & Annual Metrics
                         </h3>
+                        {/* Show attendance insight (Generic for all roles) */}
                         <AdminAttendanceInsight userId={studentId} type="student" user={user} />
                     </section>
                 </div>
 
                 <div className="p-8 border-t border-gray-100 dark:border-gray-800 flex justify-end gap-4 bg-gray-50/50 dark:bg-gray-800/30">
-                    <button onClick={onClose} className="px-6 py-4 font-black uppercase tracking-widest text-gray-400 hover:text-gray-600 transition-colors">Abort</button>
-                    <button onClick={handleSave} disabled={isSaving}
-                        className="px-10 py-4 bg-blue-600 text-white rounded-2xl font-black uppercase tracking-widest hover:bg-blue-700 shadow-xl shadow-blue-500/20 flex items-center gap-2 disabled:bg-gray-400">
-                        <Save size={18}/> {isSaving ? 'Synchronizing...' : 'Save Enrollment'}
-                    </button>
+                    <button onClick={onClose} className="px-6 py-4 font-black uppercase tracking-widest text-gray-400 hover:text-gray-600 transition-colors">Dismiss Profile</button>
+                    {(user.role === 'admin' || user.role === 'hod') && (
+                        <button onClick={handleSave} disabled={isSaving}
+                            className="px-10 py-4 bg-blue-600 text-white rounded-2xl font-black uppercase tracking-widest hover:bg-blue-700 shadow-xl shadow-blue-500/20 flex items-center gap-2 disabled:bg-gray-400">
+                            <Save size={18}/> {isSaving ? 'Synchronizing...' : 'Save Enrollment'}
+                        </button>
+                    )}
                 </div>
             </motion.div>
         </div>

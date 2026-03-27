@@ -20,7 +20,7 @@ const AdminSystemSettings = ({ user }) => {
     useEffect(() => {
         const fetchSettings = async () => {
             try {
-                const res = await axios.get('http://localhost:5000/api/admin/settings', {
+                const res = await axios.get('http://localhost:5001/api/admin/settings', {
                     headers: { Authorization: `Bearer ${user.token}` }
                 });
                 setSettings(res.data);
@@ -37,7 +37,7 @@ const AdminSystemSettings = ({ user }) => {
         e.preventDefault();
         setIsSaving(true);
         try {
-            await axios.put('http://localhost:5000/api/admin/settings', settings, {
+            await axios.put('http://localhost:5001/api/admin/settings', settings, {
                 headers: { Authorization: `Bearer ${user.token}` }
             });
             alert('Institutional parameters updated across all sectors.');

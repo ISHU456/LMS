@@ -53,10 +53,10 @@ const UploadCenter = () => {
     const fetchData = async () => {
       try {
         const [courseRes, annRes] = await Promise.all([
-          axios.get(`http://localhost:5000/api/courses/${courseId}`, {
+          axios.get(`http://localhost:5001/api/courses/${courseId}`, {
              headers: { Authorization: `Bearer ${user.token}` }
           }),
-          axios.get(`http://localhost:5000/api/announcements?courseId=${courseId}`)
+          axios.get(`http://localhost:5001/api/announcements?courseId=${courseId}`)
         ]);
         setCourseInfo(courseRes.data);
       setAnnouncements(Array.isArray(annRes.data) ? annRes.data : (annRes.data.announcements || []));
@@ -110,7 +110,7 @@ const UploadCenter = () => {
 
       if (selectedFile) {
         formData.append('file', selectedFile);
-        const res = await axios.post(`http://localhost:5000/api/courses/${courseId}/resources/upload`, formData, {
+        const res = await axios.post(`http://localhost:5001/api/courses/${courseId}/resources/upload`, formData, {
           headers: { 
             'Content-Type': 'multipart/form-data',
             Authorization: `Bearer ${user.token}`
@@ -122,7 +122,7 @@ const UploadCenter = () => {
         });
         alert('Asset deployed successfully');
       } else {
-        await axios.post(`http://localhost:5000/api/courses/${courseId}/resources`, {
+        await axios.post(`http://localhost:5001/api/courses/${courseId}/resources`, {
           title: newTitle, type: newType, fileUrl: newUrl, points: newPoints
         }, {
           headers: { Authorization: `Bearer ${user.token}` }
@@ -145,7 +145,7 @@ const UploadCenter = () => {
   const handleCreateAssignment = async (e) => {
     e.preventDefault();
     try {
-      await axios.post(`http://localhost:5000/api/courses/${courseId}/assignments`, {
+      await axios.post(`http://localhost:5001/api/courses/${courseId}/assignments`, {
         title: asgnTitle,
         description: asgnDesc,
         dueDate: asgnDue,
@@ -166,7 +166,7 @@ const UploadCenter = () => {
   const handleCreateAnnouncement = async (e) => {
     e.preventDefault();
     try {
-      const res = await axios.post(`http://localhost:5000/api/announcements`, {
+      const res = await axios.post(`http://localhost:5001/api/announcements`, {
         courseId,
         title: announcementTitle,
         content: announcementContent,

@@ -40,8 +40,18 @@ const StudentDashboard = () => {
 
   const [activeTab, setActiveTab] = useState('overview');
   const [isLoading, setIsLoading] = useState(true);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [leaderboardSem, setLeaderboardSem] = useState(user?.semester || 'All');
+  const itemsPerPage = 25;
+
+  // Filter courses by student's current semester
+  const semesterCourses = useMemo(() => {
+    return STUDENT_COURSE_CATALOG.filter(c => !c.semester || c.semester === user?.semester);
+  }, [user?.semester]);
 
   const [resourceMetaByCourseId, setResourceMetaByCourseId] = useState({});
+  const [globalLeaderboard, setGlobalLeaderboard] = useState([]);
+  const [classroomAttendance, setClassroomAttendance] = useState({ students: [], records: [] });
 
   useEffect(() => {
     setIsLoading(true);
@@ -56,9 +66,9 @@ const StudentDashboard = () => {
       // Fetch resources to compute total lectures/videos/docs for progress tracking.
       const map = {};
       await Promise.all(
-        STUDENT_COURSE_CATALOG.map(async (course) => {
+        semesterCourses.map(async (course) => {
           try {
-            const res = await axios.get(`http://localhost:5000/api/resources?courseId=${course.id}`);
+            const res = await axios.get(`http://localhost:5001/api/resources?courseId=${course.id}`);
             const resources = res.data || [];
             const totalLectures = resources.length;
             const totalVideos = resources.filter((r) => r.type === 'youtube' || r.type === 'yt').length;
@@ -77,10 +87,36 @@ const StudentDashboard = () => {
     };
 
     load();
+    fetchLeaderboard();
+    fetchClassroomAttendance();
     return () => {
       cancelled = true;
     };
   }, []);
+
+  const fetchLeaderboard = async () => {
+    try {
+      const res = await axios.get('http://localhost:5001/api/auth/leaderboard');
+      setGlobalLeaderboard(res.data);
+    } catch (err) {
+      console.error("Failed to fetch leaderboard");
+    }
+  };
+
+  const fetchClassroomAttendance = async () => {
+    try {
+      const res = await axios.get('http://localhost:5001/api/attendance/classroom', {
+        headers: { Authorization: `Bearer ${user.token}` }
+      });
+      const data = res.data;
+      if (data.students) {
+        data.students.sort((a, b) => a.name.localeCompare(b.name));
+      }
+      setClassroomAttendance(data);
+    } catch (err) {
+      console.error("Failed to fetch classroom attendance");
+    }
+  };
 
   const attendancePercentLast7 = useMemo(() => {
     const attendanceDates = gamification?.attendanceDates || [];
@@ -112,7 +148,7 @@ const StudentDashboard = () => {
   }, [gamification]);
 
   const activeCoursesCount = useMemo(() => {
-    return STUDENT_COURSE_CATALOG.filter((c) => {
+    return semesterCourses.filter((c) => {
       const p = gamification?.progressByCourseId?.[c.id];
       if (!p) return false;
       const hasAny =
@@ -139,22 +175,57 @@ const StudentDashboard = () => {
     return Object.values(QUIZZIES_BY_COURSE).reduce((sum, quizzes) => sum + (quizzes?.length || 0), 0);
   }, []);
 
-  const leaderboard = useMemo(() => {
-    const seed = [
-      { name: 'Ishaan', xp: 480 },
-      { name: 'Ananya', xp: 420 },
-      { name: 'Kabir', xp: 390 },
-      { name: 'Meera', xp: 320 },
-      { name: 'Vivaan', xp: 260 },
-      { name: 'Riya', xp: 210 },
+  const leaderboardData = useMemo(() => {
+    const list = globalLeaderboard.length > 0 ? globalLeaderboard : [
+      { name: 'Ishaan', xp: 480, semester: 1, department: 'CS' },
+      { name: 'Ananya', xp: 420, semester: 1, department: 'CS' },
+      { name: 'Kabir', xp: 390, semester: 1, department: 'CS' }
     ];
-    const current = { name: user?.name || 'Student', xp };
-    const list = [...seed, current].sort((a, b) => b.xp - a.xp);
-    const rank = list.findIndex((s) => s.name === current.name && s.xp === current.xp) + 1;
-    const total = list.length;
-    const aheadPercent = Math.round(((total - rank) / Math.max(1, total - 1)) * 100);
-    return { list, rank, aheadPercent };
-  }, [xp, user?.name]);
+
+    // Pre-calculate global rank mapping
+    const globalRankMap = {};
+    list.forEach((s, i) => { globalRankMap[s._id] = i + 1; });
+    
+    // Filter by semester if not 'All'
+    let filteredList = leaderboardSem === 'All' 
+       ? list 
+       : list.filter(p => p.semester === Number(leaderboardSem) || p.semester === leaderboardSem);
+
+    // Sort by name alphabetically (Ascending) as requested by user
+    filteredList = [...filteredList].sort((a, b) => a.name.localeCompare(b.name));
+
+    // Calculate user's rank in their ACTUAL current active semester (based on XP, not name)
+    const activeSemList = [...list].filter(p => p.semester === Number(user?.semester) || p.semester === user?.semester);
+    const currentSemRank = activeSemList.findIndex((s) => s._id === user?._id) + 1 || (activeSemList.length + 1);
+
+    // Find current user's XP-based rank in the filtered list
+    const xpSortedFiltered = [...filteredList].sort((a, b) => b.xp - a.xp);
+    const rank = xpSortedFiltered.findIndex((s) => s._id === user?._id) + 1 || (xpSortedFiltered.length + 1);
+    
+    // Create a map for XP-based rank within the current filtered view for Trophies/Badges
+    const xpRankInFiltered = {};
+    xpSortedFiltered.forEach((s, i) => { xpRankInFiltered[s._id] = i + 1; });
+
+    const aheadPercent = Math.round(((filteredList.length - rank) / Math.max(1, filteredList.length)) * 100);
+    
+    return { 
+      list: filteredList, 
+      rank, 
+      aheadPercent, 
+      globalRankMap, 
+      xpRankInFiltered,
+      currentSemRank, 
+      totalStudents: list.length, 
+      semTotalStudents: activeSemList.length 
+    };
+  }, [globalLeaderboard, user?._id, leaderboardSem, user?.semester]);
+
+  const paginatedLeaderboard = useMemo(() => {
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    return leaderboardData.list.slice(startIndex, startIndex + itemsPerPage);
+  }, [leaderboardData.list, currentPage]);
+
+  const totalPages = Math.ceil(leaderboardData.list.length / itemsPerPage);
 
   const last7Keys = useMemo(() => {
     const keys = [];
@@ -198,7 +269,7 @@ const StudentDashboard = () => {
       { id: 'overview', icon: Home, label: 'Overview' },
       { id: 'progress', icon: Target, label: 'Progress' },
       { id: 'quizzes', icon: Brain, label: 'Quizzes' },
-      { id: 'assignments', icon: FileText, label: 'Assignments' },
+      { id: 'attendance', icon: CalendarDays, label: 'Attendance Register' },
       { id: 'leaderboard', icon: Trophy, label: 'Leaderboard' },
     ],
     []
@@ -210,12 +281,16 @@ const StudentDashboard = () => {
   }, [badgeDefinitions, earnedBadges]);
 
   const timetable = useMemo(() => {
-    return [
-      { time: '09:00 AM', subject: 'Data Structures', type: 'Class', courseId: 'CS301' },
-      { time: '11:30 AM', subject: 'Operating Systems', type: 'Class', courseId: 'CS401' },
-      { time: '03:00 PM', subject: 'Capstone Working Session', type: 'Class', courseId: 'CS899' },
+    const fullTimetable = [
+      { time: '09:00 AM', subject: 'Engineering Chemistry', type: 'Class', courseId: 'BT-101', semester: 1 },
+      { time: '11:00 AM', subject: 'Mathematics-I', type: 'Class', courseId: 'BT-102', semester: 1 },
+      { time: '02:00 PM', subject: 'Engineering Graphics Lab', type: 'Lab', courseId: 'BT-105', semester: 1 },
+      { time: '09:00 AM', subject: 'Data Structures', type: 'Class', courseId: 'CS301', semester: 3 },
+      { time: '11:30 AM', subject: 'Operating Systems', type: 'Class', courseId: 'CS401', semester: 4 },
+      { time: '03:00 PM', subject: 'Capstone Working Session', type: 'Class', courseId: 'CS899', semester: 8 },
     ];
-  }, []);
+    return fullTimetable.filter(item => item.semester === user?.semester);
+  }, [user?.semester]);
 
   const handleJoin = (courseId) => {
     markAttendance({ dateKey: getTodayKey() });
@@ -223,7 +298,7 @@ const StudentDashboard = () => {
   };
 
   const courseProgressCards = useMemo(() => {
-    return STUDENT_COURSE_CATALOG.map((course) => {
+    return semesterCourses.map((course) => {
       const totals = {
         totalLectures: resourceMetaByCourseId[course.id]?.totalLectures ?? 12,
         totalVideos: resourceMetaByCourseId[course.id]?.totalVideos ?? 3,
@@ -351,8 +426,10 @@ const StudentDashboard = () => {
                 <h1 className="text-3xl font-extrabold text-gray-900 dark:text-white capitalize">
                   {menuItems.find((i) => i.id === activeTab)?.label}
                 </h1>
-                <p className="text-gray-600 dark:text-gray-300 mt-1 font-semibold">
+                <p className="text-gray-600 dark:text-gray-300 mt-1 font-semibold flex items-center gap-2">
                   Welcome back, <span className="uppercase font-extrabold text-primary-600 dark:text-primary-400">{user?.name?.split(' ')[0] || 'Student'}</span>
+                  <span className="w-1.5 h-1.5 rounded-full bg-gray-300 dark:bg-gray-700" />
+                  <span className="text-gray-500 dark:text-gray-400 text-sm font-black uppercase tracking-widest bg-gray-100 dark:bg-gray-800 px-2 py-0.5 rounded-lg border border-gray-200 dark:border-gray-700">ACTIVE SEMESTER: {user?.semester || 'N/A'}</span>
                 </p>
               </div>
 
@@ -382,29 +459,68 @@ const StudentDashboard = () => {
                   <div className="text-[10px] font-black uppercase tracking-widest text-gray-500 dark:text-gray-400">Pending</div>
                   <div className="text-2xl font-extrabold text-gray-900 dark:text-white mt-1">{pendingTasksCount}</div>
                 </div>
-                <div className="px-4 py-2 rounded-2xl border border-gray-100 dark:border-gray-800 bg-white/40 dark:bg-gray-900/30">
-                  <div className="flex items-center justify-between gap-2">
-                    <div className="text-[10px] font-black uppercase tracking-widest text-gray-500 dark:text-gray-400">Streak</div>
-                    <Flame size={14} className="text-orange-500" />
+                <div className="flex-1 min-w-[300px] px-8 py-6 rounded-[2.5rem] border border-gray-100 dark:border-gray-800 bg-white/40 dark:bg-gray-900/30 backdrop-blur-3xl relative overflow-hidden group">
+                  {/* Decorative Background Flame */}
+                  <div className="absolute top-[-20%] right-[-10%] opacity-5 scale-150 rotate-12 group-hover:rotate-0 transition-transform duration-1000">
+                    <Flame size={200} className="text-orange-500 fill-current" />
                   </div>
-                  <div className="text-2xl font-extrabold text-gray-900 dark:text-white mt-1">{streakDays}d</div>
-                  <div className="mt-3 h-2 bg-gray-200/60 dark:bg-gray-800 rounded-full overflow-hidden">
-                    <motion.div
-                      initial={{ width: 0 }}
-                      animate={{ width: `${Math.min(100, (streakDays / 7) * 100)}%` }}
-                      transition={{ duration: 0.6 }}
-                      className="h-full bg-gradient-to-r from-orange-500 to-amber-400"
-                    />
+                  
+                  <div className="relative z-10 flex items-center justify-between gap-8">
+                    <div>
+                        <div className="flex items-center gap-3 mb-2">
+                           <div className="p-2 bg-orange-500/20 rounded-xl text-orange-500 animate-pulse">
+                              <Flame size={20} className="fill-current" />
+                           </div>
+                           <h3 className="text-xs font-black uppercase tracking-[0.2em] text-orange-500/80">Streak Momentum</h3>
+                        </div>
+                        <div className="flex items-baseline gap-2">
+                           <span className="text-5xl font-black text-gray-900 dark:text-white tracking-tighter">{streakDays}</span>
+                           <span className="text-xl font-black text-gray-400 uppercase">Days</span>
+                        </div>
+                        <p className="text-[10px] font-black uppercase tracking-widest text-gray-500 mt-2">
+                           {streakDays >= 7 ? 'Legendary Consistency!' : `${7 - (streakDays % 7)} days to next major badge`}
+                        </p>
+                    </div>
+
+                    <div className="flex-1 max-w-[350px]">
+                        <div className="flex justify-between mb-4">
+                           {last7Keys.map((k, i) => {
+                              const attended = new Set(gamification?.attendanceDates || []).has(k);
+                              return (
+                                 <div key={k} className="flex flex-col items-center gap-2">
+                                    <div className={`w-8 h-8 rounded-xl flex items-center justify-center border-2 transition-all duration-500 ${attended ? 'bg-orange-500 border-orange-400 shadow-lg shadow-orange-500/40 text-white' : 'bg-gray-100 dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-400 opacity-40'}`}>
+                                       {attended ? <CheckCircle2 size={14} /> : <div className="w-1 h-1 rounded-full bg-current" />}
+                                    </div>
+                                    <span className="text-[8px] font-black uppercase tracking-tighter text-gray-500">Day {i+1}</span>
+                                 </div>
+                              );
+                           })}
+                        </div>
+                        <div className="h-2.5 bg-gray-200/50 dark:bg-gray-800 rounded-full overflow-hidden border border-gray-100 dark:border-gray-700/50">
+                           <motion.div
+                             initial={{ width: 0 }}
+                             animate={{ width: `${Math.min(100, ((streakDays % 7) || (streakDays > 0 ? 7 : 0)) / 7 * 100)}%` }}
+                             className="h-full bg-gradient-to-r from-orange-600 via-orange-400 to-amber-300 shadow-[0_0_15px_rgba(249,115,22,0.5)]"
+                           />
+                        </div>
+                    </div>
                   </div>
                 </div>
               </div>
             </div>
 
             <div className="mt-4 flex flex-wrap gap-3 items-center justify-between">
-              <div className="flex items-center gap-2 text-sm font-bold text-gray-700 dark:text-gray-200">
-                <Trophy size={18} className="text-yellow-500" />
-                You are ahead of {leaderboard.aheadPercent}% students
-                <span className="text-lg ml-1 font-black">GO</span>
+              <div className="flex items-center gap-3 text-sm font-bold text-gray-700 dark:text-gray-200">
+                <div className="w-10 h-10 rounded-2xl bg-yellow-500/10 border border-yellow-500/20 text-yellow-600 flex items-center justify-center">
+                   <Trophy size={18} />
+                </div>
+                <div className="flex flex-col">
+                   <span className="text-[10px] font-black uppercase text-gray-500">Your Current Sem Rank</span>
+                   <div className="flex items-center gap-2">
+                      <span className="text-xl font-black text-gray-900 dark:text-white">#{leaderboardData.currentSemRank}</span>
+                      <span className="text-[10px] bg-emerald-500/10 text-emerald-600 px-2 py-0.5 rounded-full font-black uppercase tracking-tighter italic">Top Standing</span>
+                   </div>
+                </div>
               </div>
               <button
                 onClick={() => setActiveTab('quizzes')}
@@ -832,53 +948,128 @@ const StudentDashboard = () => {
             </motion.div>
           )}
 
-          {activeTab === 'assignments' && (
-            <motion.div key="assignments" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }}>
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                {ASSIGNMENTS_SEED.map((task) => {
-                  const courseProgress = gamification?.progressByCourseId?.[task.course];
-                  const submitted = new Set(courseProgress?.completedAssignmentIds || []).has(task.id);
-                  const due = task.deadline ? new Date(task.deadline).toLocaleDateString() : 'N/A';
-                  const status = submitted ? 'Submitted' : 'Pending';
-                  return (
-                    <div key={task.id} className="glass p-6 rounded-3xl border border-gray-100 dark:border-gray-800">
-                      <div className="flex items-start justify-between gap-4">
-                        <div className="min-w-0">
-                          <div className="text-sm font-extrabold text-gray-900 dark:text-white">{task.title}</div>
-                          <div className="text-[10px] font-black uppercase tracking-widest text-gray-500 dark:text-gray-400 mt-1">
-                            {task.course} · {task.type} · Due {due}
-                          </div>
+          {activeTab === 'attendance' && (
+            <motion.div key="attendance" initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0 }} className="space-y-6 pb-20">
+              <div className="glass p-10 rounded-[40px] border border-gray-100 dark:border-gray-800 shadow-2xl relative overflow-hidden">
+                <div className="flex flex-col md:flex-row items-center justify-between gap-6 mb-12">
+                   <div className="text-center md:text-left">
+                      <div className="flex items-center gap-3 mb-2 justify-center md:justify-start">
+                        <div className="w-12 h-12 rounded-3xl bg-red-600 text-white flex items-center justify-center shadow-lg shadow-red-500/30">
+                          <CalendarDays size={24} />
                         </div>
-                        <div className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border ${submitted ? 'bg-emerald-500/20 border-emerald-400/40 text-emerald-200' : 'bg-amber-500/20 border-amber-400/40 text-amber-200'}`}>
-                          {submitted ? <CheckCircle2 size={14} className="inline mr-1" /> : <Clock size={14} className="inline mr-1" />}
-                          {status}
+                        <h2 className="text-3xl font-black text-gray-900 dark:text-white uppercase tracking-tighter">Master Classroom Register</h2>
+                      </div>
+                      <p className="text-[10px] font-black uppercase tracking-[0.3em] text-gray-400 italic">Institutional Presence Ledger · {classroomAttendance.month}/{classroomAttendance.year}</p>
+                   </div>
+
+                   <div className="flex flex-wrap justify-center gap-3">
+                      {[
+                        { label: 'P: Present', color: 'emerald' },
+                        { label: 'A: Absent', color: 'red' },
+                        { label: 'H: Holiday', color: 'amber' },
+                        { label: 'L: Leave', color: 'blue' },
+                      ].map(tag => (
+                        <div key={tag.label} className={`px-4 py-2 rounded-2xl bg-${tag.color}-500/10 text-${tag.color}-500 border border-${tag.color}-500/20 text-[10px] font-black uppercase tracking-widest`}>
+                          {tag.label}
                         </div>
-                      </div>
-                      <div className="mt-4 h-2 bg-black/5 dark:bg-white/10 rounded-full overflow-hidden">
-                        <motion.div
-                          initial={{ width: 0 }}
-                          animate={{ width: submitted ? '100%' : '35%' }}
-                          transition={{ duration: 0.7 }}
-                          className={`h-full rounded-full ${submitted ? 'bg-gradient-to-r from-emerald-500 to-indigo-600' : 'bg-gradient-to-r from-amber-400 to-primary-600'}`}
-                        />
-                      </div>
-                      <div className="mt-5 flex gap-3">
-                        <button
-                          onClick={() => navigate('/assignments')}
-                          className="flex-1 px-4 py-2 rounded-2xl font-black text-xs uppercase tracking-widest bg-primary-600 text-white hover:opacity-90 transition shadow-md shadow-primary-500/20"
-                        >
-                          Open Submission
-                        </button>
-                        <button
-                          onClick={() => navigate(`/course-inner/${task.course}`)}
-                          className="px-4 py-2 rounded-2xl font-black text-xs uppercase tracking-widest bg-gray-900 dark:bg-white text-white dark:text-gray-900 border border-gray-200 dark:border-gray-800 hover:opacity-90 transition"
-                        >
-                          Course
-                        </button>
-                      </div>
-                    </div>
-                  );
-                })}
+                      ))}
+                   </div>
+                </div>
+
+                <div className="relative overflow-x-auto rounded-[2rem] border border-gray-100 dark:border-gray-800 bg-white/30 dark:bg-gray-900/40 backdrop-blur-xl">
+                  <table className="w-full text-left border-collapse min-w-[1200px]">
+                    <thead>
+                       <tr className="border-b border-gray-100 dark:border-gray-800">
+                          <th className="sticky left-0 z-20 bg-gray-50/80 dark:bg-gray-900/80 backdrop-blur-md p-6 border-r border-gray-100 dark:border-gray-800 min-w-[240px]">
+                            <span className="text-[10px] font-black uppercase tracking-widest text-gray-400">Student Identity Matrix</span>
+                          </th>
+                          {Array.from({ length: 31 }, (_, i) => {
+                            const day = i + 1;
+                            const isSunday = new Date(classroomAttendance.year, classroomAttendance.month - 1, day).getDay() === 0;
+                            const isHoliday = [8, 25, 29].includes(day);
+                            return (
+                              <th key={day} className={`p-4 text-center border-r border-gray-100 dark:border-gray-800 min-w-[50px] ${isSunday || isHoliday ? 'bg-amber-500/5' : ''}`}>
+                                <div className="text-[10px] font-black text-gray-400 mb-1">{day}</div>
+                                <div className={`text-[8px] font-bold ${(isSunday || isHoliday) ? 'text-amber-500' : 'text-gray-300'}`}>
+                                  {isSunday ? 'SUN' : isHoliday ? 'HOL' : 'WK'}
+                                </div>
+                              </th>
+                            );
+                          })}
+                       </tr>
+                    </thead>
+                    <tbody>
+                      {classroomAttendance.students.map((student, sIdx) => {
+                        const isPrimary = student._id === user?._id;
+                        return (
+                          <tr key={student._id} className={`border-b border-gray-100 dark:border-gray-800 group hover:bg-gray-50/50 dark:hover:bg-gray-900/50 transition-colors ${isPrimary ? 'bg-primary-50/30 dark:bg-primary-900/10' : ''}`}>
+                            <td className="sticky left-0 z-10 bg-inherit p-4 border-r border-gray-100 dark:border-gray-800">
+                               <div className="flex items-center gap-3">
+                                 <div className="w-8 h-8 rounded-xl bg-gray-100 dark:bg-gray-800 flex items-center justify-center font-black text-[10px] border border-gray-200 dark:border-gray-700">
+                                    {sIdx + 1}
+                                 </div>
+                                 <div className="min-w-0">
+                                    <p className={`text-xs font-black truncate ${isPrimary ? 'text-primary-600' : 'text-gray-900 dark:text-white'}`}>{student.name}</p>
+                                    <p className="text-[9px] font-black uppercase text-gray-400 tracking-tighter truncate">{student.enrollmentNumber}</p>
+                                 </div>
+                                 {isPrimary && <span className="ml-auto text-[8px] bg-primary-600 text-white px-2 py-0.5 rounded-full font-black">YOU</span>}
+                               </div>
+                            </td>
+                            {Array.from({ length: 31 }, (_, i) => {
+                               const day = i + 1;
+                               const dateKey = `${classroomAttendance.year}-${classroomAttendance.month.toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`;
+                               const isSunday = new Date(classroomAttendance.year, classroomAttendance.month - 1, day).getDay() === 0;
+                               const isHoliday = [8, 25, 29].includes(day);
+                               
+                               const record = classroomAttendance.records.find(r => 
+                                 r.student.toString() === student._id.toString() && 
+                                 new Date(r.date).getUTCDate() === day
+                               );
+
+                               let status = '-';
+                               let style = 'text-gray-200 opacity-20';
+                               
+                               if (isSunday || isHoliday) {
+                                  status = 'H';
+                                  style = 'text-amber-500 font-black';
+                               } else if (record) {
+                                  if (record.status === 'present') { status = 'P'; style = 'text-emerald-500 font-black'; }
+                                  else if (record.status === 'absent') { status = 'A'; style = 'text-red-500 font-black'; }
+                                  else if (record.status === 'late') { status = 'L'; style = 'text-blue-500 font-black'; }
+                               } else if (day < new Date().getDate()) {
+                                  status = 'A';
+                                  style = 'text-red-500/40 font-bold';
+                               }
+
+                               return (
+                                 <td key={day} className={`p-4 text-center border-r border-gray-100 dark:border-gray-800 group-hover:bg-gray-50/80 dark:group-hover:bg-gray-900/80 ${isSunday || isHoliday ? 'bg-amber-500/5' : ''}`}>
+                                    <span className={`text-xs ${style}`}>{status}</span>
+                                 </td>
+                               );
+                            })}
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+
+                <div className="mt-12 flex flex-col md:flex-row items-center justify-between gap-6 p-10 rounded-[2.5rem] bg-gray-900 dark:bg-white text-white dark:text-gray-900">
+                  <div className="flex items-center gap-6">
+                     <div className="text-center">
+                        <p className="text-[10px] font-black uppercase tracking-widest opacity-50">Peer Presence Rank</p>
+                        <p className="text-4xl font-black mt-2">Active</p>
+                     </div>
+                     <div className="w-px h-12 bg-white/10 dark:bg-gray-900/10" />
+                     <div className="text-center">
+                        <p className="text-[10px] font-black uppercase tracking-widest opacity-50">Global Sync Percentage</p>
+                        <p className="text-4xl font-black mt-2">84.2%</p>
+                     </div>
+                  </div>
+                  <button className="px-8 py-5 rounded-[2rem] bg-red-600 text-white font-black text-xs uppercase tracking-[0.2em] shadow-2xl shadow-red-500/30 hover:scale-105 transition-all">
+                     Download Monthly Analytics
+                  </button>
+                </div>
               </div>
             </motion.div>
           )}
@@ -886,54 +1077,134 @@ const StudentDashboard = () => {
           {activeTab === 'leaderboard' && (
             <motion.div key="leaderboard" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }}>
               <div className="glass p-6 rounded-3xl border border-gray-100 dark:border-gray-800">
-                <div className="flex items-start justify-between gap-4">
+                <div className="flex items-start justify-between gap-4 flex-wrap">
                   <div>
-                    <div className="text-sm font-extrabold text-gray-900 dark:text-white">Leaderboard</div>
-                    <div className="text-[10px] font-black uppercase tracking-widest text-gray-500 dark:text-gray-400 mt-1">
-                      Earn XP for attendance, assignments, and passing quizzes
+                    <div className="flex items-center gap-3 mb-1">
+                       <h2 className="text-sm font-extrabold text-gray-900 dark:text-white">Leaderboard Arena</h2>
+                       <span className="px-3 py-1 rounded-full bg-gray-100 dark:bg-gray-800 text-[9px] font-black uppercase text-gray-400 border border-gray-200 dark:border-gray-700">
+                         {leaderboardSem === 'All' ? `${leaderboardData.totalStudents} Global Students` : `${leaderboardData.list.length} Sector Students`}
+                       </span>
+                    </div>
+                    <div className="text-[10px] font-black uppercase tracking-widest text-gray-500 dark:text-gray-400">
+                      Filter rankings by academic sector to track your status
+                    </div>
+                    <div className="mt-4 flex flex-wrap gap-2">
+                       {['All', 1, 2, 3, 4, 5, 6, 7, 8].map(sem => (
+                         <button
+                           key={sem}
+                           onClick={() => { setLeaderboardSem(sem); setCurrentPage(1); }}
+                           className={`px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-tighter transition-all ${
+                             leaderboardSem === sem 
+                               ? 'bg-primary-600 text-white shadow-md' 
+                               : 'bg-gray-100 dark:bg-gray-800 text-gray-400 hover:text-gray-900 dark:hover:text-white border border-gray-200 dark:border-gray-700'
+                           }`}
+                         >
+                           {sem === 'All' ? 'Global' : `SEM ${sem}`}
+                         </button>
+                       ))}
                     </div>
                   </div>
                   <div className="px-4 py-3 rounded-2xl border border-gray-100 dark:border-gray-800 bg-white/35 dark:bg-gray-900/25">
-                    <div className="text-[10px] font-black uppercase tracking-widest text-gray-500 dark:text-gray-400">Your Rank</div>
-                    <div className="text-3xl font-extrabold text-gray-900 dark:text-white mt-1">#{leaderboard.rank}</div>
+                    <div className="text-[10px] font-black uppercase tracking-widest text-gray-500 dark:text-gray-400">
+                      {leaderboardSem === 'All' ? 'Global Status' : `Semester ${leaderboardSem} Standing`}
+                    </div>
+                    <div className="text-3xl font-extrabold text-gray-900 dark:text-white mt-1">#{leaderboardData.rank}</div>
                   </div>
                 </div>
 
-                <div className="mt-6 space-y-3">
-                  {leaderboard.list.map((p, idx) => {
-                    const isMe = p.name === user?.name && p.xp === xp;
+                 <div className="mt-6 space-y-3">
+                  {paginatedLeaderboard.map((p, idx) => {
+                    const isMe = p._id === user?._id;
+                    const xpRank = leaderboardData.xpRankInFiltered[p._id];
+                    const isTop3 = xpRank <= 3;
+                    const badgeStyles = [
+                      'bg-yellow-500/20 text-yellow-600 border border-yellow-400/30', // Gold
+                      'bg-slate-400/20 text-slate-500 border border-slate-400/30', // Silver
+                      'bg-orange-800/20 text-orange-800 border border-orange-800/20' // Brown (Bronze)
+                    ][xpRank - 1] || 'bg-gray-100 dark:bg-gray-800/50 text-gray-500 dark:text-gray-400 border border-gray-200 dark:border-gray-700';
+
                     return (
                       <div
-                        key={`${p.name}_${idx}`}
-                        className={`flex items-center justify-between gap-4 p-4 rounded-3xl border ${
-                          isMe ? 'bg-gradient-to-r from-primary-600/15 to-indigo-600/10 border-primary-500/30' : 'bg-white/35 dark:bg-gray-900/25 border-gray-100 dark:border-gray-800'
+                        key={`${p._id}_${idx}`}
+                        className={`flex items-center justify-between gap-4 p-4 rounded-3xl border transition-all ${
+                          isMe ? 'bg-gradient-to-r from-primary-600/15 to-indigo-600/10 border-primary-500/30 shadow-lg' : 'bg-white/35 dark:bg-gray-900/25 border-gray-100 dark:border-gray-800'
                         }`}
                       >
                         <div className="flex items-center gap-4">
-                          <div
-                            className={`w-10 h-10 rounded-2xl flex items-center justify-center font-black ${
-                              idx === 0
-                                ? 'bg-amber-500/20 text-amber-200 border border-amber-400/30'
-                                : idx === 1
-                                  ? 'bg-emerald-500/20 text-emerald-200 border border-emerald-400/30'
-                                  : 'bg-gray-100 dark:bg-gray-800/50 text-gray-500 dark:text-gray-400 border border-gray-200 dark:border-gray-700'
-                            }`}
-                          >
-                            {idx + 1}
+                          <div className={`w-10 h-10 rounded-2xl flex items-center justify-center font-black ${badgeStyles}`}>
+                            {isTop3 ? <Trophy size={18} /> : xpRank}
                           </div>
                           <div>
-                            <div className="text-sm font-extrabold text-gray-900 dark:text-white">{p.name}</div>
-                            <div className="text-[10px] font-black uppercase tracking-widest text-gray-500 dark:text-gray-400 mt-1">{isMe ? 'You' : 'Student'}</div>
+                            <div className="text-sm font-extrabold text-gray-900 dark:text-white flex items-center gap-2">
+                              {p.name} {isMe && <span className="text-[8px] bg-primary-600 text-white px-2 py-0.5 rounded-full uppercase tracking-tighter">YOU</span>}
+                            </div>
+                            <div className="flex items-center gap-2 mt-1">
+                               <div className="text-[10px] font-black uppercase tracking-widest text-primary-600 dark:text-primary-400">
+                                 {leaderboardSem === 'All' ? 'Global Status' : `Sector Standing`} Rank #{xpRank}
+                               </div>
+                               {leaderboardSem !== 'All' && (
+                                 <>
+                                   <div className="w-1 h-1 rounded-full bg-gray-300 dark:bg-gray-700" />
+                                   <div className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Global #{leaderboardData.globalRankMap[p._id]}</div>
+                                 </>
+                               )}
+                            </div>
+                            <div className="text-[9px] font-bold uppercase tracking-widest text-gray-400 mt-1 opacity-60">
+                              {p.department} Sector
+                            </div>
                           </div>
                         </div>
                         <div className="text-right">
-                          <div className="text-2xl font-extrabold text-gray-900 dark:text-white tabular-nums">{p.xp}</div>
-                          <div className="text-[10px] font-black uppercase tracking-widest text-gray-500 dark:text-gray-400 mt-1">XP</div>
+                          <div className="text-2xl font-extrabold text-gray-900 dark:text-white tabular-nums tracking-tighter">{p.xp}</div>
+                          <div className="text-[9px] font-black uppercase tracking-[0.2em] text-gray-500 mt-1">TOTAL XP</div>
                         </div>
                       </div>
                     );
                   })}
                 </div>
+
+                {totalPages > 1 && (
+                  <div className="mt-8 flex items-center justify-between p-4 rounded-[2rem] bg-gray-50 dark:bg-gray-900/40 border border-gray-100 dark:border-gray-800">
+                    <div className="text-[10px] font-black uppercase tracking-widest text-gray-400">
+                      Showing {(currentPage - 1) * itemsPerPage + 1}-
+                      {Math.min(currentPage * itemsPerPage, leaderboardData.list.length)} of {leaderboardData.list.length}
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <button
+                        disabled={currentPage === 1}
+                        onClick={() => setCurrentPage(prev => prev - 1)}
+                        className="px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all disabled:opacity-30 disabled:cursor-not-allowed bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 border border-gray-200 dark:border-gray-700 hover:bg-gray-100"
+                      >
+                        Previous
+                      </button>
+                      <div className="flex items-center gap-1">
+                        {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                          const pageNum = i + 1; // Simplistic pagination
+                          return (
+                            <button
+                              key={pageNum}
+                              onClick={() => setCurrentPage(pageNum)}
+                              className={`w-8 h-8 rounded-xl text-[10px] font-black transition-all ${
+                                currentPage === pageNum
+                                  ? 'bg-primary-600 text-white shadow-lg'
+                                  : 'bg-white dark:bg-gray-800 text-gray-400 border border-gray-200 dark:border-gray-700 hover:bg-gray-100'
+                              }`}
+                            >
+                              {pageNum}
+                            </button>
+                          );
+                        })}
+                      </div>
+                      <button
+                        disabled={currentPage === totalPages}
+                        onClick={() => setCurrentPage(prev => prev + 1)}
+                        className="px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all disabled:opacity-30 disabled:cursor-not-allowed bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 border border-gray-200 dark:border-gray-700 hover:bg-gray-100"
+                      >
+                        Next
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
             </motion.div>
           )}

@@ -27,7 +27,7 @@ const CompletionPreview = ({
     if (!isTeacher) return;
     setIsLoading(true);
     try {
-      const res = await axios.get(`http://localhost:5000/api/courses/${courseId}/students`, {
+      const res = await axios.get(`http://localhost:5001/api/courses/${courseId}/students`, {
         headers: { Authorization: `Bearer ${user.token}` }
       });
       setStudents(res.data);
@@ -40,7 +40,7 @@ const CompletionPreview = ({
   const removeStudent = async (studentId) => {
     if (!window.confirm("Are you sure you want to remove this student from the course?")) return;
     try {
-      await axios.delete(`http://localhost:5000/api/courses/${courseId}/students/${studentId}`, {
+      await axios.delete(`http://localhost:5001/api/courses/${courseId}/students/${studentId}`, {
         headers: { Authorization: `Bearer ${user.token}` }
       });
       fetchStudents(); // Refresh

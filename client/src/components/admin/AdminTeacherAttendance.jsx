@@ -20,7 +20,7 @@ const AdminTeacherAttendance = ({ user }) => {
     const fetchAttendance = async () => {
         setIsLoading(true);
         try {
-            const res = await axios.get(`http://localhost:5000/api/admin/teachers/attendance?date=${date}`, {
+            const res = await axios.get(`http://localhost:5001/api/admin/teachers/attendance?date=${date}`, {
                 headers: { Authorization: `Bearer ${user.token}` }
             });
             setTeachers(res.data);
@@ -34,7 +34,7 @@ const AdminTeacherAttendance = ({ user }) => {
     const handleMark = async (teacherId, status, checkIn = '09:00 AM', checkOut = '05:00 PM') => {
         setUpdatingId(teacherId);
         try {
-            await axios.post('http://localhost:5000/api/admin/teachers/attendance', {
+            await axios.post('http://localhost:5001/api/admin/teachers/attendance', {
                 teacherId, date, status, checkIn, checkOut, remarks: 'Marked by System Administrator'
             }, {
                 headers: { Authorization: `Bearer ${user.token}` }

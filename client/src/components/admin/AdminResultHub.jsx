@@ -20,7 +20,7 @@ const AdminResultHub = ({ user }) => {
   const fetchSummary = async () => {
     try {
       setLoading(true);
-      const { data } = await axios.get(`http://localhost:5000/api/results/semester-summary?semester=${semester}&academicYear=${academicYear}&department=${department}`, {
+      const { data } = await axios.get(`http://localhost:5001/api/results/semester-summary?semester=${semester}&academicYear=${academicYear}&department=${department}`, {
         headers: { Authorization: `Bearer ${user.token}` }
       });
       setData(data);
@@ -40,7 +40,7 @@ const AdminResultHub = ({ user }) => {
     if (!window.confirm(`Compile and generate final results for ${data.students.length} students? This will calculate SGPA/CGPA.`)) return;
     try {
       setCompiling(true);
-      const res = await axios.post('http://localhost:5000/api/results/generate-final', {
+      const res = await axios.post('http://localhost:5001/api/results/generate-final', {
         semester, academicYear, department
       }, {
         headers: { Authorization: `Bearer ${user.token}` }

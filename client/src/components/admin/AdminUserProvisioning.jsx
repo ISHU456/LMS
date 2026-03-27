@@ -29,7 +29,7 @@ const AdminUserManagement = ({ user }) => {
     const fetchUsers = async () => {
         setIsLoading(true);
         try {
-            const res = await axios.get(`http://localhost:5000/api/admin/users?role=${role}&dept=${selectedDept}&semester=${selectedSem}`, {
+            const res = await axios.get(`http://localhost:5001/api/admin/users?role=${role}&dept=${selectedDept}&semester=${selectedSem}`, {
                 headers: { Authorization: `Bearer ${user.token}` }
             });
             setUsers(res.data);
@@ -43,7 +43,7 @@ const AdminUserManagement = ({ user }) => {
     const handleDelete = async (userId) => {
         if (!window.confirm('Are you sure you want to permanently delete this user?')) return;
         try {
-            await axios.delete(`http://localhost:5000/api/admin/users/${userId}`, {
+            await axios.delete(`http://localhost:5001/api/admin/users/${userId}`, {
                 headers: { Authorization: `Bearer ${user.token}` }
             });
             setUsers(users.filter(u => u._id !== userId));
@@ -54,7 +54,7 @@ const AdminUserManagement = ({ user }) => {
 
     const handleRoleUpdate = async (userId, newRole) => {
         try {
-            await axios.put(`http://localhost:5000/api/admin/users/${userId}/role`, { role: newRole }, {
+            await axios.put(`http://localhost:5001/api/admin/users/${userId}/role`, { role: newRole }, {
                 headers: { Authorization: `Bearer ${user.token}` }
             });
             fetchUsers();

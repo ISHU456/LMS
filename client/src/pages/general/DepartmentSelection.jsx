@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
+import { updateProfile } from '../../features/auth/authSlice';
 import {
   Building2, ArrowRight, Sparkles, GraduationCap,
   Cpu, Code, FlaskConical, Atom, Globe, Lightbulb
@@ -11,6 +12,7 @@ import axios from 'axios';
 const DepartmentSelection = () => {
   const { user } = useSelector(state => state.auth);
   const navigate = useNavigate();
+  const dispatch = useDispatch();
   const [departments, setDepartments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedDept, setSelectedDept] = useState(null);
@@ -18,7 +20,7 @@ const DepartmentSelection = () => {
   useEffect(() => {
     const fetchDepts = async () => {
       try {
-        const res = await axios.get('http://localhost:5000/api/departments');
+        const res = await axios.get('http://localhost:5001/api/departments');
         setDepartments(res.data);
       } catch (err) {
         console.error('Failed to fetch departments', err);
@@ -29,15 +31,36 @@ const DepartmentSelection = () => {
     fetchDepts();
   }, []);
 
-  const handleSelect = (dept) => {
-    setSelectedDept(dept);
-    // Store in localStorage for persistence
-    localStorage.setItem('selectedDepartment', JSON.stringify(dept));
-    // Dispatch custom event to notify other components (like Navbar)
-    window.dispatchEvent(new CustomEvent('smartlms:department_selected', { detail: dept }));
+  const handleSelect = async (dept) => {
+    try {
+      setSelectedDept(dept);
+      
+      // 1. Update in Backend
+      const config = {
+        headers: { Authorization: `Bearer ${user.token}` }
+      };
+      const res = await axios.put('http://localhost:5001/api/auth/profile', {
+        department: dept.code
+      }, config);
 
-    // Redirect to dashboard or courses
-    navigate('/courses');
+      if (res.data) {
+        // 2. Update in Redux and localStorage
+        dispatch(updateProfile(res.data));
+        
+        // Use a slight delay to ensure Redux state is updated before navigating
+        // and notify other components
+        localStorage.setItem('selectedDepartment', JSON.stringify(dept));
+        window.dispatchEvent(new CustomEvent('smartlms:department_selected', { detail: dept }));
+
+        // 3. Navigate to appropriate entry page
+        navigate('/courses');
+      }
+    } catch (err) {
+      console.error('Failed to sync department selection', err);
+      // Fallback: at least store locally
+      localStorage.setItem('selectedDepartment', JSON.stringify(dept));
+      navigate('/courses');
+    }
   };
 
   const getDeptIcon = (code) => {

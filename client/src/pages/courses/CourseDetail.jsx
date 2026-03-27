@@ -10,7 +10,7 @@ import {
   FileCode, Check, ShieldCheck, Megaphone, Zap, Sparkles, MessageCircle,
   VideoIcon, Radio, UserCheck, Award, Trophy, TrendingUp, BarChart3,
   Play, Send, Paperclip, FolderOpen, GraduationCap, Link2, File, Image,
-  Loader2, Bot, Search, PanelLeft, Maximize
+  Loader2, Bot, Search, PanelLeft, Maximize, Lock
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Chatbot from '../../components/Chatbot';
@@ -113,15 +113,18 @@ const CourseDetail = () => {
   const [courseInfo, setCourseInfo] = useState(null);
 
   // Authorization check for Course Management (Upload/Delete)
-  const isAuthorizedTeacher = isAdminHOD || (user?.role === 'teacher' && courseInfo?.facultyAssigned?.some(f => 
-    (f._id?.toString() || f.toString()) === user?._id?.toString()
+  const isAuthorizedTeacher = isAdminHOD || (user?.role === 'teacher' && (
+     courseInfo?.facultyAssigned?.some(f => (f._id?.toString() || f.toString()) === user?._id?.toString()) ||
+     ((courseInfo?.department?.name === user?.department || courseInfo?.department?.code === user?.department) &&
+      (user?.assignedSemesters?.length > 0 ? user.assignedSemesters.includes(courseInfo?.semester) : true))
   ));
 
   const isEnrolledStudent = isStudent && (
     (courseInfo?.department?.name === user?.department || courseInfo?.department?.code === user?.department) &&
-    Number(courseInfo?.semester) === Number(user?.semester)
+    Number(courseInfo?.semester) <= Number(user?.semester)
   );
 
+  const isFutureSemester = isStudent && Number(courseInfo?.semester) > Number(user?.semester);
   const isLocked = courseInfo && !(isAuthorizedTeacher || isEnrolledStudent);
   const [dbProgress, setDbProgress] = useState({ percentage: 0, completedCount: 0, totalItems: 0 });
   
@@ -130,7 +133,7 @@ const CourseDetail = () => {
 
   const updateScheduleInDB = async (payload) => {
     try {
-      const res = await axios.put(`http://localhost:5000/api/courses/${courseId}/schedule`, payload, {
+      const res = await axios.put(`http://localhost:5001/api/courses/${courseId}/schedule`, payload, {
         headers: { Authorization: `Bearer ${user.token}` }
       });
       setTimetable(res.data.schedule);
@@ -156,7 +159,7 @@ const CourseDetail = () => {
 
     try {
       const code = courseId.toUpperCase();
-      const res = await axios.post(`http://localhost:5000/api/courses/${code}/schedule/image`, formData, {
+      const res = await axios.post(`http://localhost:5001/api/courses/${code}/schedule/image`, formData, {
         headers: { 
           Authorization: `Bearer ${user.token}`,
           'Content-Type': 'multipart/form-data'
@@ -176,7 +179,7 @@ const CourseDetail = () => {
     if (!window.confirm('Are you sure you want to delete the Master Timetable photo?')) return;
     try {
       const code = courseId.toUpperCase();
-      await axios.put(`http://localhost:5000/api/courses/${code}/schedule`, { 
+      await axios.put(`http://localhost:5001/api/courses/${code}/schedule`, { 
         timetableImageUrl: '' 
       }, {
         headers: { Authorization: `Bearer ${user.token}` }
@@ -220,7 +223,7 @@ const CourseDetail = () => {
   const fetchProgress = async () => {
     if (!user?._id || !courseId) return;
     try {
-      const res = await axios.get(`http://localhost:5000/api/progress/${courseId}`, {
+      const res = await axios.get(`http://localhost:5001/api/progress/${courseId}`, {
         headers: { Authorization: `Bearer ${user.token}` }
       });
       setDbProgress(res.data);
@@ -262,7 +265,7 @@ const CourseDetail = () => {
     setTimeout(() => setShowProgressToast(false), 3000);
 
     try {
-      await axios.post('http://localhost:5000/api/progress/update', {
+      await axios.post('http://localhost:5001/api/progress/update', {
         courseId,
         itemId,
         itemType
@@ -283,7 +286,7 @@ const CourseDetail = () => {
 
   const fetchCourseData = async () => {
     try {
-      const res = await axios.get(`http://localhost:5000/api/courses/${courseId}`, {
+      const res = await axios.get(`http://localhost:5001/api/courses/${courseId}`, {
          headers: { Authorization: `Bearer ${user.token}` }
       });
       setCourseInfo(res.data);
@@ -367,7 +370,7 @@ const CourseDetail = () => {
   const fetchResources = async () => {
     try { 
       setIsLoading(true); 
-      const res = await axios.get(`http://localhost:5000/api/resources?courseId=${courseId}`); 
+      const res = await axios.get(`http://localhost:5001/api/resources?courseId=${courseId}`); 
       setResources(res.data); 
     } catch (err) { 
       console.error(err); 
@@ -378,7 +381,7 @@ const CourseDetail = () => {
   
   const fetchAssignments = async () => { 
     try { 
-      const res = await axios.get(`http://localhost:5000/api/assignments/course/${courseId}`, {
+      const res = await axios.get(`http://localhost:5001/api/assignments/course/${courseId}`, {
         headers: { Authorization: `Bearer ${user.token}` }
       }); 
       setAssignments(res.data); 
@@ -390,7 +393,7 @@ const CourseDetail = () => {
 
   const fetchStudentSubmissions = async () => {
     try {
-      const res = await axios.get(`http://localhost:5000/api/assignments/my-submissions/${courseId}`, {
+      const res = await axios.get(`http://localhost:5001/api/assignments/my-submissions/${courseId}`, {
         headers: { Authorization: `Bearer ${user.token}` }
       });
       setStudentSubmissions(res.data);
@@ -401,7 +404,7 @@ const CourseDetail = () => {
   
   const fetchAnnouncements = async () => { 
     try { 
-      const res = await axios.get(`http://localhost:5000/api/announcements`); 
+      const res = await axios.get(`http://localhost:5001/api/announcements`); 
       const data = Array.isArray(res.data) ? res.data : (res.data.announcements || []);
       setAnnouncements(data.slice(0, 3)); 
     } catch (err) { 
@@ -411,7 +414,7 @@ const CourseDetail = () => {
 
   const fetchOnlineCount = async () => {
     try {
-      const res = await axios.get(`http://localhost:5000/api/auth/course-activity/${courseId}`);
+      const res = await axios.get(`http://localhost:5001/api/auth/course-activity/${courseId}`);
       setOnlineStudents(res.data.onlineCount || 0);
     } catch (err) { 
       console.error(err); 
@@ -420,7 +423,7 @@ const CourseDetail = () => {
 
   const sendPulse = async () => {
     try {
-      await axios.post('http://localhost:5000/api/auth/pulse', { courseId }, {
+      await axios.post('http://localhost:5001/api/auth/pulse', { courseId }, {
         headers: { Authorization: `Bearer ${user.token}` }
       });
     } catch (err) { 
@@ -542,10 +545,10 @@ const CourseDetail = () => {
       if (user?.token) config.headers = { Authorization: `Bearer ${user.token}` };
       
       if (activeSection === 'assignments') {
-        await axios.delete(`http://localhost:5000/api/assignments/${item._id}`, config);
+        await axios.delete(`http://localhost:5001/api/assignments/${item._id}`, config);
         setAssignments(assignments.filter(a => a._id !== item._id));
       } else {
-        await axios.delete(`http://localhost:5000/api/resources/${item._id}`, config); 
+        await axios.delete(`http://localhost:5001/api/resources/${item._id}`, config); 
         setResources(resources.filter(r => r._id !== item._id)); 
       }
       
@@ -584,7 +587,7 @@ const CourseDetail = () => {
     let originalType = res.type;
   
     if (res.fileData) {
-      url = `http://localhost:5000/api/resources/file/${res._id}`;
+      url = `http://localhost:5001/api/resources/file/${res._id}`;
     }
   
     let resolvedPreviewType = originalType;
@@ -608,7 +611,8 @@ const CourseDetail = () => {
       resolvedPreviewType = 'pdf';
       try {
         const config = { responseType: 'blob' };
-        if (user?.token) {
+        // Only attatch token if it's a local request (not external Cloudinary)
+        if (user?.token && !url.includes('cloudinary.com')) {
           config.headers = { Authorization: `Bearer ${user.token}` };
         }
         const response = await axios.get(url, config);
@@ -754,6 +758,7 @@ const CourseDetail = () => {
         );
     }
   };
+
   if (isLocked) return (
     <div className="flex h-screen w-full items-center justify-center bg-gray-50 dark:bg-[#030712] p-6 relative overflow-hidden">
       <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-primary-500/10 blur-[120px] rounded-full animate-pulse" />
@@ -767,19 +772,23 @@ const CourseDetail = () => {
         <div className="relative inline-flex items-center justify-center mb-8">
           <div className="absolute inset-0 bg-red-500/20 blur-2xl rounded-full scale-150 animate-pulse" />
           <div className="w-24 h-24 bg-red-50 dark:bg-red-900/20 text-red-600 rounded-3xl flex items-center justify-center shadow-inner relative">
-            <Shield size={48} className="translate-y-[-2px]"/>
+            <Lock size={48} className="translate-y-[-2px]"/>
             <div className="absolute bottom-[-4px] right-[-4px] p-2 bg-white dark:bg-gray-800 rounded-xl shadow-lg">
                 <X className="text-red-500" size={16} />
             </div>
           </div>
         </div>
 
-        <h2 className="text-3xl font-black text-gray-900 dark:text-white uppercase tracking-tighter mb-4">ACCESS DENIED</h2>
+        <h2 className="text-3xl font-black text-gray-900 dark:text-white uppercase tracking-tighter mb-4">
+          {isFutureSemester ? 'CURRICULUM LOCKED' : 'ACCESS DENIED'}
+        </h2>
         <div className="w-12 h-1 bg-red-500 mx-auto rounded-full mb-6" />
         
         <p className="text-gray-500 dark:text-gray-400 font-medium leading-relaxed mb-10 text-sm">
-          This system is strictly reserved for authorized faculty and enrolled students of <span className="text-red-500 font-bold uppercase tracking-widest">{courseInfo?.code}</span>. 
-          Your credential signature does not match the active roster for this sector.
+          {isFutureSemester 
+            ? `Protocol for Semester ${courseInfo?.semester} is currently inactive. You will gain access to this curriculum once you reach the required academic milestone.`
+            : `This system is strictly reserved for authorized faculty and enrolled students of ${courseInfo?.code}. Your credential signature does not match the active roster for this sector.`
+          }
         </p>
 
         <div className="grid grid-cols-1 gap-4">
@@ -789,17 +798,6 @@ const CourseDetail = () => {
            >
              <ArrowLeft size={16} /> Close Terminal & Exit
            </button>
-           <button 
-             onClick={() => window.location.reload()}
-             className="w-full flex items-center justify-center gap-3 py-5 rounded-[2rem] bg-gray-50 dark:bg-gray-800 text-gray-400 font-black text-xs uppercase tracking-widest hover:text-primary-600 transition-all"
-           >
-             Retry Authentication Protocol
-           </button>
-        </div>
-
-        <div className="mt-12 flex items-center justify-center gap-2 opacity-30 grayscale pointer-events-none">
-          <Shield size={14}/>
-          <p className="text-[10px] font-black uppercase tracking-[0.2em]">{courseInfo?.semester} SEMESTER SECURED NODE</p>
         </div>
       </motion.div>
     </div>

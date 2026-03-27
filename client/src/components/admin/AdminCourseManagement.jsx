@@ -37,10 +37,10 @@ const AdminCourseManagement = ({ user }) => {
     try {
       setLoading(true);
       const [coursesRes, deptsRes] = await Promise.all([
-        axios.get('http://localhost:5000/api/admin/courses', {
+        axios.get('http://localhost:5001/api/admin/courses', {
           headers: { Authorization: `Bearer ${user.token}` }
         }),
-        axios.get('http://localhost:5000/api/departments')
+        axios.get('http://localhost:5001/api/departments')
       ]);
       setCourses(coursesRes.data);
       setDepartments(deptsRes.data);
@@ -88,12 +88,12 @@ const AdminCourseManagement = ({ user }) => {
     e.preventDefault();
     try {
       if (editingCourse) {
-        await axios.put(`http://localhost:5000/api/admin/courses/${editingCourse._id}`, formData, {
+        await axios.put(`http://localhost:5001/api/admin/courses/${editingCourse._id}`, formData, {
           headers: { Authorization: `Bearer ${user.token}` }
         });
         showNotification('success', 'Course architecture synchronized successfully.');
       } else {
-        await axios.post('http://localhost:5000/api/admin/courses', formData, {
+        await axios.post('http://localhost:5001/api/admin/courses', formData, {
           headers: { Authorization: `Bearer ${user.token}` }
         });
         showNotification('success', 'New academic module established.');
@@ -108,7 +108,7 @@ const AdminCourseManagement = ({ user }) => {
   const handleDelete = async (id) => {
     if (!window.confirm('Are you sure you want to eliminate this course from the system?')) return;
     try {
-      await axios.delete(`http://localhost:5000/api/admin/courses/${id}`, {
+      await axios.delete(`http://localhost:5001/api/admin/courses/${id}`, {
         headers: { Authorization: `Bearer ${user.token}` }
       });
       showNotification('success', 'Course purged from central database.');

@@ -5,9 +5,9 @@ import { Loader2, Sparkles, Filter, Newspaper, Layers, Search } from 'lucide-rea
 import { motion, AnimatePresence } from 'framer-motion';
 import { io } from 'socket.io-client';
 
-const socket = io('http://localhost:5000');
+const socket = io('http://localhost:5001');
 
-const API_BASE = 'http://localhost:5000/api';
+const API_BASE = 'http://localhost:5001/api';
 
 const AnnouncementFeed = ({ user, initialSearch = '', initialCategory = 'All' }) => {
   const [announcements, setAnnouncements] = useState([]);
@@ -103,8 +103,8 @@ const AnnouncementFeed = ({ user, initialSearch = '', initialCategory = 'All' })
 
   return (
     <div className="space-y-6">
-      {/* Header & Controls Overlay (Sticky inspired) */}
-      <div className="sticky top-0 z-30 pt-4 pb-2 -mx-4 px-4 bg-[#f9fafb]/80 dark:bg-[#0b0f19]/80 backdrop-blur-xl border-b border-gray-100 dark:border-gray-800">
+      {/* Header & Controls Overlay (Academic Feed) */}
+      <div className="pt-4 pb-8 bg-white dark:bg-gray-900 rounded-[2.5rem] border border-gray-100 dark:border-gray-800 shadow-xl px-8 mb-8">
         <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mb-4">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-2xl bg-white dark:bg-gray-800 flex items-center justify-center text-primary-600 shadow-sm border border-gray-100 dark:border-gray-700">

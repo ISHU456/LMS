@@ -6,6 +6,7 @@ import {
   Check, X, Minus, Loader2
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import AdminStudentProfileModal from '../admin/AdminStudentProfileModal';
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
 
@@ -18,6 +19,9 @@ const MonthlyRegister = ({ user }) => {
   const [attendanceRecords, setAttendanceRecords] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [viewingStudentId, setViewingStudentId] = useState(null); // For profile modal
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage] = useState(25);
 
   const months = [
     'January', 'February', 'March', 'April', 'May', 'June',
@@ -29,7 +33,7 @@ const MonthlyRegister = ({ user }) => {
     const fetchCourses = async () => {
       try {
         const config = { headers: { Authorization: `Bearer ${user.token}` } };
-        const res = await axios.get('http://localhost:5000/api/courses', config);
+        const res = await axios.get('http://localhost:5001/api/courses', config);
         setCourses(res.data);
         if (res.data.length > 0) setSelectedCourse(res.data[0]);
       } catch (error) {
@@ -49,7 +53,7 @@ const MonthlyRegister = ({ user }) => {
         const config = { headers: { Authorization: `Bearer ${user.token}` } };
         
         // Get Students
-        const studentsRes = await axios.get(`http://localhost:5000/api/courses/${selectedCourse.code}/students?semester=${semester}`, config);
+        const studentsRes = await axios.get(`http://localhost:5001/api/courses/${selectedCourse.code}/students?semester=${semester}`, config);
         setStudents(studentsRes.data);
 
         // Calculate Start and End of Month
@@ -59,7 +63,7 @@ const MonthlyRegister = ({ user }) => {
         const endDate = new Date(year, month + 1, 0, 23, 59, 59).toISOString();
 
         // Get Attendance
-        const attendanceRes = await axios.get(`http://localhost:5000/api/attendance/course/${selectedCourse._id}?startDate=${startDate}&endDate=${endDate}&semester=${semester}`, config);
+        const attendanceRes = await axios.get(`http://localhost:5001/api/attendance/course/${selectedCourse._id}?startDate=${startDate}&endDate=${endDate}&semester=${semester}`, config);
         setAttendanceRecords(attendanceRes.data);
       } catch (error) {
         console.error('Error fetching register data:', error);
@@ -84,26 +88,50 @@ const MonthlyRegister = ({ user }) => {
   // Map attendance to a grid format
   const attendanceGrid = useMemo(() => {
     const grid = {};
+    if (!attendanceRecords || !Array.isArray(attendanceRecords)) return grid;
+
     attendanceRecords.forEach(record => {
-      const date = new Date(record.date).getDate();
-      record.students.forEach(s => {
-        const studentId = s.student._id || s.student;
-        if (!grid[studentId]) grid[studentId] = {};
-        // If multiple sessions on the same day, we mark it as P if any is P
-        if (s.status === 'present') {
-           grid[studentId][date] = 'P';
-        } else if (!grid[studentId][date]) {
-           grid[studentId][date] = 'A';
-        }
-      });
+      // Use UTC date to match backend storage and avoid timezone shifts
+      const recordDate = new Date(record.date);
+      const day = recordDate.getUTCDate();
+      
+      const student = record.student;
+      if (!student) return;
+
+      const studentId = student._id || student;
+      if (!grid[studentId]) grid[studentId] = {};
+      
+      // If multiple sessions on the same day, we mark it as P if any is 'present'
+      if (record.status === 'present') {
+         grid[studentId][day] = 'P';
+      } else if (!grid[studentId][day]) {
+         // Default to Absent if it's explicitly 'absent' or if no status set yet
+         if (record.status === 'absent') {
+            grid[studentId][day] = 'A';
+         }
+      }
     });
     return grid;
   }, [attendanceRecords]);
 
-  const filteredStudents = students.filter(s => 
+  const sortedStudents = useMemo(() => {
+    return [...students].sort((a, b) => a.name.localeCompare(b.name));
+  }, [students]);
+
+  const filteredStudents = sortedStudents.filter(s => 
     s.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
     s.rollNumber.toLowerCase().includes(searchQuery.toLowerCase())
   );
+
+  const totalPages = Math.ceil(filteredStudents.length / itemsPerPage);
+  const paginatedStudents = useMemo(() => {
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    return filteredStudents.slice(startIndex, startIndex + itemsPerPage);
+  }, [filteredStudents, currentPage, itemsPerPage]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, selectedCourse, semester]);
 
   const prevMonth = () => setSelectedDate(new Date(selectedDate.getFullYear(), selectedDate.getMonth() - 1, 1));
   const nextMonth = () => setSelectedDate(new Date(selectedDate.getFullYear(), selectedDate.getMonth() + 1, 1));
@@ -272,7 +300,7 @@ const MonthlyRegister = ({ user }) => {
               </tr>
             </thead>
             <tbody>
-              {filteredStudents.length > 0 ? filteredStudents.map((student, idx) => {
+              {paginatedStudents.length > 0 ? paginatedStudents.map((student, idx) => {
                 let pCount = 0;
                 return (
                   <tr key={student._id} className="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-all border-b border-gray-100 dark:border-gray-800 last:border-0 group">
@@ -280,7 +308,7 @@ const MonthlyRegister = ({ user }) => {
                       <span className="text-[11px] font-black text-gray-400 tabular-nums group-hover:text-indigo-500 transition-all">{student.rollNumber}</span>
                     </td>
                     <td className="px-6 py-3 sticky left-[120px] z-10 bg-white dark:bg-gray-900 shadow-lg border-r border-gray-100 dark:border-gray-700 group-hover:bg-gray-50 dark:group-hover:bg-gray-800/80 transition-all">
-                      <p className="text-xs font-black text-gray-900 dark:text-white uppercase truncate">{student.name}</p>
+                      <p className="text-xs font-black text-gray-900 dark:text-white uppercase truncate cursor-pointer hover:text-indigo-500" onClick={() => setViewingStudentId(student._id)}>{student.name}</p>
                     </td>
                     {daysInMonth.map(day => {
                        const status = attendanceGrid[student._id]?.[day];
@@ -320,8 +348,62 @@ const MonthlyRegister = ({ user }) => {
           </table>
         </div>
 
-        {/* Legend / Info Footer */}
-        <div className="bg-gray-50 dark:bg-gray-800/50 p-6 flex flex-wrap items-center justify-between gap-6 border-t border-gray-100 dark:border-gray-700">
+        {/* Pagination & Legend / Info Footer */}
+        <div className="bg-gray-50 dark:bg-gray-800/50 p-6 space-y-4 border-t border-gray-100 dark:border-gray-700">
+            {/* Pagination Controls */}
+            {totalPages > 1 && (
+              <div className="flex items-center justify-center gap-2 pb-4 border-b border-gray-100 dark:border-gray-700/50">
+                <button 
+                  onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                  disabled={currentPage === 1}
+                  className="p-2 rounded-xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 text-gray-500 disabled:opacity-30 disabled:cursor-not-allowed hover:text-indigo-600 transition-all shadow-sm"
+                >
+                  <ChevronLeft size={18}/>
+                </button>
+                
+                <div className="flex items-center gap-1">
+                  {[...Array(totalPages)].map((_, i) => {
+                    const pageNum = i + 1;
+                    // Show first, last, current, and pages around current
+                    if (
+                      pageNum === 1 || 
+                      pageNum === totalPages || 
+                      (pageNum >= currentPage - 1 && pageNum <= currentPage + 1)
+                    ) {
+                      return (
+                        <button
+                          key={pageNum}
+                          onClick={() => setCurrentPage(pageNum)}
+                          className={`min-w-[40px] h-10 rounded-xl text-xs font-black transition-all ${
+                            currentPage === pageNum 
+                              ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-200 dark:shadow-none' 
+                              : 'bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 shadow-sm'
+                          }`}
+                        >
+                          {pageNum}
+                        </button>
+                      );
+                    } else if (
+                      pageNum === currentPage - 2 || 
+                      pageNum === currentPage + 2
+                    ) {
+                      return <span key={pageNum} className="px-1 text-gray-400 font-bold">...</span>;
+                    }
+                    return null;
+                  })}
+                </div>
+
+                <button 
+                  onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                  disabled={currentPage === totalPages}
+                  className="p-2 rounded-xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 text-gray-500 disabled:opacity-30 disabled:cursor-not-allowed hover:text-indigo-600 transition-all shadow-sm"
+                >
+                  <ChevronRight size={18}/>
+                </button>
+              </div>
+            )}
+
+            <div className="flex flex-wrap items-center justify-between gap-6">
             <div className="flex items-center gap-8">
                 <div className="flex items-center gap-2">
                     <span className="text-[10px] font-black text-gray-400 uppercase">Total Students:</span>
@@ -336,7 +418,17 @@ const MonthlyRegister = ({ user }) => {
                 Monthly Register Protocol v2.4 · Secure Academic Node
             </div>
         </div>
+        </div>
       </div>
+
+      {/* Student Profile Modal */}
+      {viewingStudentId && (
+        <AdminStudentProfileModal 
+          studentId={viewingStudentId} 
+          user={user} 
+          onClose={() => setViewingStudentId(null)} 
+        />
+      )}
     </div>
   );
 };

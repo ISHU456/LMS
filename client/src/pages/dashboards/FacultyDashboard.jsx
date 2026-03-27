@@ -264,8 +264,8 @@ const FacultyDashboard = () => {
   useEffect(() => {
     if (!user?.token) return;
     const config = { headers: { Authorization: `Bearer ${user.token}` } };
-    axios.get('http://localhost:5000/api/assignments', config).then(r => setAssignments(r.data)).catch(() => {});
-    axios.get('http://localhost:5000/api/announcements', config).then(r => {
+    axios.get('http://localhost:5001/api/assignments', config).then(r => setAssignments(r.data)).catch(() => {});
+    axios.get('http://localhost:5001/api/announcements', config).then(r => {
       const data = Array.isArray(r.data) ? r.data : (r.data.announcements || []);
       setAnnouncements(data.slice(0, 5));
     }).catch(() => {});

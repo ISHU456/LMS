@@ -8,7 +8,11 @@ import {
   registerFace,
   loginWithFace,
   updatePulse,
-  getCourseActivity
+  getCourseActivity,
+  getLeaderboard,
+  getStudentProfileByTeacher,
+  getAttendanceHistory,
+  getAnnualAttendanceReport
 } from '../controllers/authController.js';
 import { protect } from '../middlewares/authMiddleware.js';
 
@@ -16,6 +20,7 @@ const router = express.Router();
 
 router.post('/register', registerUser);
 router.post('/login', loginUser);
+router.get('/leaderboard', getLeaderboard);
 // router.post('/login-face', loginWithFace);
 // router.post('/register-face', protect, registerFace);
 router.route('/profile')
@@ -24,5 +29,8 @@ router.route('/profile')
 router.post('/forgot-password', forgotPassword);
 router.post('/pulse', protect, updatePulse);
 router.get('/course-activity/:courseId', getCourseActivity);
+router.get('/student-profile/:studentId', protect, getStudentProfileByTeacher);
+router.get('/attendance/history', protect, getAttendanceHistory);
+router.get('/attendance/annual-report', protect, getAnnualAttendanceReport);
 
 export default router;

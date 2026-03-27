@@ -20,7 +20,7 @@ const AdminGlobalBroadcasts = ({ user }) => {
 
     const fetchBroadcasts = async () => {
         try {
-            const res = await axios.get('http://localhost:5000/api/admin/broadcasts', {
+            const res = await axios.get('http://localhost:5001/api/admin/broadcasts', {
                 headers: { Authorization: `Bearer ${user.token}` }
             });
             setBroadcasts(res.data);
@@ -35,7 +35,7 @@ const AdminGlobalBroadcasts = ({ user }) => {
         e.preventDefault();
         setIsSaving(true);
         try {
-            await axios.post('http://localhost:5000/api/admin/broadcasts', formData, {
+            await axios.post('http://localhost:5001/api/admin/broadcasts', formData, {
                 headers: { Authorization: `Bearer ${user.token}` }
             });
             setFormData({ title: '', content: '', priority: 'normal', category: 'General' });
