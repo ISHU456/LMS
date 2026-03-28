@@ -9,9 +9,9 @@ import {
 import { motion, AnimatePresence } from 'framer-motion';
 import AdminStudentProfileModal from '../admin/AdminStudentProfileModal';
 
-const CourseAccessManager = ({ user }) => {
+const CourseAccessManager = ({ user, initialSemester, initialCourse, onPersistChange }) => {
   const [courses, setCourses] = useState([]);
-  const [selectedCourse, setSelectedCourse] = useState(null);
+  const [selectedCourse, setSelectedCourse] = useState(initialCourse);
   const [accessData, setAccessData] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -24,7 +24,7 @@ const CourseAccessManager = ({ user }) => {
   const [courseSearch, setCourseSearch] = useState('');
   const [toast, setToast] = useState(null);
   const [viewingStudentId, setViewingStudentId] = useState(null); // For profile modal
-  const [semester, setSemester] = useState(1);
+  const [semester, setSemester] = useState(initialSemester || 1);
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(25);
 
@@ -36,15 +36,19 @@ const CourseAccessManager = ({ user }) => {
         const fetchedCourses = res.data;
         setCourses(fetchedCourses);
         if (fetchedCourses.length > 0) {
-          // Auto-select first available semester
-          const hasSem1 = fetchedCourses.some(c => c.semester === 1);
-          if (!hasSem1) {
-            const firstAvailable = [...fetchedCourses].sort((a, b) => a.semester - b.semester)[0];
-            setSemester(firstAvailable.semester);
-            setSelectedCourse(firstAvailable);
-          } else {
-            setSelectedCourse(fetchedCourses[0]);
-            setSemester(fetchedCourses[0].semester);
+          if (!initialCourse && !initialSemester) {
+            // Auto-select first available semester if no global state
+            const hasSem1 = fetchedCourses.some(c => c.semester === 1);
+            if (!hasSem1) {
+              const firstAvailable = [...fetchedCourses].sort((a, b) => a.semester - b.semester)[0];
+              setSemester(firstAvailable.semester);
+              setSelectedCourse(firstAvailable);
+              onPersistChange(firstAvailable.semester, firstAvailable);
+            } else {
+              setSelectedCourse(fetchedCourses[0]);
+              setSemester(fetchedCourses[0].semester);
+              onPersistChange(fetchedCourses[0].semester, fetchedCourses[0]);
+            }
           }
         }
       } catch (error) {
@@ -52,7 +56,7 @@ const CourseAccessManager = ({ user }) => {
       }
     };
     if (user?.token) fetchCourses();
-  }, [user._id, user.token]);
+  }, [user._id, user.token, initialCourse, initialSemester]);
 
   useEffect(() => {
     if (selectedCourse) {
@@ -208,7 +212,11 @@ const CourseAccessManager = ({ user }) => {
               <span className="text-[10px] font-black text-gray-400 dark:text-gray-100 uppercase tracking-widest leading-none">Semester:</span>
               <select 
                 value={semester || 1} 
-                onChange={(e) => setSemester(parseInt(e.target.value))}
+                onChange={(e) => {
+                  const val = parseInt(e.target.value);
+                  setSemester(val);
+                  onPersistChange(val, selectedCourse);
+                }}
                 className="bg-transparent border-none text-[11px] font-black text-gray-900 dark:text-white focus:ring-0 outline-none w-14 appearance-none cursor-pointer" 
               >
                 {[1, 2, 3, 4, 5, 6, 7, 8].map(s => (
@@ -266,7 +274,10 @@ const CourseAccessManager = ({ user }) => {
 
             <div className="space-y-1.5 overflow-y-auto pr-2 custom-scrollbar flex-1">
               {sidebarFilteredCourses.length > 0 ? sidebarFilteredCourses.map(course => (
-                <button key={course._id} onClick={() => setSelectedCourse(course)}
+                <button key={course._id} onClick={() => {
+                   setSelectedCourse(course);
+                   onPersistChange(semester, course);
+                }}
                   className={`w-full text-left p-3 rounded-2xl transition-all border group ${selectedCourse?._id === course._id ? 'bg-rose-50 dark:bg-rose-900/40 border-rose-200 dark:border-rose-800 shadow-sm' : 'border-transparent hover:bg-gray-50 dark:hover:bg-gray-800'} ${course.isAuthorized === false ? 'opacity-50 grayscale-[0.4]' : ''}`}>
                   <div className="flex items-start justify-between gap-2">
                     <p className={`text-[11px] font-black uppercase leading-tight transition-colors ${selectedCourse?._id === course._id ? 'text-rose-600' : 'text-gray-700 dark:text-gray-300 group-hover:text-gray-900 dark:group-hover:text-white'}`}>{course.name}</p>

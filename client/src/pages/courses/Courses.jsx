@@ -14,7 +14,11 @@ import axios from 'axios';
 const Courses = () => {
   const { user } = useSelector(state => state.auth);
   const [sidebarOpen, setSidebarOpen] = useState(true);
-  const [activeSem, setActiveSem] = useState('All');
+  const [activeSem, setActiveSem] = useState(() => localStorage.getItem('courses_active_sem') || 'All');
+
+  useEffect(() => {
+    localStorage.setItem('courses_active_sem', activeSem);
+  }, [activeSem]);
 
   const semesters = [
     { id: 'Sem-1', label: 'Semester 1', icon: Flag, color: 'text-emerald-500 bg-emerald-50 dark:bg-emerald-900/20 group-hover:bg-emerald-100', active: 'bg-emerald-500 text-white shadow-emerald-500/30' },

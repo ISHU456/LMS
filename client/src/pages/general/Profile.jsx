@@ -17,7 +17,12 @@ const Profile = () => {
   });
 
   const [isEditing, setIsEditing] = useState(false);
-  const [activeTab, setActiveTab] = useState('personal'); 
+  const [activeTab, setActiveTab] = useState(() => localStorage.getItem('profile_active_tab') || 'personal'); 
+
+  useEffect(() => {
+    localStorage.setItem('profile_active_tab', activeTab);
+  }, [activeTab]);
+
   const [errorMsg, setErrorMsg] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
 

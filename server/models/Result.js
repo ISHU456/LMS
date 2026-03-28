@@ -80,6 +80,13 @@ const resultSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
+    lockedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+    },
+    lockedAt: {
+      type: Date,
+    },
   },
   {
     timestamps: true,
@@ -91,17 +98,13 @@ resultSchema.pre('save', function (next) {
   const { mst1, mst2, mst3, endSem, internalPractical, externalPractical, vivaScore } = this.marks;
   
   if (this.courseType === 'THEORY') {
-    // New Formula: Best 2 out of 3 MSTs (summed) + End Sem (weighted or direct)
-    // We'll treat MSTs as being out of 20 each (Best 2 = 40) + End Sem (60) = 100
-    const msts = [mst1 || 0, mst2 || 0, mst3 || 0].sort((a, b) => b - a);
-    const best2Sum = msts[0] + msts[1];
-    
-    // Final Total = (Best 2 Sum) + EndSem
-    this.totalMarks = Math.round((best2Sum + (endSem || 0)) * 100) / 100;
+    const msts = [this.marks.mst1 || 0, this.marks.mst2 || 0, this.marks.mst3 || 0];
+    const bestTwoSum = msts.sort((a, b) => b - a).slice(0, 2).reduce((sum, val) => sum + val, 0);
+    this.totalMarks = Math.round((bestTwoSum + (this.marks.endSem || 0)) * 100) / 100;
   } else if (this.courseType === 'PRACTICAL') {
-    this.totalMarks = (internalPractical || 0) + (externalPractical || 0);
+    this.totalMarks = (this.marks.internalPractical || 0) + (this.marks.externalPractical || 0);
   } else if (this.courseType === 'VIVA') {
-    this.totalMarks = (vivaScore || 0);
+    this.totalMarks = (this.marks.vivaScore || 0);
   }
 
   // Grading Logic (Standardized for 100-point total)

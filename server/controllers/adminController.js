@@ -7,6 +7,12 @@ import Department from '../models/Department.js';
 import mongoose from 'mongoose';
 import Submission from '../models/Submission.js';
 import Assignment from '../models/Assignment.js';
+import Enrollment from '../models/Enrollment.js';
+import Attendance from '../models/Attendance.js';
+import Result from '../models/Result.js';
+import ResultAudit from '../models/ResultAudit.js';
+import Progress from '../models/Progress.js';
+import Notification from '../models/Notification.js';
 
 export const getAdminDashboardStats = async (req, res) => {
     try {
@@ -392,7 +398,7 @@ export const createCourse = async (req, res) => {
             credits,
             department,
             semester,
-            type,
+            type: type.toUpperCase(),
             description
         });
 
@@ -410,6 +416,7 @@ export const updateCourse = async (req, res) => {
         
         // Handle code uppercase if it's being updated
         if (updates.code) updates.code = updates.code.toUpperCase();
+        if (updates.type) updates.type = updates.type.toUpperCase();
 
         const updatedCourse = await Course.findByIdAndUpdate(id, updates, { new: true });
         if (!updatedCourse) return res.status(404).json({ message: 'Course not found.' });
@@ -594,6 +601,175 @@ export const getBroadcasts = async (req, res) => {
         .limit(20)
         .populate('author', 'name profilePic');
         res.json(broadcasts);
+    } catch (e) {
+        res.status(500).json({ message: e.message });
+    }
+};
+// --- BATCH FINALIZATION (ENROLLMENT MGMT) ---
+
+export const getEligibleStudentsForCourse = async (req, res) => {
+    try {
+        const { courseId, academicYear } = req.query;
+        const course = await Course.findById(courseId).populate('department');
+        if (!course) return res.status(404).json({ message: 'Course not found.' });
+
+        const year = academicYear || '2023-24';
+
+        // 1. Find already enrolled students
+        const currentEnrollments = await Enrollment.find({ 
+            course: courseId, 
+            academicYear: year 
+        }).select('student');
+        const enrolledIds = currentEnrollments.map(e => e.student.toString());
+
+        // 2. Find eligible students (same dept/sem)
+        const eligibleStudents = await User.find({
+            role: 'student',
+            semester: course.semester,
+            $or: [
+                { department: course.department.name },
+                { department: course.department.code },
+                { department: { $regex: new RegExp(`^${course.department.code}$|^${course.department.name}$`, 'i') } }
+            ]
+        }).select('name rollNumber enrollmentNumber department semester');
+
+        const data = eligibleStudents.map(s => ({
+            ...s.toObject(),
+            isEnrolled: enrolledIds.includes(s._id.toString())
+        }));
+
+        res.json({ course, students: data });
+    } catch (e) {
+        res.status(500).json({ message: e.message });
+    }
+};
+
+export const finalizeCourseBatch = async (req, res) => {
+    try {
+        const { courseId } = req.params;
+        const { studentIds, academicYear, semester } = req.body;
+        
+        if (!studentIds || !Array.isArray(studentIds)) {
+            return res.status(400).json({ message: 'Identity list (studentIds) is required for protocol finalization.' });
+        }
+
+        const course = await Course.findById(courseId);
+        if (!course) return res.status(404).json({ message: 'Course not found.' });
+
+        const year = academicYear || '2023-24';
+        const sem = semester || course.semester;
+
+        // Perform bulk enrollment
+        const operations = studentIds.map(studentId => ({
+            updateOne: {
+                filter: { student: studentId, course: courseId, academicYear: year, semester: sem },
+                update: { $set: { status: 'enrolled' } },
+                upsert: true
+            }
+        }));
+
+        if (operations.length > 0) {
+            await Enrollment.bulkWrite(operations);
+        }
+
+        res.json({ message: `Successfully finalized ${studentIds.length} students into the academic grid for ${course.code}.` });
+    } catch (e) {
+        res.status(500).json({ message: e.message });
+    }
+};
+
+export const unlockCourseResults = async (req, res) => {
+    try {
+        const { courseId, semester, academicYear } = req.body;
+        if (!courseId || !semester || !academicYear) {
+            return res.status(400).json({ message: 'Parameters [courseId, semester, academicYear] are mandatory.' });
+        }
+
+        const result = await Result.updateMany(
+            { course: courseId, semester: parseInt(semester), academicYear },
+            { 
+                isLocked: false, 
+                lockedBy: null, 
+                lockedAt: null, 
+                status: 'draft' 
+            }
+        );
+
+        // Audit the override
+        await ResultAudit.create({
+            action: 'ADMIN_UNLOCK',
+            performedBy: req.user._id,
+            course: courseId,
+            semester: parseInt(semester),
+            academicYear,
+            details: { modifiedCount: result.modifiedCount }
+        });
+
+        res.json({ 
+            message: `Override successful. ${result.modifiedCount} identity records unlocked for faculty editing.`,
+            modifiedCount: result.modifiedCount 
+        });
+    } catch (e) {
+        res.status(500).json({ message: e.message });
+    }
+};
+
+export const approveCourseResults = async (req, res) => {
+    try {
+        const { courseId, semester, academicYear } = req.body;
+        const result = await Result.updateMany(
+            { course: courseId, semester: parseInt(semester), academicYear, status: 'submitted' },
+            { status: 'approved', approvedBy: req.user._id, approvedAt: new Date() }
+        );
+
+        await ResultAudit.create({
+            action: 'ADMIN_APPROVE',
+            performedBy: req.user._id,
+            course: courseId, semester: parseInt(semester), academicYear,
+            details: { modifiedCount: result.modifiedCount }
+        });
+
+        res.json({ message: `Successfully certified ${result.modifiedCount} records for the academic repository.` });
+    } catch (e) {
+        res.status(500).json({ message: e.message });
+    }
+};
+
+export const rejectCourseResults = async (req, res) => {
+    try {
+        const { courseId, semester, academicYear, reason } = req.body;
+        const result = await Result.updateMany(
+            { course: courseId, semester: parseInt(semester), academicYear, status: 'submitted' },
+            { status: 'rejected', rejectionReason: reason || 'Protocol violation detected during verification.' }
+        );
+
+        await ResultAudit.create({
+            action: 'ADMIN_REJECT',
+            performedBy: req.user._id,
+            course: courseId, semester: parseInt(semester), academicYear,
+            details: { modifiedCount: result.modifiedCount, reason }
+        });
+
+        res.json({ message: `Mark-list decommissioned. ${result.modifiedCount} students updated for revision.` });
+    } catch (e) {
+        res.status(500).json({ message: e.message });
+    }
+};
+export const notifyFaculty = async (req, res) => {
+    try {
+        const { teacherId, courseId, semester, message } = req.body;
+        const course = await Course.findById(courseId);
+        
+        await Notification.create({
+            recipient: teacherId,
+            sender: req.user._id,
+            title: `Admin Alert: Mark-List Discrepancy`,
+            message: `URGENT MESSAGE FROM ADMIN REGARDING ${course?.name} (Sem ${semester}): ${message}`,
+            type: 'warning',
+            link: `/results/entry?courseId=${courseId}&semester=${semester}`
+        });
+
+        res.json({ message: 'Instructor notified successfully.' });
     } catch (e) {
         res.status(500).json({ message: e.message });
     }

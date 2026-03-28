@@ -234,21 +234,39 @@ const SessionCard = ({ s, onEdit, onDelete, onLive }) => {
 const FacultyDashboard = () => {
   const { user }  = useSelector(s => s.auth);
   const navigate  = useNavigate();
-  const [activeTab, setActiveTab] = useState('overview');
+  const [activeTab, setActiveTab] = useState(() => localStorage.getItem('faculty_active_tab') || 'overview');
+
+  useEffect(() => {
+    localStorage.setItem('faculty_active_tab', activeTab);
+  }, [activeTab]);
   const [schedule, setSchedule]   = useState([]);
   const [myCourses, setMyCourses] = useState([]);
   const [assignments, setAssignments]   = useState([]);
   const [announcements, setAnnouncements] = useState([]);
+  const [notifications, setNotifications] = useState([]);
   const [time, setTime] = useState(new Date());
 
   // Modal state
   const [modalOpen, setModalOpen]   = useState(false);
   const [modalForm, setModalForm]   = useState(EMPTY_FORM);
   const [isEdit, setIsEdit]         = useState(false);
-  const [filterDay, setFilterDay]   = useState('All');
-  const [viewMode, setViewMode]     = useState('list');   // 'list' | 'grid'
+  const [filterDay, setFilterDay]   = useState(() => localStorage.getItem('faculty_schedule_filter_day') || 'All');
+  const [viewMode, setViewMode]     = useState(() => localStorage.getItem('faculty_schedule_view_mode') || 'list');   // 'list' | 'grid'
+
+  useEffect(() => {
+    localStorage.setItem('faculty_schedule_filter_day', filterDay);
+  }, [filterDay]);
+
+  useEffect(() => {
+    localStorage.setItem('faculty_schedule_view_mode', viewMode);
+  }, [viewMode]);
   const [toast, setToast]           = useState(null);
   const [deleteConfirm, setDeleteConfirm] = useState(null);
+
+  // Persistence State
+  const [globalSelectedSemester, setGlobalSelectedSemester] = useState(parseInt(localStorage.getItem('faculty_sem')) || 1);
+  const [globalSelectedCourse, setGlobalSelectedCourse] = useState(null); 
+  const [lastCourseId, setLastCourseId] = useState(localStorage.getItem('faculty_last_course_id') || null);
 
   // Live clock
   useEffect(() => {
@@ -262,7 +280,10 @@ const FacultyDashboard = () => {
     axios.get('http://localhost:5001/api/assignments', config).then(r => setAssignments(r.data)).catch(() => {});
     axios.get('http://localhost:5001/api/announcements', config).then(r => {
       const data = Array.isArray(r.data) ? r.data : (r.data.announcements || []);
-      setAnnouncements(data.slice(0, 5));
+      setAnnouncements(data.slice(0, 10));
+    }).catch(() => {});
+    axios.get('http://localhost:5001/api/notifications', config).then(r => {
+      setNotifications(r.data);
     }).catch(() => {});
 
     // Fetch Courses and extract schedules
@@ -270,6 +291,15 @@ const FacultyDashboard = () => {
       const coursesData = r.data;
       setMyCourses(coursesData);
       
+      // Auto-set the last selected course if it's in the fetched data
+      if (lastCourseId) {
+        const lastCourse = coursesData.find(c => c._id === lastCourseId);
+        if (lastCourse) {
+          setGlobalSelectedCourse(lastCourse);
+          setGlobalSelectedSemester(lastCourse.semester);
+        }
+      }
+
       const flatSchedule = [];
       coursesData.forEach(c => {
         if (c.schedule && Array.isArray(c.schedule)) {
@@ -582,24 +612,54 @@ const FacultyDashboard = () => {
             </motion.div>
           )}
 
-           {/* ── ATTENDANCE ── */}
+          {/* ── ATTENDANCE ── */}
           {activeTab === 'attendance' && (
             <motion.div key="attendance" initial={{ opacity:0, y:12 }} animate={{ opacity:1, y:0 }} exit={{ opacity:0 }} className="space-y-6">
-               <AttendanceManager user={user} />
+               <AttendanceManager 
+                 user={user} 
+                 initialSemester={globalSelectedSemester}
+                 initialCourse={globalSelectedCourse}
+                 onPersistChange={(sem, course) => {
+                    setGlobalSelectedSemester(sem);
+                    setGlobalSelectedCourse(course);
+                    if (course?._id) localStorage.setItem('faculty_last_course_id', course._id);
+                    localStorage.setItem('faculty_sem', sem);
+                 }}
+               />
             </motion.div>
           )}
 
           {/* ── MONTHLY REGISTER ── */}
           {activeTab === 'register' && (
             <motion.div key="register" initial={{ opacity:0, y:12 }} animate={{ opacity:1, y:0 }} exit={{ opacity:0 }} className="space-y-6">
-               <MonthlyRegister user={user} />
+               <MonthlyRegister 
+                 user={user} 
+                 initialSemester={globalSelectedSemester}
+                 initialCourse={globalSelectedCourse}
+                 onPersistChange={(sem, course) => {
+                    setGlobalSelectedSemester(sem);
+                    setGlobalSelectedCourse(course);
+                    if (course?._id) localStorage.setItem('faculty_last_course_id', course._id);
+                    localStorage.setItem('faculty_sem', sem);
+                 }}
+               />
             </motion.div>
           )}
 
            {/* ── ACCESS CONTROL ── */}
            {activeTab === 'access' && (
             <motion.div key="access" initial={{ opacity:0, y:12 }} animate={{ opacity:1, y:0 }} exit={{ opacity:0 }} className="space-y-6">
-               <CourseAccessManager user={user} />
+               <CourseAccessManager 
+                 user={user} 
+                 initialSemester={globalSelectedSemester}
+                 initialCourse={globalSelectedCourse}
+                 onPersistChange={(sem, course) => {
+                    setGlobalSelectedSemester(sem);
+                    setGlobalSelectedCourse(course);
+                    if (course?._id) localStorage.setItem('faculty_last_course_id', course._id);
+                    localStorage.setItem('faculty_sem', sem);
+                 }}
+               />
             </motion.div>
           )}
 
@@ -786,26 +846,89 @@ const FacultyDashboard = () => {
             </motion.div>
           )}
 
-          {/* ── NOTICES ── */}
+          {/* ── NOTICES & NOTIFICATIONS ── */}
           {activeTab === 'announcements' && (
-            <motion.div key="announcements" initial={{ opacity:0, y:12 }} animate={{ opacity:1, y:0 }} exit={{ opacity:0 }} className="space-y-4">
+            <motion.div key="announcements" initial={{ opacity:0, y:12 }} animate={{ opacity:1, y:0 }} exit={{ opacity:0 }} className="space-y-6">
               <div className="flex items-center justify-between">
-                <h2 className="text-xl font-black text-gray-900 dark:text-white uppercase tracking-tighter">Notices</h2>
-                <Link to="/community" className="flex items-center gap-2 px-4 py-2 rounded-xl bg-pink-500 text-white font-black text-xs uppercase tracking-widest shadow-lg hover:bg-pink-600 transition-all"><PlusCircle size={13}/> Post Announcement</Link>
-              </div>
-              {announcements.length > 0 ? announcements.map((a,i) => (
-                <motion.div key={a._id} initial={{ opacity:0, y:10 }} animate={{ opacity:1, y:0 }} transition={{ delay:i*0.07 }}
-                  className="bg-white dark:bg-gray-900 rounded-2xl p-5 border border-gray-100 dark:border-gray-800 shadow-sm flex items-start gap-4">
-                  <div className="w-10 h-10 rounded-xl bg-pink-50 dark:bg-pink-900/20 flex items-center justify-center shrink-0"><Bell size={17} className="text-pink-500"/></div>
-                  <div><p className="text-sm font-black text-gray-900 dark:text-white uppercase">{a.title}</p><p className="text-xs text-gray-500 mt-1">{a.content}</p></div>
-                </motion.div>
-              )) : (
-                <div className="bg-white dark:bg-gray-900 rounded-2xl border border-dashed border-gray-200 dark:border-gray-700 p-12 text-center">
-                  <Bell size={40} className="mx-auto text-gray-300 dark:text-gray-700 mb-3"/>
-                  <p className="text-sm font-black text-gray-400 uppercase tracking-widest">No announcements</p>
-                  <Link to="/community" className="inline-flex items-center gap-2 mt-4 px-4 py-2 rounded-xl bg-pink-500 text-white font-black text-xs uppercase tracking-widest hover:bg-pink-600 transition-all"><PlusCircle size={12}/> Create First Announcement</Link>
+                <div>
+                   <h2 className="text-xl font-black text-gray-900 dark:text-white uppercase tracking-tighter">Institutional Hub</h2>
+                   <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-0.5">Global Protocol & Private Faculty Alerts</p>
                 </div>
-              )}
+                <Link to="/community" className="flex items-center gap-2 px-4 py-2 rounded-xl bg-indigo-600 text-white font-black text-xs uppercase tracking-widest shadow-lg hover:bg-indigo-700 transition-all border border-indigo-400/20"><PlusCircle size={13}/> Post Notice</Link>
+              </div>
+
+              <div className="grid grid-cols-1 gap-4">
+                {/* Personal Multi-cast Alerts */}
+                {notifications.map((n, i) => (
+                   <motion.div 
+                     key={n._id}
+                     initial={{ opacity: 0, x: -20 }}
+                     animate={{ opacity: 1, x: 0 }}
+                     transition={{ delay: i * 0.05 }}
+                     className={`relative overflow-hidden bg-white dark:bg-slate-900 rounded-[2rem] p-6 border transition-all ${!n.read ? 'border-amber-500/30 shadow-lg shadow-amber-500/5' : 'border-slate-100 dark:border-slate-800'}`}
+                   >
+                     {!n.read && <div className="absolute top-0 right-0 w-20 h-20 bg-amber-500/10 blur-3xl rounded-full" />}
+                     <div className="flex items-start gap-4">
+                        <div className={`w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 ${n.type === 'warning' ? 'bg-amber-500/10 text-amber-500' : 'bg-blue-500/10 text-blue-500'}`}>
+                           <AlertCircle size={20} />
+                        </div>
+                        <div className="flex-1">
+                           <div className="flex items-center gap-2 mb-1">
+                              <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Personal Protocol Alert</span>
+                              {!n.read && <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />}
+                           </div>
+                           <h3 className="text-sm font-black text-slate-900 dark:text-white uppercase leading-tight mb-2">{n.title}</h3>
+                           <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed mb-4">{n.message}</p>
+                           {n.link && (
+                              <button 
+                                onClick={() => navigate(n.link)}
+                                className="px-4 py-2 bg-slate-900 dark:bg-white text-white dark:text-slate-900 rounded-xl text-[10px] font-black uppercase tracking-widest hover:opacity-90 transition-all"
+                              >
+                                View Resolution Node
+                              </button>
+                           )}
+                        </div>
+                        <div className="text-right shrink-0">
+                           <p className="text-[9px] font-black text-slate-300 uppercase italic">
+                             {new Date(n.createdAt).toLocaleDateString()}
+                           </p>
+                        </div>
+                     </div>
+                   </motion.div>
+                ))}
+
+                {/* Global Broadcasts */}
+                {announcements.map((a, i) => (
+                  <motion.div 
+                    key={a._id} 
+                    initial={{ opacity:0, y:10 }} 
+                    animate={{ opacity:1, y:0 }} 
+                    transition={{ delay:(notifications.length + i) * 0.05 }}
+                    className="bg-white dark:bg-slate-900 rounded-[2rem] p-6 border border-slate-100 dark:border-slate-800 shadow-sm flex items-start gap-4 group hover:border-indigo-500/30 transition-all"
+                  >
+                    <div className="w-12 h-12 rounded-2xl bg-indigo-50 dark:bg-indigo-900/20 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform">
+                       <Bell size={20} className="text-indigo-500"/>
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">Institutional Broadcast</p>
+                      <h3 className="text-sm font-black text-slate-900 dark:text-white uppercase leading-tight mb-2">{a.title}</h3>
+                      <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">{a.content}</p>
+                    </div>
+                    <div className="text-right shrink-0">
+                       <p className="text-[9px] font-black text-slate-300 uppercase italic">
+                         {new Date(a.createdAt).toLocaleDateString()}
+                       </p>
+                    </div>
+                  </motion.div>
+                ))}
+
+                {notifications.length === 0 && announcements.length === 0 && (
+                  <div className="col-span-full bg-slate-900/50 rounded-[2.5rem] border border-dashed border-slate-800 p-16 text-center">
+                    <Bell size={40} className="mx-auto text-slate-700 mb-3 opacity-20"/>
+                    <p className="text-sm font-black text-slate-500 uppercase tracking-widest">Atmosphere remains clear · Global stream is empty</p>
+                  </div>
+                )}
+              </div>
             </motion.div>
           )}
 

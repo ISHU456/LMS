@@ -3,19 +3,34 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { 
   BarChart3, LayoutGrid, CheckCircle2, Globe, Sparkles, Filter, 
   ChevronRight, ArrowUpDown, Download, Printer, ShieldCheck,
-  Zap, AlertCircle, Loader2, Search, MoreHorizontal
+  Zap, AlertCircle, Loader2, Search, MoreHorizontal, Unlock,
+  XCircle, Bell, Clock
 } from 'lucide-react';
 import axios from 'axios';
 
 const AdminResultHub = ({ user }) => {
-  const [semester, setSemester] = useState('1');
-  const [academicYear, setAcademicYear] = useState('2023-24');
-  const [department, setDepartment] = useState('All');
+  const [semester, setSemester] = useState(() => localStorage.getItem('adminResultSem') || '1');
+  const [academicYear, setAcademicYear] = useState(() => {
+    const now = new Date();
+    const year = now.getFullYear();
+    return now.getMonth() >= 6 ? `${year}-${(year + 1).toString().slice(-2)}` : `${year - 1}-${year.toString().slice(-2)}`;
+  });
+  const [department, setDepartment] = useState(() => localStorage.getItem('adminResultDept') || 'All');
+  const [departments, setDepartments] = useState([]);
   const [data, setData] = useState({ students: [], courses: [], matrix: {} });
   const [loading, setLoading] = useState(false);
   const [compiling, setCompiling] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [sortConfig, setSortConfig] = useState({ key: 'rollNumber', direction: 'asc' });
+
+  const fetchDepartments = async () => {
+    try {
+      const { data } = await axios.get('http://localhost:5001/api/departments');
+      setDepartments(data);
+    } catch (err) {
+      console.error("Failed to fetch departments", err);
+    }
+  };
 
   const fetchSummary = async () => {
     try {
@@ -33,8 +48,32 @@ const AdminResultHub = ({ user }) => {
   };
 
   useEffect(() => {
+    fetchDepartments();
+  }, []);
+
+  useEffect(() => {
     fetchSummary();
+    localStorage.setItem('adminResultSem', semester);
+    localStorage.setItem('adminResultDept', department);
   }, [semester, academicYear, department]);
+
+  const handleUnlockCourse = async (courseId, courseName) => {
+    if (!window.confirm(`Force unlock all identity records for ${courseName}? This override permits faculty to modify results after standard locking.`)) return;
+    try {
+      setLoading(true);
+      const { data } = await axios.post('http://localhost:5001/api/admin/results/unlock', {
+        courseId, semester, academicYear
+      }, {
+        headers: { Authorization: `Bearer ${user.token}` }
+      });
+      alert(data.message);
+      fetchSummary();
+    } catch (err) {
+      alert(err.response?.data?.message || 'Override protocol failure.');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleCompile = async () => {
     if (!window.confirm(`Compile and generate final results for ${data.students.length} students? This will calculate SGPA/CGPA.`)) return;
@@ -51,6 +90,58 @@ const AdminResultHub = ({ user }) => {
       alert(err.response?.data?.message || 'Compilation failed');
     } finally {
       setCompiling(false);
+    }
+  };
+
+  const handleApproveCourse = async (courseId, courseName) => {
+    if (!window.confirm(`Certify all identity records for ${courseName}? This action officially archives marks for transcript generation.`)) return;
+    try {
+      setLoading(true);
+      const { data } = await axios.post('http://localhost:5001/api/admin/results/approve', {
+        courseId, semester, academicYear
+      }, {
+        headers: { Authorization: `Bearer ${user.token}` }
+      });
+      alert(data.message);
+      fetchSummary();
+    } catch (err) {
+      alert(err.response?.data?.message || 'Certification failed.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleRejectCourse = async (courseId, courseName) => {
+    const reason = window.prompt(`Enter reason for rejecting ${courseName} results:`);
+    if (!reason) return;
+    try {
+      setLoading(true);
+      const { data } = await axios.post('http://localhost:5001/api/admin/results/reject', {
+        courseId, semester, academicYear, reason
+      }, {
+        headers: { Authorization: `Bearer ${user.token}` }
+      });
+      alert(data.message);
+      fetchSummary();
+    } catch (err) {
+      alert(err.response?.data?.message || 'Decommissioning failure.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handlePublishDeadline = async () => {
+    const deadline = window.prompt("Enter marks submission deadline (e.g., '15th July 2025'):");
+    if (!deadline) return;
+    try {
+      await axios.put('http://localhost:5001/api/admin/settings', {
+        globalAlert: `PROTOCOL ALERT: Final deadline for Result Transmission is ${deadline}. Ensure all modules are submitted for certification.`
+      }, {
+        headers: { Authorization: `Bearer ${user.token}` }
+      });
+      alert('Deadline broadcast deployed to all terminal dashboards.');
+    } catch (err) {
+      alert('Broadcast transmission failure.');
     }
   };
 
@@ -87,6 +178,12 @@ const AdminResultHub = ({ user }) => {
 
         <div className="flex gap-4 w-full xl:w-auto">
           <button 
+            onClick={handlePublishDeadline}
+            className="flex-1 xl:flex-none px-6 py-4 bg-amber-500/10 text-amber-600 border border-amber-500/20 rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-amber-500 hover:text-white transition-all flex items-center gap-2"
+          >
+            <Bell size={16} /> Broadcast Deadline
+          </button>
+          <button 
             onClick={fetchSummary}
             className="flex-1 xl:flex-none px-6 py-4 bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-2xl font-black text-[10px] uppercase tracking-widest hover:shadow-xl transition-all"
           >
@@ -104,57 +201,42 @@ const AdminResultHub = ({ user }) => {
       </div>
 
       {/* Control Panel */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 p-8 bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-[2.5rem] shadow-sm">
-        <div className="space-y-2">
-          <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest ml-1">Academic Cycle</label>
-          <div className="relative">
-            <Filter className="absolute left-4 top-1/2 -translate-y-1/2 text-red-500" size={14} />
-            <select 
-              value={academicYear} 
-              onChange={(e) => setAcademicYear(e.target.value)}
-              className="w-full bg-gray-50 dark:bg-gray-800/50 border-none rounded-2xl py-4 pl-12 pr-4 text-xs font-black dark:text-white outline-none focus:ring-2 ring-red-500/50 transition-all"
-            >
-              <option value="2023-24">2023-24</option>
-              <option value="2024-25">2024-25</option>
-            </select>
-          </div>
-        </div>
-
-        <div className="space-y-2">
-          <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest ml-1">Current Semester</label>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-8 p-10 bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-[3rem] shadow-xl">
+        <div className="space-y-4">
+          <label className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] ml-2">Current Semester</label>
           <select 
             value={semester} 
             onChange={(e) => setSemester(e.target.value)}
-            className="w-full bg-gray-50 dark:bg-gray-800/50 border-none rounded-2xl py-4 px-6 text-xs font-black dark:text-white outline-none focus:ring-2 ring-red-500/50 transition-all"
+            className="w-full bg-gray-50 dark:bg-gray-800/50 border border-transparent hover:border-red-200 focus:bg-white dark:focus:bg-gray-800 rounded-[28px] py-6 px-10 text-sm font-black dark:text-white outline-none focus:ring-4 ring-red-500/10 transition-all shadow-inner"
           >
             {[1,2,3,4,5,6,7,8].map(s => <option key={s} value={s.toString()}>Semester {s}</option>)}
           </select>
         </div>
 
-        <div className="space-y-2">
-          <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest ml-1">Department</label>
+        <div className="space-y-4">
+          <label className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] ml-2">Department</label>
           <select 
             value={department} 
             onChange={(e) => setDepartment(e.target.value)}
-            className="w-full bg-gray-50 dark:bg-gray-800/50 border-none rounded-2xl py-4 px-6 text-xs font-black dark:text-white outline-none focus:ring-2 ring-red-500/50 transition-all"
+            className="w-full bg-gray-50 dark:bg-gray-800/50 border border-transparent hover:border-red-200 focus:bg-white dark:focus:bg-gray-800 rounded-[28px] py-6 px-10 text-sm font-black dark:text-white outline-none focus:ring-4 ring-red-500/10 transition-all shadow-inner"
           >
             <option value="All">All Departments</option>
-            <option value="Computer Science">Computer Science</option>
-            <option value="Mechanical">Mechanical</option>
-            <option value="Electronics">Electronics</option>
+            {departments.map(d => (
+              <option key={d._id} value={d.name}>{d.name}</option>
+            ))}
           </select>
         </div>
 
-        <div className="space-y-2">
-          <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest ml-1">Identity Search</label>
+        <div className="space-y-4">
+          <label className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] ml-2">Identity Search</label>
           <div className="relative">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={14} />
             <input 
               type="text" 
-              placeholder="Name or Roll Number..."
+              placeholder="Query Name or Roll Number..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full bg-gray-50 dark:bg-gray-800/50 border-none rounded-2xl py-4 pl-12 pr-4 text-xs font-black dark:text-white outline-none focus:ring-2 ring-red-500/50 transition-all"
+              className="w-full bg-gray-50 dark:bg-gray-800/50 border border-transparent focus:bg-white dark:focus:bg-gray-800 rounded-2xl py-4 pl-12 pr-4 text-xs font-black dark:text-white outline-none focus:ring-2 ring-red-500/50 transition-all shadow-inner"
             />
           </div>
         </div>
@@ -173,9 +255,35 @@ const AdminResultHub = ({ user }) => {
                   </div>
                 </th>
                 {data.courses.map(course => (
-                  <th key={course._id} className="p-6 min-w-[120px] text-center">
-                    <p className="text-[10px] font-black dark:text-white uppercase tracking-tighter truncate max-w-[100px]">{course.name}</p>
-                    <p className="text-[8px] font-black text-red-500 uppercase tracking-widest">{course.code}</p>
+                  <th key={course._id} className="p-6 min-w-[160px] text-center relative group/th border-r border-gray-100 dark:border-gray-800">
+                    <p className="text-[10px] font-black dark:text-white uppercase tracking-tighter truncate max-w-[140px]">{course.name}</p>
+                    <div className="flex items-center justify-center gap-2 mt-1">
+                      <p className="text-[8px] font-black text-red-500 uppercase tracking-widest">{course.code}</p>
+                      
+                      <div className="flex items-center gap-1 opacity-0 group-hover/th:opacity-100 transition-all">
+                        <button 
+                          onClick={() => handleUnlockCourse(course._id, course.name)}
+                          className="p-1 bg-gray-100 dark:bg-gray-800 text-gray-500 rounded-md hover:bg-red-600 hover:text-white transition-all"
+                          title="Override Lock"
+                        >
+                          <Unlock size={10} />
+                        </button>
+                        <button 
+                           onClick={() => handleApproveCourse(course._id, course.name)}
+                           className="p-1 bg-emerald-50 text-emerald-600 rounded-md hover:bg-emerald-600 hover:text-white transition-all"
+                           title="Certify Module"
+                        >
+                          <CheckCircle2 size={10} />
+                        </button>
+                        <button 
+                           onClick={() => handleRejectCourse(course._id, course.name)}
+                           className="p-1 bg-rose-50 text-rose-600 rounded-md hover:bg-rose-600 hover:text-white transition-all"
+                           title="Reject Mapping"
+                        >
+                          <XCircle size={10} />
+                        </button>
+                      </div>
+                    </div>
                   </th>
                 ))}
                 <th className="p-6 text-center min-w-[120px] bg-red-50/30 dark:bg-red-900/10">

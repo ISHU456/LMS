@@ -4,6 +4,8 @@ import Course from '../models/Course.js';
 import Notification from '../models/Notification.js';
 import FinalResult from '../models/FinalResult.js';
 import Enrollment from '../models/Enrollment.js';
+import ResultAudit from '../models/ResultAudit.js';
+import Department from '../models/Department.js';
 
 // @desc    Get students for mark entry (Teacher)
 // @route   GET /api/results/students
@@ -36,7 +38,7 @@ export const getStudentsForEntry = async (req, res) => {
       }
     }
 
-    const targetYear = academicYear || '2023-24';
+    const targetYear = academicYear || '2025-26';
 
     // Try finding via explicit Enrollment first
     const enrollments = await Enrollment.find({
@@ -67,7 +69,7 @@ export const getStudentsForEntry = async (req, res) => {
     const existingResults = await Result.find({
       course: courseId,
       semester: semNum,
-      academicYear: academicYear || '2023-24'
+      academicYear: academicYear || '2025-26'
     });
 
     // Map students with existing results
@@ -105,45 +107,91 @@ export const getSemesterSummary = async (req, res) => {
 
     // 1. Get all courses for this semester/dept
     const courseQuery = { semester: semNum };
-    if (department && department !== 'All') courseQuery['department.name'] = department;
     
-    const courses = await Course.find(courseQuery).select('name code credits type');
-    const courseIds = courses.map(c => c._id);
+    if (department && department !== 'All') {
+      const dept = await Department.findOne({ 
+        $or: [
+          { name: department },
+          { code: department },
+          { name: { $regex: new RegExp(`^${department}$`, 'i') } },
+          { code: { $regex: new RegExp(`^${department}$`, 'i') } }
+        ]
+      });
+      if (dept) {
+        courseQuery.department = dept._id;
+      } else {
+        // If department name not found in Department collection, try filtering by name/code (legacy)
+        console.warn(`Department ${department} not found in collection, skipping course filter.`);
+      }
+    }
+    
+    const courses = await Course.find(courseQuery).select('name code credits type department');
+    const courseIds = courses.map(c => c._id.toString());
 
     // 2. Get all students for this semester/dept
     const studentQuery = { role: 'student', semester: semNum };
-    if (department && department !== 'All') studentQuery.department = department;
+    
+    if (department && department !== 'All') {
+      const dept = await Department.findOne({ 
+        $or: [
+          { name: department },
+          { code: department },
+          { name: { $regex: new RegExp(`^${department}$`, 'i') } },
+          { code: { $regex: new RegExp(`^${department}$`, 'i') } }
+        ]
+      });
+
+      if (dept) {
+        studentQuery.$or = [
+          { department: dept.name },
+          { department: dept.code },
+          { department: { $regex: new RegExp(`^${dept.name}$`, 'i') } },
+          { department: { $regex: new RegExp(`^${dept.code}$`, 'i') } }
+        ];
+      } else {
+        // Fallback for direct string match if department not in collection
+        studentQuery.$or = [
+          { department: department },
+          { department: { $regex: new RegExp(`^${department}$`, 'i') } }
+        ];
+      }
+    }
     const students = await User.find(studentQuery).select('name rollNumber enrollmentNumber department');
 
     // 3. Get all results for these courses and semester
     const results = await Result.find({
       semester: semNum,
-      academicYear: academicYear || '2023-24',
-      course: { $in: courseIds }
+      academicYear: academicYear || '2025-26',
+      course: { $in: courses.map(c => c._id) }
     });
 
     // 4. Construct matrix
     const matrix = {};
     students.forEach(student => {
-      matrix[student._id] = {};
+      const sId = student._id.toString();
+      matrix[sId] = {};
       courseIds.forEach(cId => {
-        matrix[student._id][cId] = null;
+        matrix[sId][cId] = null;
       });
     });
 
     results.forEach(r => {
-      if (matrix[r.student]) {
-        matrix[r.student][r.course] = {
+      const sId = r.student.toString();
+      const cId = r.course.toString();
+      if (matrix[sId]) {
+        matrix[sId][cId] = {
           totalMarks: r.totalMarks,
           grade: r.grade,
           status: r.status,
-          isLocked: r.isLocked
+          isLocked: r.isLocked,
+          _id: r._id
         };
       }
     });
 
     res.json({ students, courses, matrix });
   } catch (error) {
+    console.error('SUMMARY ERROR:', error);
     res.status(500).json({ message: 'Error generating summary', error: error.message });
   }
 };
@@ -176,7 +224,7 @@ export const saveMarks = async (req, res) => {
           course: courseId,
           semester: semNum,
           academicYear,
-          courseType: course.type,
+          courseType: course.type.toUpperCase(),
           createdBy: req.user._id,
           marks: { mst1: '', mst2: '', mst3: '', endSem: '', internalPractical: '', externalPractical: '' }
         });
@@ -203,6 +251,15 @@ export const saveMarks = async (req, res) => {
       return await result.save();
     }));
 
+    await ResultAudit.create({
+      action: 'SAVE_DRAFT',
+      performedBy: req.user._id,
+      course: courseId,
+      semester: semNum,
+      academicYear,
+      details: { count: results.length }
+    });
+
     res.json({ message: 'Marks saved as draft', results: savedResults });
   } catch (error) {
     console.error('SAVE MARKS ERROR:', error);
@@ -220,7 +277,13 @@ export const submitMarks = async (req, res) => {
 
     const updated = await Result.updateMany(
       { course: courseId, semester: semNum, academicYear, createdBy: req.user._id, status: { $ne: 'approved' } },
-      { status: 'submitted', submittedAt: new Date() }
+      { 
+        status: 'submitted', 
+        submittedAt: new Date(),
+        isLocked: true,
+        lockedBy: req.user._id,
+        lockedAt: new Date()
+      }
     );
 
     // Notify Admin/HOD
@@ -237,6 +300,15 @@ export const submitMarks = async (req, res) => {
       });
     }));
 
+    await ResultAudit.create({
+      action: 'SUBMIT',
+      performedBy: req.user._id,
+      course: courseId,
+      semester: semNum,
+      academicYear,
+      details: { count: updated.nModified }
+    });
+
     res.json({ message: 'Marks submitted for approval', count: updated.nModified });
   } catch (error) {
     res.status(500).json({ message: 'Server Error', error: error.message });
@@ -251,13 +323,21 @@ export const approveMarks = async (req, res) => {
     const { courseId, semester, academicYear } = req.body;
 
     await Result.updateMany(
-      { course: courseId, semester, academicYear, status: 'submitted' },
+      { course: courseId, semester: parseInt(semester), academicYear, status: 'submitted' },
       { 
         status: 'approved', 
         approvedBy: req.user._id,
         approvedAt: new Date() 
       }
     );
+
+    await ResultAudit.create({
+      action: 'APPROVE',
+      performedBy: req.user._id,
+      course: courseId,
+      semester,
+      academicYear,
+    });
 
     res.json({ message: 'Marks approved successfully' });
   } catch (error) {
@@ -273,13 +353,25 @@ export const rejectMarks = async (req, res) => {
     const { courseId, semester, academicYear, reason } = req.body;
 
     await Result.updateMany(
-      { course: courseId, semester, academicYear, status: 'submitted' },
+      { course: courseId, semester: parseInt(semester), academicYear, status: 'submitted' },
       { 
         status: 'rejected', 
         rejectionReason: reason || 'Incomplete or inaccurate data',
         approvedBy: req.user._id,
+        isLocked: false,
+        lockedBy: null,
+        lockedAt: null
       }
     );
+
+    await ResultAudit.create({
+      action: 'REJECT',
+      performedBy: req.user._id,
+      course: courseId,
+      semester,
+      academicYear,
+      details: { reason }
+    });
 
     res.json({ message: 'Marks rejected. Teacher has been notified.' });
   } catch (error) {
@@ -295,9 +387,17 @@ export const publishMarks = async (req, res) => {
     const { courseId, semester, academicYear } = req.body;
 
     await Result.updateMany(
-      { course: courseId, semester, academicYear, status: 'approved' },
+      { course: courseId, semester: parseInt(semester), academicYear, status: 'approved' },
       { status: 'published' }
     );
+
+    await ResultAudit.create({
+      action: 'PUBLISH',
+      performedBy: req.user._id,
+      course: courseId,
+      semester,
+      academicYear,
+    });
 
     res.json({ message: 'Marks published to students' });
   } catch (error) {
@@ -388,12 +488,12 @@ export const generateFinalResult = async (req, res) => {
     const generatedResults = [];
 
     for (const student of students) {
-        // Find all results for this student in this semester
+        // Find all results for this student in this semester with populated course details
         const individualResults = await Result.find({ 
           student: student._id, 
           semester: parseInt(semester), 
           academicYear 
-        });
+        }).populate('course');
         
         // Find all courses for this semester/dept
         const courseQuery = { semester: parseInt(semester) };
@@ -406,27 +506,26 @@ export const generateFinalResult = async (req, res) => {
         }
         const courses = await Course.find(courseQuery);
 
-        const allApproved = individualResults.every(r => r.status === 'approved' || r.status === 'published');
-        const countMatched = individualResults.length >= courses.length; // Basic check
+        const allApprovedOrPublished = individualResults.every(r => r.status === 'approved' || r.status === 'published');
+        // Check if student has results for most mandatory courses
+        const countMatched = individualResults.length >= courses.length; 
 
-        if (allApproved && countMatched) {
+        if (allApprovedOrPublished && individualResults.length > 0) {
             let totalObtained = 0;
             let totalMax = 0;
             let weightPoints = 0;
             let totalCredits = 0;
 
             individualResults.forEach(r => {
+                const credits = r.course?.credits || 4; // Fallback to 4 credits
                 totalObtained += r.totalMarks;
-                // Assuming standard max marks for percentage
-                // This would be more complex in production
-                totalMax += 100; 
-                // Dummy SGPA calc logic
-                totalCredits += 4; // Mock credits
-                weightPoints += (r.gradePoints * 4);
+                totalMax += 100; // Assuming 100 is max marks per subject
+                totalCredits += credits;
+                weightPoints += (r.gradePoints * credits);
             });
 
             const percentage = (totalObtained / totalMax) * 100;
-            const sgpa = weightPoints / totalCredits;
+            const sgpa = totalCredits > 0 ? (weightPoints / totalCredits) : 0;
 
             const final = await FinalResult.findOneAndUpdate(
                 { student: student._id, semester: semNum, academicYear },
@@ -489,8 +588,20 @@ export const lockResults = async (req, res) => {
 
     await Result.updateMany(
       { course: courseId, semester: semNum, academicYear },
-      { isLocked: true }
+      { 
+        isLocked: true,
+        lockedBy: req.user._id,
+        lockedAt: new Date()
+      }
     );
+
+    await ResultAudit.create({
+      action: 'LOCK',
+      performedBy: req.user._id,
+      course: courseId,
+      semester: semNum,
+      academicYear,
+    });
 
     res.json({ message: 'Marks have been locked permanently.' });
   } catch (error) {
@@ -504,6 +615,13 @@ export const toggleResultLock = async (req, res) => {
     if (!result) return res.status(404).json({ message: 'Result not found' });
 
     result.isLocked = !result.isLocked;
+    if (result.isLocked) {
+      result.lockedBy = req.user._id;
+      result.lockedAt = new Date();
+    } else {
+      result.lockedBy = null;
+      result.lockedAt = null;
+    }
     await result.save();
 
     res.json({ message: `Row ${result.isLocked ? 'Locked' : 'Unlocked'}`, isLocked: result.isLocked });
@@ -525,8 +643,35 @@ export const unlockResults = async (req, res) => {
         { isLocked: false }
       );
   
-      res.json({ message: 'Marks have been unlocked for editing.' });
+      await ResultAudit.create({
+      action: 'UNLOCK',
+      performedBy: req.user._id,
+      course: courseId,
+      semester: semNum,
+      academicYear,
+    });
+
+    res.json({ message: 'Marks have been unlocked for editing.' });
     } catch (error) {
       res.status(500).json({ message: 'Server Error', error: error.message });
     }
   };
+
+export const getTranscript = async (req, res) => {
+  try {
+    const { studentId } = req.params;
+    const { courseId } = req.query;
+
+    const student = await User.findById(studentId).select('name rollNumber enrollmentNumber department semester');
+    if (!student) return res.status(404).json({ message: 'Student not found' });
+
+    const result = await Result.findOne({ student: studentId, course: courseId })
+      .populate('course', 'name code credits type');
+
+    if (!result) return res.status(404).json({ message: 'No result found for this course.' });
+
+    res.json({ student, result });
+  } catch (error) {
+    res.status(500).json({ message: 'Server Error', error: error.message });
+  }
+};

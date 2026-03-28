@@ -11,16 +11,17 @@ import {
   generateFinalResult,
   getFinalResults,
   lockResults,
-  toggleResultLock,
   unlockResults,
-  getSemesterSummary
+  toggleResultLock,
+  getSemesterSummary,
+  getTranscript
 } from '../controllers/resultController.js';
 import { protect, authorize } from '../middlewares/authMiddleware.js';
 
 const router = express.Router();
 
 router.get('/students', protect, authorize('teacher', 'admin', 'hod'), getStudentsForEntry);
-router.post('/save', protect, authorize('teacher'), saveMarks);
+router.post('/save', protect, authorize('teacher', 'admin', 'hod'), saveMarks);
 router.post('/submit', protect, authorize('teacher'), submitMarks);
 router.post('/approve', protect, authorize('admin', 'hod'), approveMarks);
 router.post('/reject', protect, authorize('admin', 'hod'), rejectMarks);
@@ -33,5 +34,6 @@ router.get('/final', protect, authorize('student'), getFinalResults);
 router.post('/lock', protect, authorize('admin', 'hod', 'teacher'), lockResults);
 router.post('/unlock', protect, authorize('admin', 'hod', 'teacher'), unlockResults);
 router.post('/toggle-lock/:id', protect, authorize('admin', 'hod', 'teacher'), toggleResultLock);
+router.get('/transcript/:studentId', protect, authorize('admin', 'hod'), getTranscript);
 
 export default router;

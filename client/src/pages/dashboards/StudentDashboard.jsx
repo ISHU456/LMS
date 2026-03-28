@@ -38,10 +38,18 @@ const StudentDashboard = () => {
   const studentId = user?._id;
   const { gamification, level, markAttendance, submitQuizAttempt } = useGamification(studentId);
 
-  const [activeTab, setActiveTab] = useState('overview');
+  const [activeTab, setActiveTab] = useState(() => localStorage.getItem('student_active_tab') || 'overview');
   const [isLoading, setIsLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
-  const [leaderboardSem, setLeaderboardSem] = useState(user?.semester || 'All');
+  const [leaderboardSem, setLeaderboardSem] = useState(() => localStorage.getItem('student_leaderboard_sem') || user?.semester || 'All');
+
+  useEffect(() => {
+    localStorage.setItem('student_active_tab', activeTab);
+  }, [activeTab]);
+
+  useEffect(() => {
+    localStorage.setItem('student_leaderboard_sem', leaderboardSem);
+  }, [leaderboardSem]);
   const [isMounted, setIsMounted] = useState(false);
   const itemsPerPage = 25;
 

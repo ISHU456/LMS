@@ -136,11 +136,10 @@ const StudentResults = () => {
 
               <div className="flex gap-8 items-center bg-black/20 px-8 py-3 rounded-2xl border border-slate-800/50">
                 <div className="text-center">
-                  <p className="text-[10px] text-slate-500 uppercase font-black tracking-widest mb-1">MST (Best 2)</p>
+                  <p className="text-[10px] text-slate-500 uppercase font-black tracking-widest mb-1">MST (Best 1)</p>
                   <p className="font-bold text-slate-300">
                     {(() => {
-                      const msts = [Number(r.marks.mst1 || 0), Number(r.marks.mst2 || 0), Number(r.marks.mst3 || 0)].sort((a,b) => b-a);
-                      return (msts[0] + msts[1]);
+                      return Math.max(Number(r.marks.mst1 || 0), Number(r.marks.mst2 || 0), Number(r.marks.mst3 || 0));
                     })()}
                   </p>
                 </div>

@@ -70,22 +70,12 @@ const AdminSystemSettings = ({ user }) => {
                     </h3>
                     
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                        <div className="space-y-2">
+                        <div className="space-y-2 col-span-2">
                             <label className="text-[10px] font-black uppercase tracking-widest text-gray-500 ml-1">Academy Name</label>
                             <input 
                                 type="text" 
                                 value={settings.institutionName}
                                 onChange={(e) => setSettings({...settings, institutionName: e.target.value})}
-                                className="w-full bg-gray-50 dark:bg-gray-800/50 border border-transparent focus:border-red-500 focus:bg-white dark:focus:bg-gray-800 rounded-2xl px-6 py-4 text-sm font-bold outline-none transition-all dark:text-white"
-                            />
-                        </div>
-                        <div className="space-y-2">
-                            <label className="text-[10px] font-black uppercase tracking-widest text-gray-500 ml-1">Academic Cycle</label>
-                            <input 
-                                type="text" 
-                                placeholder="2025-26"
-                                value={settings.academicYear}
-                                onChange={(e) => setSettings({...settings, academicYear: e.target.value})}
                                 className="w-full bg-gray-50 dark:bg-gray-800/50 border border-transparent focus:border-red-500 focus:bg-white dark:focus:bg-gray-800 rounded-2xl px-6 py-4 text-sm font-bold outline-none transition-all dark:text-white"
                             />
                         </div>

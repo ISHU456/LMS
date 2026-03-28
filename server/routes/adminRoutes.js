@@ -21,7 +21,13 @@ import {
     updateSystemSettings,
     sendBroadcast,
     getBroadcasts,
-    getDepartments
+    getDepartments,
+    getEligibleStudentsForCourse,
+    finalizeCourseBatch,
+    unlockCourseResults,
+    approveCourseResults,
+    rejectCourseResults,
+    notifyFaculty
 } from '../controllers/adminController.js';
 import { protect, admin } from '../middlewares/authMiddleware.js';
 
@@ -50,6 +56,12 @@ router.get('/courses', getAllCourses);
 router.post('/courses', createCourse);
 router.put('/courses/:id', updateCourse);
 router.delete('/courses/:id', deleteCourse);
+router.get('/courses/eligible-students', getEligibleStudentsForCourse);
+router.post('/courses/:courseId/finalize-batch', finalizeCourseBatch);
+router.post('/results/unlock', unlockCourseResults);
+router.post('/results/approve', approveCourseResults);
+router.post('/results/reject', rejectCourseResults);
+router.post('/results/notify-faculty', notifyFaculty);
 
 // DASHBOARD STATS
 router.get('/stats', getAdminDashboardStats);

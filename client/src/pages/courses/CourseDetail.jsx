@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
-import { useParams, Link, useNavigate, useLocation } from 'react-router-dom';
+import { useParams, Link, useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import axios from 'axios';
 import { 
@@ -40,6 +40,7 @@ const CourseDetail = () => {
   const { courseId } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { user } = useSelector(state => state.auth);
   
   const isAdminHOD = user?.role === 'admin' || user?.role === 'hod';
@@ -58,24 +59,28 @@ const CourseDetail = () => {
     : 'ST';
   const roleLabel = user?.role ? String(user.role).toUpperCase() : 'MEMBER';
 
-  const querySection = new URLSearchParams(location.search).get('section');
   const [activeSection, setActiveSection] = useState(() => 
-    querySection || localStorage.getItem(`course_active_tab_${courseId}`) || 'timetable'
+    searchParams.get('section') || localStorage.getItem(`course_active_tab_${courseId}`) || 'timetable'
   );
   const [onlineStudents, setOnlineStudents] = useState(0);
   const [classLive, setClassLive] = useState(false);
   const [selectedAssignment, setSelectedAssignment] = useState(null);
 
-  // Add logic to hide floating chatbot when AI Assistant tab is active
+  // Update URL and LocalStorage when active section changes
   useEffect(() => {
     localStorage.setItem(`course_active_tab_${courseId}`, activeSection);
+    setSearchParams(prev => {
+        prev.set('section', activeSection);
+        return prev;
+    }, { replace: true });
+
     if (activeSection === 'ai-assistant') {
       document.body.classList.add('ai-assistant-page-active');
     } else {
       document.body.classList.remove('ai-assistant-page-active');
     }
     return () => document.body.classList.remove('ai-assistant-page-active');
-  }, [activeSection, courseId]);
+  }, [activeSection, courseId, setSearchParams]);
 
   const [resources, setResources] = useState([]);
   const [assignments, setAssignments] = useState([]);

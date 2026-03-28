@@ -23,7 +23,7 @@ const AdminCourseManagement = ({ user }) => {
     credits: 3,
     department: '',
     semester: 1,
-    type: 'theory',
+    type: 'THEORY',
     description: ''
   });
 
@@ -77,7 +77,7 @@ const AdminCourseManagement = ({ user }) => {
         credits: 3,
         department: departments[0]?._id || '',
         semester: 1,
-        type: 'theory',
+        type: 'THEORY',
         description: ''
       });
     }
@@ -445,9 +445,9 @@ const AdminCourseManagement = ({ user }) => {
                            onChange={(e) => setFormData({...formData, type: e.target.value})}
                            className="w-full bg-gray-50 dark:bg-gray-800/50 border border-transparent focus:border-red-500 focus:bg-white dark:focus:bg-gray-800 rounded-2xl pl-12 pr-12 py-4 text-sm font-bold outline-none transition-all dark:text-white appearance-none"
                          >
-                           <option value="theory">Theory Unit</option>
-                           <option value="lab">Laboratory Unit</option>
-                           <option value="project">Project / Studio Unit</option>
+                           <option value="THEORY">Theory Unit</option>
+                           <option value="PRACTICAL">Laboratory Unit (Practical)</option>
+                           <option value="VIVA">Viva / Studio Unit</option>
                          </select>
                          <ChevronRight className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 rotate-90" size={18} />
                        </div>

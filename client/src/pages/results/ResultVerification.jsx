@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { getStudentsForEntry, approveMarks, publishMarks, reset } from '../../features/results/resultSlice';
+import { getStudentsForEntry, approveMarks, publishMarks, saveMarks, reset } from '../../features/results/resultSlice';
 import { motion, AnimatePresence } from 'framer-motion';
-import { CheckCircle, XCircle, Globe, ChevronRight, LayoutGrid, FileText } from 'lucide-react';
+import { CheckCircle, XCircle, Globe, ChevronRight, LayoutGrid, FileText, Bell, Send, AlertTriangle, ShieldCheck, User, Sparkles } from 'lucide-react';
 import axios from 'axios';
 
 const ResultVerification = () => {
@@ -12,15 +12,44 @@ const ResultVerification = () => {
 
   const [courseId, setCourseId] = useState('');
   const [semester, setSemester] = useState('');
-  const [academicYear, setAcademicYear] = useState('2023-24');
+  const [academicYear, setAcademicYear] = useState('2025-26');
   const [courses, setCourses] = useState([]);
   const [rejectionReason, setRejectionReason] = useState('');
+
   const [showRejectModal, setShowRejectModal] = useState(false);
+  const [deadline, setDeadline] = useState('');
+  const [newDeadline, setNewDeadline] = useState('');
+  const [teacher, setTeacher] = useState(null);
+  const [editingStudentId, setEditingStudentId] = useState(null);
+  const [editingMarks, setEditingMarks] = useState({});
+
+  useEffect(() => {
+    const fetchSettings = async () => {
+      try {
+        const { data } = await axios.get('http://localhost:5001/api/public/settings');
+        setDeadline(data.globalAlert);
+      } catch (err) {
+        console.error("Failed to load deadline info.");
+      }
+    };
+    fetchSettings();
+  }, []);
+
+  useEffect(() => {
+    if (courseId && courses.length > 0) {
+       const selectedCourse = courses.find(c => c._id === courseId);
+       if (selectedCourse?.facultyAssigned && selectedCourse.facultyAssigned.length > 0) {
+         setTeacher(selectedCourse.facultyAssigned[0]);
+       } else {
+         setTeacher(null);
+       }
+    }
+  }, [courseId, courses]);
 
   useEffect(() => {
     const fetchCourses = async () => {
       try {
-        const { data } = await axios.get('/api/courses', {
+        const { data } = await axios.get('http://localhost:5001/api/courses', {
           headers: { Authorization: `Bearer ${user.token}` }
         });
         setCourses(Array.isArray(data) ? data : []);
@@ -38,6 +67,25 @@ const ResultVerification = () => {
     }
   }, [courseId, semester, academicYear, dispatch]);
 
+  const handleSetDeadline = async () => {
+    if (!newDeadline) return alert("Select a date-time for the protocol deadline.");
+    const dateStr = new Date(newDeadline).toLocaleString('en-GB', { 
+       day: '2-digit', month: '2-digit', year: 'numeric',
+       hour: '2-digit', minute: '2-digit', hour12: true 
+    });
+    try {
+      await axios.put('http://localhost:5001/api/admin/settings', {
+        globalAlert: `Institutional Deadline: Final mark transmission protocol expires on ${dateStr}.`
+      }, {
+        headers: { Authorization: `Bearer ${user.token}` }
+      });
+      setDeadline(`Institutional Deadline: Final mark transmission protocol expires on ${dateStr}.`);
+      alert('Institutional Protocol Deployed.');
+    } catch (err) {
+      alert('Protocol Sync Failure.');
+    }
+  };
+
   const handleApprove = () => {
     if (window.confirm('Approve all submitted results for this course?')) {
       dispatch(approveMarks({ courseId, semester, academicYear }));
@@ -47,7 +95,7 @@ const ResultVerification = () => {
   const handleReject = async () => {
     if (!rejectionReason.trim()) return alert('Please provide a reason for rejection.');
     try {
-      await axios.post('/api/results/reject', { courseId, semester, academicYear, reason: rejectionReason }, {
+      await axios.post('http://localhost:5001/api/results/reject', { courseId, semester, academicYear, reason: rejectionReason }, {
         headers: { Authorization: `Bearer ${user.token}` }
       });
       setShowRejectModal(false);
@@ -65,6 +113,56 @@ const ResultVerification = () => {
     }
   };
 
+  const handleNotifyTeacher = async () => {
+    const message = window.prompt("Enter broadcast message for the module instructor:");
+    if (!message || !teacher) return;
+    try {
+       await axios.post('http://localhost:5001/api/admin/results/notify-faculty', {
+         teacherId: teacher._id,
+         courseId,
+         semester,
+         message
+       }, {
+         headers: { Authorization: `Bearer ${user.token}` }
+       });
+       alert('Direct inter-departmental alert transmitted.');
+    } catch (err) {
+       alert('Transmission fail.');
+    }
+  };
+
+  const handleStartEdit = (student) => {
+    setEditingStudentId(student._id);
+    setEditingMarks({ ...student.marks });
+  };
+
+  const handleCancelEdit = () => {
+    setEditingStudentId(null);
+    setEditingMarks({});
+  };
+
+  const handleSaveRow = async (studentId) => {
+    try {
+      await dispatch(saveMarks({
+        courseId,
+        semester,
+        academicYear,
+        results: [{ studentId, marks: editingMarks }]
+      })).unwrap();
+      setEditingStudentId(null);
+      alert('Row-level adjustments synchronized.');
+    } catch (err) {
+      alert('Sync failure: ' + err);
+    }
+  };
+
+  const stats = {
+    total: results.length,
+    submitted: results.filter(r => r.status === 'submitted').length,
+    approved: results.filter(r => r.status === 'approved').length,
+    published: results.filter(r => r.status === 'published').length
+  };
+
   return (
     <div className="min-h-screen bg-slate-950 text-white p-4 md:p-8">
       <motion.div 
@@ -72,56 +170,66 @@ const ResultVerification = () => {
         animate={{ opacity: 1, y: 0 }}
         className="max-w-7xl mx-auto"
       >
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
+        {/* Institutional Alert Bar */}
+        {deadline && (
+          <div className="mb-8 p-4 bg-amber-500/10 border border-amber-500/20 rounded-2xl flex items-center justify-between group">
+             <div className="flex items-center gap-4">
+                <div className="p-2 bg-amber-500 text-white rounded-lg animate-pulse">
+                   <Bell size={18} />
+                </div>
+                <p className="text-xs font-black uppercase tracking-widest text-amber-500">{deadline}</p>
+             </div>
+             <ShieldCheck size={20} className="text-amber-500 opacity-30 group-hover:opacity-100 transition-opacity" />
+          </div>
+        )}
+
+        <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center mb-10 gap-8">
           <div>
-            <h1 className="text-4xl font-bold bg-gradient-to-r from-emerald-400 to-cyan-500 bg-clip-text text-transparent">
-              Result Verification
-            </h1>
-            <p className="text-slate-400 mt-2">Verify, approve and publish student results.</p>
+            <div className="flex items-center gap-3 mb-2">
+               <h1 className="text-4xl font-black uppercase tracking-tighter bg-gradient-to-r from-emerald-400 to-cyan-400 bg-clip-text text-transparent">
+                 Verification Core
+               </h1>
+               <div className="px-3 py-1 bg-white/5 border border-white/10 rounded-full text-[10px] font-black uppercase tracking-widest text-slate-400">
+                  Sector: {user.department || 'GLOBAL'}
+               </div>
+            </div>
+            <p className="text-slate-500 text-[10px] font-black uppercase tracking-[0.2em]">Institutional Mark-List Certification & Result Governance Engine</p>
           </div>
           
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-3">
+            <button 
+              onClick={handleNotifyTeacher}
+              disabled={!courseId}
+              className="px-6 py-4 bg-white/5 border border-white/10 hover:border-blue-500/50 hover:bg-blue-500/10 text-slate-300 hover:text-blue-400 rounded-2xl flex items-center gap-3 transition-all font-black text-[10px] uppercase tracking-widest disabled:opacity-30"
+            >
+              <Send size={16} /> Notify Instructor
+            </button>
             <button 
               onClick={handleApprove}
-              disabled={results.every(r => r.status !== 'submitted')}
-              className={`px-6 py-2 rounded-lg flex items-center gap-2 transition-all ${
-                results.every(r => r.status !== 'submitted')
-                ? 'bg-slate-800 text-slate-500 cursor-not-allowed'
-                : 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-lg shadow-emerald-500/20'
-              }`}
+              disabled={stats.submitted === 0}
+              className="px-8 py-4 bg-emerald-600 hover:bg-emerald-500 text-white rounded-2xl flex items-center gap-3 shadow-xl shadow-emerald-500/20 transition-all font-black text-[10px] uppercase tracking-widest disabled:opacity-30 disabled:grayscale"
             >
-              <CheckCircle size={18} />
-              Approve All
+              <CheckCircle size={18} /> Approve All
             </button>
             <button 
               onClick={() => setShowRejectModal(true)}
-              disabled={results.every(r => r.status !== 'submitted')}
-              className={`px-6 py-2 rounded-lg flex items-center gap-2 transition-all ${
-                results.every(r => r.status !== 'submitted')
-                ? 'bg-slate-800 text-slate-500 cursor-not-allowed'
-                : 'bg-rose-600 hover:bg-rose-500 text-white shadow-lg shadow-rose-500/20'
-              }`}
+              disabled={stats.submitted === 0}
+              className="px-8 py-4 bg-rose-600 hover:bg-rose-500 text-white rounded-2xl flex items-center gap-3 shadow-xl shadow-rose-500/20 transition-all font-black text-[10px] uppercase tracking-widest disabled:opacity-30 disabled:grayscale"
             >
-              <XCircle size={18} />
-              Reject All
+              <XCircle size={18} /> Reject All
             </button>
             <button 
               onClick={handlePublish}
-              disabled={results.every(r => r.status !== 'approved')}
-              className={`px-6 py-2 rounded-lg flex items-center gap-2 transition-all ${
-                results.every(r => r.status !== 'approved')
-                ? 'bg-slate-800 text-slate-500 cursor-not-allowed'
-                : 'bg-cyan-600 hover:bg-cyan-500 text-white shadow-lg shadow-cyan-500/20'
-              }`}
+              disabled={stats.approved === 0}
+              className="px-8 py-4 bg-cyan-600 hover:bg-cyan-500 text-white rounded-2xl flex items-center gap-3 shadow-xl shadow-cyan-500/20 transition-all font-black text-[10px] uppercase tracking-widest disabled:opacity-30 disabled:grayscale"
             >
-              <Globe size={18} />
-              Publish
+              <Globe size={18} /> Publish Results
             </button>
             <button 
               onClick={async () => {
-                if (window.confirm('Generate final semester results for all students? This will calculate SGPA and final percentages.')) {
+                if (window.confirm('Generate final semester results for all students?')) {
                    try {
-                     const { data } = await axios.post('/api/results/generate-final', { semester, academicYear, department: user.department }, {
+                     const { data } = await axios.post('http://localhost:5001/api/results/generate-final', { semester, academicYear, department: user.department }, {
                        headers: { Authorization: `Bearer ${user.token}` }
                      });
                      alert(data.message);
@@ -130,52 +238,97 @@ const ResultVerification = () => {
                    }
                 }
               }}
-              className="px-6 py-2 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white rounded-lg flex items-center gap-2 shadow-lg shadow-purple-500/20 transition-all font-bold"
+              className="px-8 py-4 bg-indigo-600 hover:bg-indigo-500 text-white rounded-2xl flex items-center gap-3 shadow-xl shadow-indigo-500/20 transition-all font-black text-[10px] uppercase tracking-widest"
             >
-              <LayoutGrid size={18} />
-              Generate Final
+              <LayoutGrid size={18} /> Generate Final
             </button>
           </div>
         </div>
 
-        {/* Filters */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8 bg-slate-900/50 p-6 rounded-2xl border border-slate-800 backdrop-blur-xl">
-          <div>
-            <label className="block text-sm font-medium text-slate-400 mb-2">Subject / Course</label>
-            <select 
-              value={courseId} 
-              onChange={(e) => setCourseId(e.target.value)}
-              className="w-full bg-slate-800 border border-slate-700 rounded-xl p-3 focus:ring-2 focus:ring-emerald-500 outline-none transition-all"
+        {/* Instructor Origin Node */}
+        {teacher && (
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="bg-slate-900 border border-slate-800 p-6 rounded-[32px] mb-8 flex items-center justify-between shadow-2xl"
             >
-              <option value="">Select Course</option>
-              {courses.map(c => (
-                <option key={c._id} value={c._id}>{c.name} ({c.code})</option>
-              ))}
-            </select>
-          </div>
+              <div className="flex items-center gap-6">
+                <div className="w-16 h-16 rounded-2xl border-2 border-emerald-500/30 p-1">
+                  <img src={teacher.profilePic || 'https://via.placeholder.com/150'} className="w-full h-full object-cover rounded-xl" />
+                </div>
+                <div>
+                   <p className="text-[10px] font-black uppercase tracking-widest text-emerald-500 mb-1">Transmitting Instructor</p>
+                   <h2 className="text-xl font-black text-white uppercase">{teacher.name}</h2>
+                   <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">{teacher.email}</p>
+                </div>
+              </div>
+              <div className="text-right">
+                 <p className="text-[10px] font-black uppercase tracking-widest text-slate-500">Origin Protocol</p>
+                 <p className="text-xs font-black text-slate-300 uppercase italic">Departmental Liaison Alpha</p>
+              </div>
+            </motion.div>
+        )}
+
+        {/* Real-time Statistics Bar */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mb-10">
+           {[
+             { label: 'Identified Tokens', value: stats.total, color: 'text-slate-400', bg: 'bg-slate-900/50' },
+             { label: 'Transmission Pending', value: stats.submitted, color: 'text-blue-500', bg: 'bg-blue-500/5' },
+             { label: 'Authenticated', value: stats.approved, color: 'text-emerald-500', bg: 'bg-emerald-500/5' },
+             { label: 'Broadcast Ready', value: stats.published, color: 'text-cyan-500', bg: 'bg-cyan-500/5' }
+           ].map((stat, i) => (
+             <div key={i} className={`${stat.bg} p-6 rounded-[2rem] border border-white/5 shadow-sm`}>
+                <p className="text-[9px] font-black uppercase tracking-widest text-slate-500 mb-2">{stat.label}</p>
+                <p className={`text-3xl font-black ${stat.color}`}>{stat.value}</p>
+             </div>
+           ))}
+        </div>
+
+        {/* Filters & Control Protocol */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8 bg-slate-900/50 p-6 rounded-3xl border border-slate-800 backdrop-blur-xl">
           <div>
-            <label className="block text-sm font-medium text-slate-400 mb-2">Semester</label>
+            <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2 italic">1. Select Academic Phase</label>
             <select 
               value={semester} 
               onChange={(e) => setSemester(e.target.value)}
-              className="w-full bg-slate-800 border border-slate-700 rounded-xl p-3 focus:ring-2 focus:ring-emerald-500 outline-none"
+              className="w-full bg-slate-800 border border-slate-700 rounded-xl p-4 text-sm font-bold text-white focus:ring-2 focus:ring-primary-500 outline-none transition-all shadow-inner"
             >
-              <option value="">Select Semester</option>
+              <option value="">Semester Mapping</option>
               {[1,2,3,4,5,6,7,8].map(s => (
                 <option key={s} value={s}>Semester {s}</option>
               ))}
             </select>
           </div>
           <div>
-            <label className="block text-sm font-medium text-slate-400 mb-2">Academic Year</label>
+            <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2 italic">2. Active Domain / Subject</label>
             <select 
-              value={academicYear} 
-              onChange={(e) => setAcademicYear(e.target.value)}
-              className="w-full bg-slate-800 border border-slate-700 rounded-xl p-3 focus:ring-2 focus:ring-emerald-500 outline-none"
+              value={courseId} 
+              onChange={(e) => setCourseId(e.target.value)}
+              className="w-full bg-slate-800 border border-slate-700 rounded-xl p-4 text-sm font-bold text-white focus:ring-2 focus:ring-primary-500 outline-none transition-all shadow-inner"
             >
-              <option value="2023-24">2023-24</option>
-              <option value="2024-25">2024-25</option>
+              <option value="">Course Selection</option>
+              {courses.filter(c => !semester || c.semester === parseInt(semester)).map(c => (
+                <option key={c._id} value={c._id}>{c.name} ({c.code})</option>
+              ))}
             </select>
+          </div>
+          <div>
+            <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2 italic">3. Submission Deadline Protocol</label>
+            <div className="flex gap-2">
+               <input 
+                 type="datetime-local" 
+                 value={newDeadline}
+                 onChange={(e) => setNewDeadline(e.target.value)}
+                 className="flex-1 bg-slate-800 border border-slate-700 rounded-xl p-4 text-[10px] font-black uppercase text-white focus:ring-2 focus:ring-amber-500 outline-none transition-all shadow-inner"
+               />
+               <button 
+                 onClick={handleSetDeadline}
+                 className="px-4 bg-amber-600 hover:bg-amber-500 text-white rounded-xl transition-all shadow-lg shadow-amber-600/20"
+                 title="Deploy Protocol"
+               >
+                 <ShieldCheck size={18} />
+               </button>
+            </div>
           </div>
         </div>
 
@@ -202,32 +355,97 @@ const ResultVerification = () => {
                   {courses.find(c => c._id === courseId)?.type === 'VIVA' && (
                     <th className="p-4 font-semibold text-slate-300 text-center">Viva Score</th>
                   )}
-                  <th className="p-4 font-semibold text-slate-300 text-center">Total</th>
+                   <th className="p-4 font-semibold text-slate-300 text-center">Total</th>
                   <th className="p-4 font-semibold text-slate-300 text-center">Status</th>
+                  <th className="p-4 font-semibold text-slate-300 text-center">Protocol Action</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-800">
                 {(Array.isArray(results) ? results : []).map((student) => {
-                  const total = (student.marks.mst1 || 0) + (student.marks.mst2 || 0) + (student.marks.mst3 || 0) + (student.marks.endSem || 0);
+                  const isEditing = editingStudentId === student._id;
+                  const currentCourse = courses.find(c => c._id === courseId);
+                  
                   return (
                     <tr key={student._id} className="hover:bg-slate-800/30 transition-colors">
                       <td className="p-4 font-mono text-emerald-400">{student.rollNumber}</td>
-                      <td className="p-4">{student.name}</td>
+                      <td className="p-4 font-bold text-slate-200">{student.name}</td>
                       
-                      {courses.find(c => c._id === courseId)?.type === 'THEORY' && (
+                      {currentCourse?.type === 'THEORY' && (
                         <>
-                          <td className="p-4 text-center">{(student.marks.mst1 + student.marks.mst2 + student.marks.mst3)/3}</td>
-                          <td className="p-4 text-center">{student.marks.endSem}</td>
+                          <td className="p-4 text-center">
+                            <div className="flex gap-1 justify-center">
+                              {['mst1', 'mst2', 'mst3'].map(field => (
+                                isEditing ? (
+                                  <input 
+                                    key={field}
+                                    type="number"
+                                    value={editingMarks[field] || ''}
+                                    onChange={(e) => setEditingMarks({...editingMarks, [field]: Number(e.target.value)})}
+                                    className="w-12 bg-slate-700 border border-slate-600 rounded p-1 text-center text-xs font-black text-white"
+                                  />
+                                ) : (
+                                  <span key={field} className="w-10 p-1 bg-white/5 rounded text-[10px] font-black text-slate-400">
+                                    {student.marks[field] || 0}
+                                  </span>
+                                )
+                              ))}
+                            </div>
+                          </td>
+                          <td className="p-4 text-center">
+                             {isEditing ? (
+                               <input 
+                                 type="number"
+                                 value={editingMarks.endSem || ''}
+                                 onChange={(e) => setEditingMarks({...editingMarks, endSem: Number(e.target.value)})}
+                                 className="w-16 bg-slate-700 border border-slate-600 rounded p-2 text-center text-sm font-black text-white"
+                               />
+                             ) : (
+                               <span className="font-black text-slate-300">{student.marks.endSem || 0}</span>
+                             )}
+                          </td>
                         </>
                       )}
-                      {courses.find(c => c._id === courseId)?.type === 'PRACTICAL' && (
+                      {currentCourse?.type === 'PRACTICAL' && (
                         <>
-                          <td className="p-4 text-center">{student.marks.internalPractical}</td>
-                          <td className="p-4 text-center">{student.marks.externalPractical}</td>
+                          <td className="p-4 text-center">
+                             {isEditing ? (
+                               <input 
+                                 type="number"
+                                 value={editingMarks.internalPractical || ''}
+                                 onChange={(e) => setEditingMarks({...editingMarks, internalPractical: Number(e.target.value)})}
+                                 className="w-16 bg-slate-700 border border-slate-600 rounded p-2 text-center text-sm font-black text-white"
+                               />
+                             ) : (
+                               <span className="font-black text-slate-300">{student.marks.internalPractical || 0}</span>
+                             )}
+                          </td>
+                          <td className="p-4 text-center">
+                             {isEditing ? (
+                               <input 
+                                 type="number"
+                                 value={editingMarks.externalPractical || ''}
+                                 onChange={(e) => setEditingMarks({...editingMarks, externalPractical: Number(e.target.value)})}
+                                 className="w-16 bg-slate-700 border border-slate-600 rounded p-2 text-center text-sm font-black text-white"
+                               />
+                             ) : (
+                               <span className="font-black text-slate-300">{student.marks.externalPractical || 0}</span>
+                             )}
+                          </td>
                         </>
                       )}
-                      {courses.find(c => c._id === courseId)?.type === 'VIVA' && (
-                        <td className="p-4 text-center">{student.marks.vivaScore}</td>
+                      {currentCourse?.type === 'VIVA' && (
+                        <td className="p-4 text-center">
+                             {isEditing ? (
+                               <input 
+                                 type="number"
+                                 value={editingMarks.vivaScore || ''}
+                                 onChange={(e) => setEditingMarks({...editingMarks, vivaScore: Number(e.target.value)})}
+                                 className="w-16 bg-slate-700 border border-slate-600 rounded p-2 text-center text-sm font-black text-white"
+                               />
+                             ) : (
+                               <span className="font-black text-slate-300">{student.marks.vivaScore || 0}</span>
+                             )}
+                        </td>
                       )}
 
                       <td className="p-4 text-center">
@@ -235,8 +453,9 @@ const ResultVerification = () => {
                           {(() => {
                             const { mst1, mst2, mst3, endSem, vivaScore, internalPractical, externalPractical } = student.marks || {};
                             if (courses.find(c => c._id === courseId)?.type === 'THEORY') {
-                              const msts = [Number(mst1 || 0), Number(mst2 || 0), Number(mst3 || 0)].sort((a, b) => b - a);
-                              return (msts[0] + msts[1] + Number(endSem || 0)).toFixed(1);
+                              const msts = [Number(mst1 || 0), Number(mst2 || 0), Number(mst3 || 0)];
+                              const bestMST = Math.max(...msts);
+                              return (bestMST + Number(endSem || 0)).toFixed(1);
                             } else if (courses.find(c => c._id === courseId)?.type === 'PRACTICAL') {
                               return ((Number(internalPractical || 0)) + (Number(externalPractical || 0))).toFixed(1);
                             } else {
@@ -246,15 +465,54 @@ const ResultVerification = () => {
                         </span>
                       </td>
                       <td className="p-4 text-center">
-                        <span className={`px-3 py-1 rounded-full text-xs font-medium ${
+                        <span className={`px-3 py-1 rounded-full text-[10px] font-black tracking-widest ${
                           student.status === 'published' ? 'bg-cyan-500/10 text-cyan-400' :
                           student.status === 'approved' ? 'bg-emerald-500/10 text-emerald-400' :
                           student.status === 'submitted' ? 'bg-blue-500/10 text-blue-400' :
                           student.status === 'rejected' ? 'bg-rose-500/10 text-rose-400' :
-                          'bg-slate-700 text-slate-400'
+                          'bg-slate-700/50 text-slate-400'
                         }`}>
                           {student.status.toUpperCase()}
                         </span>
+                      </td>
+                      <td className="p-4 text-center">
+                          {isEditing ? (
+                             <div className="flex gap-2 justify-center">
+                               <button 
+                                 onClick={() => handleSaveRow(student._id)}
+                                 className="p-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg shadow-lg shadow-emerald-500/20"
+                               >
+                                 <CheckCircle size={16} />
+                               </button>
+                               <button 
+                                 onClick={handleCancelEdit}
+                                 className="p-2 bg-rose-600 hover:bg-rose-500 text-white rounded-lg shadow-lg shadow-rose-500/20"
+                               >
+                                 <XCircle size={16} />
+                               </button>
+                             </div>
+                          ) : (
+                             <div className="flex gap-2 justify-center">
+                               <button 
+                                 onClick={() => handleStartEdit(student)}
+                                 className="p-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg hover:text-white transition-all border border-white/5"
+                                 title="Protocol Adjustments"
+                               >
+                                 <Sparkles size={16} />
+                               </button>
+                               <button 
+                                 onClick={() => {
+                                   if(window.confirm(`Generate provisional transcript for ${student.name}?`)) {
+                                      window.open(`/api/results/transcript/${student._id}?courseId=${courseId}`, '_blank');
+                                   }
+                                 }}
+                                 className="p-2 bg-indigo-600/10 hover:bg-indigo-600 text-indigo-400 hover:text-white rounded-lg transition-all border border-indigo-500/10"
+                                 title="Download Transcript"
+                               >
+                                 <FileText size={16} />
+                               </button>
+                             </div>
+                          )}
                       </td>
                     </tr>
                   );

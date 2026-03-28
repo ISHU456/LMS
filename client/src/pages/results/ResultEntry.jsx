@@ -16,7 +16,18 @@ const ResultEntry = () => {
 
   const [courseId, setCourseId] = useState(searchParams.get('courseId') || '');
   const [semester, setSemester] = useState(searchParams.get('semester') || '');
-  const [academicYear, setAcademicYear] = useState(searchParams.get('academicYear') || '2023-24');
+  
+  // Calculate dynamic default academic year (e.g., 2025-26 for March 2026)
+  const getPresentAcademicYear = () => {
+    const now = new Date();
+    const year = now.getFullYear();
+    // Academic years usually start in July (month 6)
+    return now.getMonth() >= 6 
+      ? `${year}-${(year + 1).toString().slice(-2)}` 
+      : `${year - 1}-${year.toString().slice(-2)}`;
+  };
+
+  const [academicYear, setAcademicYear] = useState(searchParams.get('academicYear') || getPresentAcademicYear());
   const [courses, setCourses] = useState([]);
   const [localResults, setLocalResults] = useState([]);
   const [showSuccess, setShowSuccess] = useState(false);
@@ -118,8 +129,10 @@ const ResultEntry = () => {
         // Calculate Grade immediately for persistent saving
         let total = 0;
         if (currentCourse?.type?.toUpperCase() === 'THEORY') {
-            const msts = [Number(updatedMarks.mst1)||0, Number(updatedMarks.mst2)||0, Number(updatedMarks.mst3)||0].sort((a,b) => b-a);
-            total = msts[0] + msts[1] + (Number(updatedMarks.endSem)||0);
+            const msts = [Number(updatedMarks.mst1)||0, Number(updatedMarks.mst2)||0, Number(updatedMarks.mst3)||0];
+            // Take sum of best 2 MSTs
+            const bestTwoSum = msts.sort((a, b) => b - a).slice(0, 2).reduce((sum, val) => sum + val, 0);
+            total = bestTwoSum + (Number(updatedMarks.endSem)||0);
         } else if (currentCourse?.type?.toUpperCase() === 'PRACTICAL') {
             total = (Number(updatedMarks.internalPractical)||0) + (Number(updatedMarks.externalPractical)||0);
         }
@@ -132,12 +145,25 @@ const ResultEntry = () => {
         else if (total >= 50) calculatedGrade = 'B';
         else if (total >= 40) calculatedGrade = 'C';
 
-        return { 
+        const updatedStudent = { 
             ...student, 
             marks: { ...updatedMarks, absentFields: updatedAbsences },
             grade: calculatedGrade,
             totalMarks: total
         };
+
+        // Auto-save logic: Trigger save if all fields are complete
+        const cType = currentCourse?.type?.toUpperCase();
+        const m = updatedStudent.marks;
+        const isTheoryComplete = cType === 'THEORY' && m.mst1 !== '' && m.mst2 !== '' && m.mst3 !== '' && m.endSem !== '';
+        const isPracticalComplete = cType === 'PRACTICAL' && m.internalPractical !== '' && m.externalPractical !== '';
+        
+        if ((isTheoryComplete || isPracticalComplete) && !student.isLocked) {
+             // We'll call save slightly delayed or in next tick to allow state to settle
+             setTimeout(() => handleSaveSingleMark(student._id, updatedStudent), 100);
+        }
+
+        return updatedStudent;
       }
       return student;
     }));
@@ -146,8 +172,8 @@ const ResultEntry = () => {
   const isLocked = localResults.length > 0 && localResults.some(r => r.isLocked);
   const currentCourse = courses.find(c => c._id === courseId);
 
-  const handleSaveSingleMark = async (studentId) => {
-    const student = localResults.find(r => r._id === studentId);
+  const handleSaveSingleMark = async (studentId, studentData = null) => {
+    const student = studentData || localResults.find(r => r._id === studentId);
     if (!student) return;
 
     setSavingStudentId(studentId);
@@ -164,7 +190,14 @@ const ResultEntry = () => {
     };
     
     try {
-      await dispatch(saveMarks(data)).unwrap();
+      const response = await dispatch(saveMarks(data)).unwrap();
+      
+      // Update local state results with resultId immediately to allow locking
+      if (response?.results?.length > 0) {
+          const savedResult = response.results[0];
+          setLocalResults(prev => prev.map(r => r._id === studentId ? { ...r, resultId: savedResult._id, status: savedResult.status } : r));
+      }
+
       setShowSuccess(true);
       setTimeout(() => {
         setShowSuccess(false);
@@ -359,32 +392,20 @@ const ResultEntry = () => {
         </div>
 
         {/* Filters - White Theme */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8 bg-white p-6 rounded-3xl border border-gray-100 shadow-xl shadow-gray-200/40">
-          <div>
-            <label className="block text-[10px] font-black text-gray-400 mb-2 uppercase tracking-[0.2em]">My Assigned Courses</label>
-            <select 
-              value={courseId} 
-              onChange={(e) => {
-                const id = e.target.value;
-                setCourseId(id);
-                const course = courses.find(c => c._id === id);
-                if (course) {
-                  setSemester(course.semester.toString());
-                }
-              }}
-              className="w-full bg-gray-50 border border-gray-200 rounded-2xl p-4 focus:ring-2 focus:ring-blue-500 outline-none transition-all font-black uppercase text-xs text-gray-700"
-            >
-              <option value="">Select Assignment</option>
-              {(Array.isArray(courses) ? courses : []).map(c => (
-                <option key={c._id} value={c._id.toString()}>{c.code} - {c.name} (Sem {c.semester})</option>
-              ))}
-            </select>
-          </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8 bg-white p-6 rounded-3xl border border-gray-100 shadow-xl shadow-gray-200/40">
           <div>
             <label className="block text-[10px] font-black text-gray-400 mb-2 uppercase tracking-[0.2em]">Target Semester</label>
             <select 
               value={semester} 
-              onChange={(e) => setSemester(e.target.value)}
+              onChange={(e) => {
+                const s = e.target.value;
+                setSemester(s);
+                // Clear course if it doesn't match the new semester
+                const course = courses.find(c => c._id === courseId);
+                if (course && course.semester.toString() !== s) {
+                    setCourseId('');
+                }
+              }}
               className="w-full bg-gray-50 border border-gray-200 rounded-2xl p-4 focus:ring-2 focus:ring-blue-500 outline-none font-black uppercase text-xs text-gray-700"
             >
               <option value="">Select Semester</option>
@@ -394,15 +415,24 @@ const ResultEntry = () => {
             </select>
           </div>
           <div>
-            <label className="block text-[10px] font-black text-gray-400 mb-2 uppercase tracking-[0.2em] flex items-center gap-2">
-                <Clock size={10}/> Scheduled Result Lock
-            </label>
-            <input 
-              type="datetime-local" 
-              value={currentCourse?.marksDeadline ? new Date(new Date(currentCourse.marksDeadline).getTime() - (new Date().getTimezoneOffset() * 60000)).toISOString().slice(0, 16) : ''}
-              onChange={(e) => handleUpdateDeadline(e.target.value)}
-              className="w-full bg-gray-50 border border-gray-200 rounded-2xl p-4 focus:ring-2 focus:ring-rose-500 outline-none font-black uppercase text-xs text-gray-700"
-            />
+            <label className="block text-[10px] font-black text-gray-400 mb-2 uppercase tracking-[0.2em]">My Assigned Courses</label>
+            <select 
+              value={courseId} 
+              onChange={(e) => {
+                const id = e.target.value;
+                setCourseId(id);
+                const course = courses.find(c => c._id === id);
+                if (course && !semester) {
+                  setSemester(course.semester.toString());
+                }
+              }}
+              className="w-full bg-gray-50 border border-gray-200 rounded-2xl p-4 focus:ring-2 focus:ring-blue-500 outline-none transition-all font-black uppercase text-xs text-gray-700"
+            >
+              <option value="">Select Assignment</option>
+              {(Array.isArray(courses) ? (semester ? courses.filter(c => c.semester.toString() === semester) : courses) : []).map(c => (
+                <option key={c._id} value={c._id.toString()}>{c.code} - {c.name} (Sem {c.semester})</option>
+              ))}
+            </select>
           </div>
         </div>
 
@@ -560,8 +590,9 @@ const ResultEntry = () => {
                       <span className="text-xl font-black font-mono text-gray-900">
                         {currentCourse?.type?.toUpperCase() === 'THEORY' 
                           ? (() => {
-                              const msts = [Number(m.mst1)||0, Number(m.mst2)||0, Number(m.mst3)||0].sort((a,b) => b-a);
-                              return (msts[0] + msts[1] + (Number(m.endSem)||0)).toFixed(1);
+                              const msts = [Number(m.mst1)||0, Number(m.mst2)||0, Number(m.mst3)||0];
+                              const bestTwoSum = msts.sort((a, b) => b - a).slice(0, 2).reduce((sum, val) => sum + val, 0);
+                              return (bestTwoSum + (Number(m.endSem)||0)).toFixed(1);
                             })()
                           : (currentCourse?.type?.toUpperCase() === 'PRACTICAL' 
                               ? (Number(m.internalPractical)||0) + (Number(m.externalPractical)||0) 
@@ -573,8 +604,9 @@ const ResultEntry = () => {
                       {(() => {
                         let total = 0;
                         if (currentCourse?.type?.toUpperCase() === 'THEORY') {
-                            const msts = [Number(m.mst1)||0, Number(m.mst2)||0, Number(m.mst3)||0].sort((a,b) => b-a);
-                            total = msts[0] + msts[1] + (Number(m.endSem)||0);
+                            const msts = [Number(m.mst1)||0, Number(m.mst2)||0, Number(m.mst3)||0];
+                            const bestTwoSum = msts.sort((a, b) => b - a).slice(0, 2).reduce((sum, val) => sum + val, 0);
+                            total = bestTwoSum + (Number(m.endSem)||0);
                         } else if (currentCourse?.type?.toUpperCase() === 'PRACTICAL') {
                             total = (Number(m.internalPractical)||0) + (Number(m.externalPractical)||0);
                         } else if (student.grade) {
@@ -683,26 +715,6 @@ const ResultEntry = () => {
                 <Send size={16} />
                 Finalize & Submit
               </button>
-
-              {!isLocked && (
-                  <button 
-                    onClick={handleLockMarks}
-                    className="px-8 py-3.5 bg-rose-50 hover:bg-rose-600 text-rose-600 hover:text-white rounded-xl font-extrabold text-[10px] uppercase tracking-widest flex items-center gap-2 shadow-sm transition-all border border-rose-100"
-                  >
-                    <AlertCircle size={16} />
-                    Permanent Lock
-                  </button>
-              )}
-
-              {isLocked && (
-                  <button 
-                    onClick={handleUnlockMarks}
-                    className="px-8 py-3.5 bg-amber-50 hover:bg-amber-600 text-amber-600 hover:text-white rounded-xl font-extrabold text-[10px] uppercase tracking-widest flex items-center gap-2 shadow-sm transition-all border border-amber-100"
-                  >
-                    <Unlock size={16} />
-                    Administrative Unlock
-                  </button>
-              )}
             </div>
           )}
         </div>

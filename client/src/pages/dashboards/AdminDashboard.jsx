@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Book, Users, Building, Shield, Activity, Bell, Home, Settings, Search, Zap, CalendarDays, X, Save, TrendingUp, BrainCircuit } from 'lucide-react';
+import { Book, Users, Building, Shield, Activity, Bell, Home, Settings, Search, Zap, CalendarDays, X, Save, TrendingUp, BrainCircuit, CheckCircle } from 'lucide-react';
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, AreaChart, Area } from 'recharts';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
@@ -10,6 +10,7 @@ import AdminCourseManagement from '../../components/admin/AdminCourseManagement'
 import AdminSystemSettings from '../../components/admin/AdminSystemSettings';
 import AdminGlobalBroadcasts from '../../components/admin/AdminGlobalBroadcasts';
 import AdminResultHub from '../../components/admin/AdminResultHub';
+import AdminBatchFinalization from '../../components/admin/AdminBatchFinalization';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const AdminDashboard = () => {
@@ -67,6 +68,7 @@ const AdminDashboard = () => {
     { id: 'courses', icon: Book, label: 'Academic Lattice' },
     { id: 'global-alerts', icon: Bell, label: 'Global Broadcasts' },
     { id: 'results-hub', icon: TrendingUp, label: 'Results & Transcripts' },
+    { id: 'batch-finalization', icon: CheckCircle, label: 'Batch Finalization' },
     { id: 'ai-management', icon: BrainCircuit, label: 'Neural Governance Hub' },
     { id: 'system', icon: Settings, label: 'System Settings' },
   ];
@@ -151,22 +153,24 @@ const AdminDashboard = () => {
                  className="glass p-8 rounded-[32px] shadow-lg border border-gray-100 dark:border-gray-800">
                  <h3 className="text-xs font-black uppercase tracking-[0.2em] dark:text-white mb-8 italic">User Demographics</h3>
                  <div className="h-[280px] w-full min-w-0">
-                    {isMounted && (
-                      <ResponsiveContainer width="100%" height="100%">
-                        <PieChart>
-                          <Pie 
-                            data={stats.demographics} 
-                            cx="50%" cy="50%" 
-                            innerRadius={70} outerRadius={90} 
-                            paddingAngle={8} dataKey="value"
-                            stroke="none"
-                          >
-                            {stats.demographics.map((entry, index) => <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />)}
-                          </Pie>
-                          <RechartsTooltip contentStyle={{ borderRadius: '16px', border: 'none', fontWeight: '900', fontSize: '10px' }} />
-                        </PieChart>
-                      </ResponsiveContainer>
-                    )}
+                     {isMounted && stats.demographics?.length > 0 ? (
+                       <ResponsiveContainer width="100%" height={280}>
+                         <PieChart>
+                           <Pie 
+                             data={stats.demographics} 
+                             cx="50%" cy="50%" 
+                             innerRadius={70} outerRadius={90} 
+                             paddingAngle={8} dataKey="value"
+                             stroke="none"
+                           >
+                             {stats.demographics.map((entry, index) => <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />)}
+                           </Pie>
+                           <RechartsTooltip contentStyle={{ borderRadius: '16px', border: 'none', fontWeight: '900', fontSize: '10px' }} />
+                         </PieChart>
+                       </ResponsiveContainer>
+                     ) : (
+                        <div className="h-full w-full flex items-center justify-center opacity-30 text-[10px] font-black uppercase tracking-widest italic">Awaiting Identity Context</div>
+                     )}
                  </div>
                  <div className="flex justify-center gap-4 mt-4">
                     {stats.demographics.map((d, i) => (
@@ -182,28 +186,30 @@ const AdminDashboard = () => {
                  className="glass p-8 rounded-[32px] shadow-lg border border-gray-100 dark:border-gray-800 lg:col-span-2">
                  <h3 className="text-xs font-black uppercase tracking-[0.2em] dark:text-white mb-8 italic">Departmental Distribution</h3>
                  <div className="h-[280px] w-full min-w-0">
-                    {isMounted && (
-                      <ResponsiveContainer width="100%" height="100%">
-                        <BarChart data={stats.deptPopulation}>
-                          <CartesianGrid strokeDasharray="3 3" vertical={false} opacity={0.1} />
-                          <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 10, fontWeight: 900, fill: '#94a3b8' }} />
-                          <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fontWeight: 900, fill: '#94a3b8' }} />
-                          <RechartsTooltip cursor={{fill: 'rgba(59, 130, 246, 0.05)', radius: 12}} contentStyle={{ borderRadius: '12px', border: 'none' }} />
-                          <Bar 
-                            dataKey="students" 
-                            fill="url(#colorBar)" 
-                            radius={[12, 12, 0, 0]} 
-                            barSize={40}
-                          />
-                          <defs>
-                            <linearGradient id="colorBar" x1="0" y1="0" x2="0" y2="1">
-                              <stop offset="5%" stopColor="#ef4444" stopOpacity={0.8}/>
-                              <stop offset="95%" stopColor="#dc2626" stopOpacity={1}/>
-                            </linearGradient>
-                          </defs>
-                        </BarChart>
-                      </ResponsiveContainer>
-                    )}
+                     {isMounted && stats.deptPopulation?.length > 0 ? (
+                       <ResponsiveContainer width="100%" height={280}>
+                         <BarChart data={stats.deptPopulation}>
+                           <CartesianGrid strokeDasharray="3 3" vertical={false} opacity={0.1} />
+                           <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 10, fontWeight: 900, fill: '#94a3b8' }} />
+                           <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fontWeight: 900, fill: '#94a3b8' }} />
+                           <RechartsTooltip cursor={{fill: 'rgba(59, 130, 246, 0.05)', radius: 12}} contentStyle={{ borderRadius: '12px', border: 'none' }} />
+                           <Bar 
+                             dataKey="students" 
+                             fill="url(#colorBar)" 
+                             radius={[12, 12, 0, 0]} 
+                             barSize={40}
+                           />
+                           <defs>
+                             <linearGradient id="colorBar" x1="0" y1="0" x2="0" y2="1">
+                               <stop offset="5%" stopColor="#ef4444" stopOpacity={0.8}/>
+                               <stop offset="95%" stopColor="#dc2626" stopOpacity={1}/>
+                             </linearGradient>
+                           </defs>
+                         </BarChart>
+                       </ResponsiveContainer>
+                     ) : (
+                        <div className="h-full w-full flex items-center justify-center opacity-30 text-[10px] font-black uppercase tracking-widest italic">Awaiting Sector Statistics</div>
+                     )}
                  </div>
                </motion.div>
             </div>
@@ -342,6 +348,10 @@ const AdminDashboard = () => {
         ) : activeTab === 'results-hub' ? (
           <motion.div key="results" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
             <AdminResultHub user={user} />
+          </motion.div>
+        ) : activeTab === 'batch-finalization' ? (
+          <motion.div key="batch" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
+            <AdminBatchFinalization user={user} />
           </motion.div>
         ) : activeTab === 'system' ? (
           <motion.div key="system" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>

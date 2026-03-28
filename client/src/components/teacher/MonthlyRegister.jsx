@@ -11,10 +11,10 @@ import AdminStudentProfileModal from '../admin/AdminStudentProfileModal';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
-const MonthlyRegister = ({ user }) => {
+const MonthlyRegister = ({ user, initialSemester, initialCourse, onPersistChange }) => {
   const [courses, setCourses] = useState([]);
-  const [selectedCourse, setSelectedCourse] = useState(null);
-  const [semester, setSemester] = useState(1);
+  const [selectedCourse, setSelectedCourse] = useState(initialCourse);
+  const [semester, setSemester] = useState(initialSemester || 1);
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [students, setStudents] = useState([]);
   const [attendanceRecords, setAttendanceRecords] = useState([]);
@@ -36,13 +36,17 @@ const MonthlyRegister = ({ user }) => {
         const config = { headers: { Authorization: `Bearer ${user.token}` } };
         const res = await axios.get('http://localhost:5001/api/courses', config);
         setCourses(res.data);
-        if (res.data.length > 0) setSelectedCourse(res.data[0]);
+        if (res.data.length > 0 && !initialCourse && !initialSemester) {
+            setSelectedCourse(res.data[0]);
+            setSemester(res.data[0].semester);
+            onPersistChange(res.data[0].semester, res.data[0]);
+        }
       } catch (error) {
         console.error('Error fetching courses:', error);
       }
     };
     fetchCourses();
-  }, [user.token]);
+  }, [user.token, initialCourse, initialSemester]);
 
   // Fetch Students and Attendance for the selected month
   useEffect(() => {
@@ -234,7 +238,11 @@ const MonthlyRegister = ({ user }) => {
             <div className="flex flex-wrap items-center gap-3">
                <select 
                 value={semester} 
-                onChange={(e) => setSemester(Number(e.target.value))}
+                onChange={(e) => {
+                    const val = Number(e.target.value);
+                    setSemester(val);
+                    onPersistChange(val, selectedCourse);
+                }}
                 className="bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl px-4 py-2.5 text-[10px] font-black uppercase tracking-wider focus:ring-2 focus:ring-indigo-500 outline-none w-24 cursor-pointer text-gray-900 dark:text-white"
                >
                  {[1,2,3,4,5,6,7,8].map(s => <option key={s} value={s} className="dark:bg-gray-800">Sem {s}</option>)}
@@ -242,7 +250,11 @@ const MonthlyRegister = ({ user }) => {
 
                <select 
                 value={selectedCourse?.code || ''} 
-                onChange={(e) => setSelectedCourse(courses.find(c => c.code === e.target.value))}
+                onChange={(e) => {
+                    const course = courses.find(c => c.code === e.target.value);
+                    setSelectedCourse(course);
+                    onPersistChange(semester, course);
+                }}
                 className="bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl px-4 py-2.5 text-[10px] font-black uppercase tracking-wider focus:ring-2 focus:ring-indigo-500 outline-none cursor-pointer text-gray-900 dark:text-white"
                >
                  {courses.filter(c => c.semester === semester).map(c => (

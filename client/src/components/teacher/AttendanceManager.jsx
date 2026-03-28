@@ -9,12 +9,12 @@ import {
 import { motion, AnimatePresence } from 'framer-motion';
 import AdminStudentProfileModal from '../admin/AdminStudentProfileModal';
 
-const AttendanceManager = ({ user }) => {
+const AttendanceManager = ({ user, initialSemester, initialCourse, onPersistChange }) => {
   const [courses, setCourses] = useState([]);
-  const [selectedCourse, setSelectedCourse] = useState(null);
+  const [selectedCourse, setSelectedCourse] = useState(initialCourse);
   const [students, setStudents] = useState([]);
   const [attendanceDate, setAttendanceDate] = useState(new Date().toISOString().slice(0, 16)); // YYYY-MM-DDTHH:MM
-  const [semester, setSemester] = useState(1);
+  const [semester, setSemester] = useState(initialSemester || 1);
   const [attendanceEntries, setAttendanceEntries] = useState({}); // { studentId: status }
   const [remarks, setRemarks] = useState({}); // { studentId: remark }
   const [isLoading, setIsLoading] = useState(false);
@@ -37,15 +37,19 @@ const AttendanceManager = ({ user }) => {
         setCourses(fetchedCourses);
         
         if (fetchedCourses.length > 0) {
-          // If no subjects in semester 1, auto-select first available semester
-          const hasSem1 = fetchedCourses.some(c => c.semester === 1);
-          if (!hasSem1) {
-             const firstAvailable = [...fetchedCourses].sort((a,b) => a.semester - b.semester)[0];
-             setSemester(firstAvailable.semester);
-             setSelectedCourse(firstAvailable);
-          } else {
-             setSelectedCourse(fetchedCourses[0]);
-             setSemester(fetchedCourses[0].semester);
+          if (!initialCourse && !initialSemester) {
+            // Only auto-defaults if NO global state exists
+            const hasSem1 = fetchedCourses.some(c => c.semester === 1);
+            if (!hasSem1) {
+               const firstAvailable = [...fetchedCourses].sort((a,b) => a.semester - b.semester)[0];
+               setSemester(firstAvailable.semester);
+               setSelectedCourse(firstAvailable);
+               onPersistChange(firstAvailable.semester, firstAvailable);
+            } else {
+               setSelectedCourse(fetchedCourses[0]);
+               setSemester(fetchedCourses[0].semester);
+               onPersistChange(fetchedCourses[0].semester, fetchedCourses[0]);
+            }
           }
         }
       } catch (error) {
@@ -53,7 +57,7 @@ const AttendanceManager = ({ user }) => {
       }
     };
     if (user?.token) fetchCourses();
-  }, [user._id, user.token]);
+  }, [user._id, user.token, initialCourse, initialSemester]);
 
   useEffect(() => {
     const courseToUse = selectedCourse;
@@ -235,7 +239,11 @@ const AttendanceManager = ({ user }) => {
                 <span className="text-[10px] font-black text-gray-400 dark:text-gray-100 uppercase tracking-widest leading-none">Semester:</span>
                 <select 
                   value={semester} 
-                  onChange={(e) => setSemester(parseInt(e.target.value))}
+                  onChange={(e) => {
+                    const val = parseInt(e.target.value);
+                    setSemester(val);
+                    onPersistChange(val, selectedCourse);
+                  }}
                   className="bg-transparent border-none text-[11px] font-black text-gray-900 dark:text-white focus:ring-0 outline-none w-14 appearance-none cursor-pointer" 
                 >
                   {[1, 2, 3, 4, 5, 6, 7, 8].map(s => (
@@ -304,6 +312,7 @@ const AttendanceManager = ({ user }) => {
               {sidebarFilteredCourses.length > 0 ? sidebarFilteredCourses.map(course => (
                 <button key={course._id} onClick={() => {
                    setSelectedCourse(course);
+                   onPersistChange(semester, course);
                    if (viewMode === 'view') setViewMode('mark');
                 }}
                   className={`w-full text-left p-3 rounded-2xl transition-all border group ${selectedCourse?._id === course._id ? 'bg-indigo-50 dark:bg-indigo-900/40 border-indigo-200 dark:border-indigo-800 shadow-sm' : 'border-transparent hover:bg-gray-50 dark:hover:bg-gray-800'} ${course.isAuthorized === false ? 'opacity-50 grayscale-[0.4]' : ''}`}>

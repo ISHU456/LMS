@@ -17,8 +17,10 @@ import courseAccessRoutes from './routes/courseAccessRoutes.js';
 import adminRoutes from './routes/adminRoutes.js';
 import resultRoutes from './routes/resultRoutes.js';
 import codingContestRoutes from './routes/codingContestRoutes.js';
+import notificationRoutes from './routes/notificationRoutes.js';
 import Department from './models/Department.js';
 import Course from './models/Course.js';
+import SystemSettings from './models/SystemSettings.js';
 
 // Connect to Database
 connectDB().then(async () => {
@@ -92,6 +94,17 @@ app.use('/api/attendance', attendanceRoutes);
 app.use('/api/course-access', courseAccessRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/results', resultRoutes);
+app.use('/api/notifications', notificationRoutes);
+
+// PUBLIC SETTINGS
+app.get('/api/public/settings', async (req, res) => {
+    try {
+        const settings = await SystemSettings.findOne();
+        res.json(settings);
+    } catch (e) {
+        res.status(500).json({ message: e.message });
+    }
+});
 
 // Socket.io for Real-time features
 io.on('connection', (socket) => {
