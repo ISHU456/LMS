@@ -15,9 +15,18 @@ const RoleLogin = () => {
     name: '', email: '', password: '', role: finalRole,
     enrollmentNumber: '', employeeId: '', contact: '', dob: '', address: '',
     department: '', batch: '', year: '', semester: '',
-    securityQuestion: '', securityAnswer: '',
-    descriptors: [] // To store captured face patterns
+    securityQuestion: 'system_default', securityAnswer: 'system_default', // Bypass security question step
+    descriptors: [] 
   });
+
+  // Auto-generate Enrollment Number for students
+  useEffect(() => {
+    if (view === 'register' && finalRole === 'student' && !formData.enrollmentNumber) {
+      const yearPrefix = new Date().getFullYear().toString().slice(-2);
+      const randomId = Math.floor(100000 + Math.random() * 900000); // 6 digit random
+      setFormData(prev => ({ ...prev, enrollmentNumber: `LMS-${yearPrefix}-${randomId}` }));
+    }
+  }, [view, finalRole]);
 
   const dispatch = useDispatch();
   const navigate = useNavigate();
@@ -49,7 +58,13 @@ const RoleLogin = () => {
     
     if (isSuccess && user) {
       if (user.role === 'admin') navigate('/admin-dashboard');
-      else if (user.role === 'student') navigate('/dashboard');
+      else if (user.role === 'student') {
+        if (!user.faceRegistered) {
+          navigate('/face-registration', { state: { forced: true } });
+        } else {
+          navigate('/dashboard');
+        }
+      }
       else if (user.role === 'librarian') navigate('/librarian-dashboard');
       else if (user.role === 'hod') navigate('/hod-dashboard');
       else if (user.role === 'parent') navigate('/parent-dashboard');
@@ -59,15 +74,22 @@ const RoleLogin = () => {
 
   const handleChange = (e) => setFormData({ ...formData, [e.target.name]: e.target.value });
 
-  const handleLoginSubmit = (e) => {
+  const handleLoginSubmit = async (e) => {
     e.preventDefault();
-    dispatch(login({ email: formData.email, password: formData.password }));
+    try {
+      const res = await dispatch(login({ email: formData.email, password: formData.password })).unwrap();
+      if (res.requires2FA) {
+        navigate('/verify-mfa', { state: res });
+      }
+    } catch (err) {
+      console.error("Login Error:", err);
+    }
   };
 
 
   const handleRegisterSubmit = (e) => {
     e.preventDefault();
-    if (step < 3) { setStep(step + 1); return; }
+    if (step < 2) { setStep(step + 1); return; }
     dispatch(register(formData));
   };
   
@@ -139,7 +161,7 @@ const RoleLogin = () => {
               <motion.form key="register" variants={formVariants} initial="hidden" animate="visible" exit="exit" className="space-y-6" onSubmit={handleRegisterSubmit}>
                 <div className="flex justify-between mb-8 relative">
                   <div className="absolute top-1/2 left-0 w-full h-1 bg-gray-200 dark:bg-gray-700 -z-10 -translate-y-1/2 rounded-full"></div>
-                  {[1, 2, 3].map((s) => (
+                  {[1, 2].map((s) => (
                     <div key={s} className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm transition-all shadow-md ${step >= s ? 'bg-primary-600 text-white border-4 border-white dark:border-dark-bg' : 'bg-gray-200 text-gray-500 dark:bg-gray-800 dark:text-gray-400'}`}>
                       {step > s ? <BookOpen size={16} /> : s}
                     </div>
@@ -187,27 +209,14 @@ const RoleLogin = () => {
                   </div>
                 )}
 
-                {step === 3 && (
-                  <div className="space-y-4">
-                    <select name="securityQuestion" value={formData.securityQuestion} onChange={handleChange} required className="w-full rounded-xl px-4 py-3 border border-gray-300 dark:border-gray-700 bg-white/50 dark:bg-dark-card/50 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500 outline-none">
-                      <option value="">Select a Security Question</option>
-                      <option value="What is your mother's maiden name?">What is your mother's maiden name?</option>
-                      <option value="What was the name of your first pet?">What was the name of your first pet?</option>
-                      <option value="In what city were you born?">In what city were you born?</option>
-                    </select>
-                    <div className="relative group">
-                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400"><KeyRound size={20} /></div>
-                      <input type="text" name="securityAnswer" value={formData.securityAnswer} onChange={handleChange} required className="appearance-none rounded-xl block w-full px-3 py-3 pl-10 border border-gray-300 dark:border-gray-700 bg-white/50 dark:bg-dark-card/50 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500 outline-none" placeholder="Security Answer" />
-                    </div>
-                  </div>
-                )}
+                {/* Removed Step 3 Security Question */}
 
                 <div className="flex gap-4 pt-2">
                   {step > 1 && (
                     <button type="button" onClick={() => setStep(step - 1)} className="w-1/3 py-3 border border-gray-300 dark:border-gray-700 text-sm font-bold rounded-xl text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition">Back</button>
                   )}
                   <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} type="submit" disabled={isLoading} className="flex-1 flex justify-center py-3 border border-transparent text-sm font-bold rounded-xl text-white bg-primary-600 hover:bg-primary-700 shadow-lg shadow-primary-500/30">
-                    {step < 3 ? 'Next Step' : isLoading ? 'Registering...' : <><UserPlus className="mr-2" size={20} /> Complete Registration</>}
+                    {step < 2 ? 'Next Step' : isLoading ? 'Registering...' : <><UserPlus className="mr-2" size={20} /> Complete Registration</>}
                   </motion.button>
                 </div>
                 

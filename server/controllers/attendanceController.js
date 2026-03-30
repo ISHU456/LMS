@@ -101,7 +101,22 @@ export const getCourseAttendance = async (req, res) => {
       .populate('student', 'name rollNumber profilePic enrollmentNumber')
       .sort({ date: -1 });
 
-    res.status(200).json(attendanceRecords);
+    // NEW: If we are looking at a specific date, also fetch DailyAttendance for these students
+    let dailyRecords = [];
+    if (startDate === endDate && startDate) {
+      const DailyAttendance = (await import('../models/DailyAttendance.js')).default;
+      const s = new Date(startDate);
+      s.setHours(0, 0, 0, 0);
+      const dayStart = s;
+      const dayEnd = new Date(s);
+      dayEnd.setHours(23, 59, 59, 999);
+      
+      dailyRecords = await DailyAttendance.find({
+        date: { $gte: dayStart, $lte: dayEnd }
+      });
+    }
+
+    res.status(200).json({ attendanceRecords, dailyRecords });
   } catch (error) {
     res.status(500).json({ message: 'Server error', error: error.message });
   }
@@ -265,5 +280,54 @@ export const getClassroomAttendance = async (req, res) => {
     res.status(200).json({ students, records, year: targetYear, month: targetMonth });
   } catch (error) {
     res.status(500).json({ message: 'Server error', error: error.message });
+  }
+};
+
+// @desc    Get face descriptions for all students in a course (for Teacher's Live Scan)
+// @route   GET /api/attendance/course/:courseId/face-data
+// @access  Teacher
+export const getClassFaceData = async (req, res) => {
+  try {
+    const { courseId } = req.params;
+    const { semester } = req.query;
+
+    const course = await Course.findById(courseId);
+    if (!course) return res.status(404).json({ message: 'Course not found' });
+
+    // Find all students in this same class context
+    const students = await User.find({ 
+      role: 'student', 
+      semester: Number(semester || course.semester),
+      department: course.department
+    }).select('_id name rollNumber');
+
+    const studentIds = students.map(s => s._id);
+
+    // Dynamic import to avoid circular dependencies if any
+    const UserFace = (await import('../models/UserFace.js')).default;
+    const { decryptDescriptors } = await import('../utils/crypto.js');
+
+    const faceDatas = await UserFace.find({ user: { $in: studentIds } });
+    
+    const results = students.map(student => {
+      const faceMatch = faceDatas.find(f => f.user.toString() === student._id.toString());
+      if (!faceMatch) return null;
+      
+      try {
+        const descriptors = decryptDescriptors(faceMatch.encryptedDescriptors);
+        return {
+          studentId: student._id,
+          name: student.name,
+          rollNumber: student.rollNumber,
+          descriptors
+        };
+      } catch (err) {
+        return null;
+      }
+    }).filter(Boolean);
+
+    res.json(results);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
   }
 };

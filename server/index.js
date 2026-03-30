@@ -18,6 +18,7 @@ import adminRoutes from './routes/adminRoutes.js';
 import resultRoutes from './routes/resultRoutes.js';
 import codingContestRoutes from './routes/codingContestRoutes.js';
 import notificationRoutes from './routes/notificationRoutes.js';
+import mfaRoutes from './routes/mfaRoutes.js';
 import Department from './models/Department.js';
 import Course from './models/Course.js';
 import SystemSettings from './models/SystemSettings.js';
@@ -62,7 +63,8 @@ const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
 const io = new Server(httpServer, {
   cors: {
     origin: frontendUrl,
-    methods: ["GET", "POST"]
+    methods: ["GET", "POST"],
+    credentials: true
   },
 });
 
@@ -95,6 +97,7 @@ app.use('/api/course-access', courseAccessRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/results', resultRoutes);
 app.use('/api/notifications', notificationRoutes);
+app.use('/api/mfa', mfaRoutes);
 
 // PUBLIC SETTINGS
 app.get('/api/public/settings', async (req, res) => {

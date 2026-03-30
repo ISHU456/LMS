@@ -12,6 +12,7 @@ const CourseHeader = ({
   gamificationState,
   onlineStudents,
   isTeacher,
+  canManage,
   navigate
 }) => {
   return (
@@ -75,7 +76,7 @@ const CourseHeader = ({
          <Link to="/community" className="w-12 h-12 flex items-center justify-center bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-2xl hover:bg-primary-600 hover:text-white transition-all shadow-xl">
             <Megaphone size={20}/>
          </Link>
-         {isTeacher && (
+         {canManage && (
            <button 
              onClick={() => navigate(`/live-class/${courseId}`)}
              className="flex items-center gap-2 rounded-2xl bg-rose-500/10 text-rose-600 hover:bg-rose-500 hover:text-white px-4 py-3 font-black text-[10px] uppercase tracking-widest transition-all h-12"

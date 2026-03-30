@@ -31,6 +31,10 @@ const notificationSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
+    popupActive: {
+      type: Boolean,
+      default: true,
+    },
   },
   {
     timestamps: true,

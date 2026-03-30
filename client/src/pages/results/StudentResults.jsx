@@ -1,177 +1,179 @@
 import React, { useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { getMyResults } from '../../features/results/resultSlice';
-import { motion } from 'framer-motion';
-import { Download, Award, BookOpen, GraduationCap, TrendingUp, FileText } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Download, Award, BookOpen, GraduationCap, TrendingUp, FileText, Globe, ShieldCheck, Lock } from 'lucide-react';
 import jsPDF from 'jspdf';
-import 'jspdf-autotable';
+import autoTable from 'jspdf-autotable';
 
 const StudentResults = () => {
   const dispatch = useDispatch();
-  const { studentResults, isLoading } = useSelector(state => state.results);
   const { user } = useSelector(state => state.auth);
+  const { studentResults, isLoading } = useSelector(state => state.results);
 
   useEffect(() => {
     dispatch(getMyResults());
   }, [dispatch]);
 
-  const generatePDF = () => {
-    const doc = new jsPDF();
-    
-    // Header
-    doc.setFontSize(22);
-    doc.setTextColor(44, 62, 80);
-    doc.text('ACADEMIC MARKSHEET', 105, 20, { align: 'center' });
-    
-    doc.setFontSize(12);
-    doc.setTextColor(100);
-    doc.text(`Student Name: ${user.name}`, 20, 40);
-    doc.text(`Roll Number: ${user.rollNumber || 'N/A'}`, 20, 48);
-    doc.text(`Enrollment: ${user.enrollmentNumber || 'N/A'}`, 20, 56);
-    doc.text(`Semester: ${user.semester}`, 140, 40);
-    doc.text(`Batch: ${user.batch || '2023-27'}`, 140, 48);
-
-    // Table
-    const tableData = (studentResults?.results || []).map(r => [
-      r.course?.code || 'N/A',
-      r.course?.name || 'N/A',
-      r.marks?.mst1 || 0,
-      r.marks?.mst2 || 0,
-      r.marks?.mst3 || 0,
-      r.marks?.endSem || 0,
-      r.totalMarks || 0,
-      r.grade || 'F'
-    ]);
-
-    doc.autoTable({
-      startY: 70,
-      head: [['Code', 'Subject', 'MST1', 'MST2', 'MST3', 'EndSem', 'Total', 'Grade']],
-      body: tableData,
-      theme: 'grid',
-      headStyles: { fillColor: [41, 128, 185] },
-    });
-
-    // Summary
-    const finalY = doc.lastAutoTable.finalY + 20;
-    doc.setFontSize(14);
-    doc.text(`SGPA: ${studentResults.sgpa}`, 20, finalY);
-    doc.text(`Total Credits: ${studentResults.totalCredits}`, 140, finalY);
-
-    doc.save(`Marksheet_${user.name}_Sem${user.semester}.pdf`);
-  };
-
-  if (isLoading) return <div className="p-8 text-center text-white">Loading results...</div>;
+  if (isLoading) return (
+    <div className="flex items-center justify-center min-h-[60vh]">
+        <motion.div 
+            animate={{ rotate: 360 }}
+            transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+            className="w-10 h-10 border-4 border-indigo-500 border-t-transparent rounded-full"
+        />
+    </div>
+  );
 
   return (
-    <div className="min-h-screen bg-slate-950 text-white p-4 md:p-8">
-      <motion.div 
-        initial={{ opacity: 0, scale: 0.95 }}
-        animate={{ opacity: 1, scale: 1 }}
-        className="max-w-5xl mx-auto"
-      >
-        <div className="flex justify-between items-center mb-12">
-          <div>
-            <h1 className="text-4xl font-black italic tracking-tighter text-white uppercase">
-              Academic <span className="text-blue-500">Performance</span>
-            </h1>
-            <p className="text-slate-400 mt-2 font-medium">Semester {user.semester} Overview</p>
-          </div>
-          <button 
-            onClick={generatePDF}
-            className="group px-6 py-3 bg-white text-slate-950 rounded-2xl font-bold flex items-center gap-2 hover:bg-slate-200 transition-all shadow-2xl shadow-white/10 active:scale-95"
+    <div className="max-w-[1400px] mx-auto p-4 sm:p-8 space-y-8 pb-20">
+      {/* Dynamic Alert Banner */}
+      {studentResults?.message && (
+          <motion.div 
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="bg-indigo-600/10 border border-indigo-500/20 p-6 rounded-[2rem] flex items-center justify-between gap-6"
           >
-            <Download size={20} className="group-hover:bounce" />
-            Download Marksheet
-          </button>
-        </div>
-
-        {/* Stats Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
-          <motion.div whileHover={{ y: -5 }} className="bg-gradient-to-br from-blue-600/20 to-indigo-600/20 p-8 rounded-3xl border border-blue-500/20 backdrop-blur-3xl relative overflow-hidden group">
-            <div className="absolute top-0 right-0 w-24 h-24 bg-blue-500/10 rounded-bl-full group-hover:bg-blue-500/20 transition-all" />
-            <TrendingUp className="text-blue-400 mb-4" size={32} />
-            <h3 className="text-slate-400 uppercase text-xs font-bold tracking-widest mb-1">Current SGPA</h3>
-            <p className="text-5xl font-black text-white">{studentResults.sgpa}</p>
-          </motion.div>
-
-          <motion.div whileHover={{ y: -5 }} className="bg-gradient-to-br from-purple-600/20 to-pink-600/20 p-8 rounded-3xl border border-purple-500/20 backdrop-blur-3xl relative overflow-hidden group">
-            <div className="absolute top-0 right-0 w-24 h-24 bg-purple-500/10 rounded-bl-full group-hover:bg-purple-500/20 transition-all" />
-            <Award className="text-purple-400 mb-4" size={32} />
-            <h3 className="text-slate-400 uppercase text-xs font-bold tracking-widest mb-1">Total Credits</h3>
-            <p className="text-5xl font-black text-white">{studentResults.totalCredits}</p>
-          </motion.div>
-
-          <motion.div whileHover={{ y: -5 }} className="bg-gradient-to-br from-orange-600/20 to-amber-600/20 p-8 rounded-3xl border border-orange-500/20 backdrop-blur-3xl relative overflow-hidden group">
-            <div className="absolute top-0 right-0 w-24 h-24 bg-orange-500/10 rounded-bl-full group-hover:bg-orange-500/20 transition-all" />
-            <GraduationCap className="text-orange-400 mb-4" size={32} />
-            <h3 className="text-slate-400 uppercase text-xs font-bold tracking-widest mb-1">Academic Standing</h3>
-            <p className="text-5xl font-black text-white">{studentResults.sgpa >= 3.5 ? 'Elite' : studentResults.sgpa >= 3 ? 'Good' : 'Standard'}</p>
-          </motion.div>
-        </div>
-
-        {/* Results List */}
-        <div className="space-y-4">
-          <h2 className="text-2xl font-bold mb-6 flex items-center gap-3">
-            <BookOpen className="text-blue-500" />
-            Subject Breakdown
-          </h2>
-          
-          {(studentResults?.results || []).map((r, idx) => (
-            <motion.div 
-              key={r._id}
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: idx * 0.1 }}
-              className="bg-slate-900/50 p-6 rounded-2xl border border-slate-800 flex flex-col md:flex-row justify-between items-center gap-6 hover:border-slate-700 transition-all"
-            >
-              <div className="flex items-center gap-6">
-                <div className="w-16 h-16 bg-slate-800 rounded-2xl flex items-center justify-center font-bold text-xl text-blue-400 border border-slate-700">
-                  {r.grade}
+            <div className="flex items-center gap-4">
+                <div className="p-3 bg-indigo-500 text-white rounded-2xl shadow-lg shadow-indigo-500/20">
+                    <ShieldCheck size={24} />
                 </div>
                 <div>
-                  <h4 className="text-xl font-bold">{r.course.name}</h4>
-                  <p className="text-slate-500 text-sm font-medium uppercase tracking-wider">{r.course.code} • {r.course.credits} Credits</p>
+                   <h3 className="text-sm font-black text-indigo-600 dark:text-indigo-400 uppercase tracking-widest leading-none">Institutional Protocol</h3>
+                   <p className="text-xs font-bold text-gray-400 mt-1 uppercase tracking-tighter italic">{studentResults.message}</p>
                 </div>
-              </div>
-
-              <div className="flex gap-8 items-center bg-black/20 px-8 py-3 rounded-2xl border border-slate-800/50">
-                <div className="text-center">
-                  <p className="text-[10px] text-slate-500 uppercase font-black tracking-widest mb-1">MST (Best 1)</p>
-                  <p className="font-bold text-slate-300">
-                    {(() => {
-                      return Math.max(Number(r.marks.mst1 || 0), Number(r.marks.mst2 || 0), Number(r.marks.mst3 || 0));
-                    })()}
-                  </p>
-                </div>
-                <div className="w-px h-8 bg-slate-800" />
-                <div className="text-center">
-                  <p className="text-[10px] text-slate-500 uppercase font-black tracking-widest mb-1">End Sem</p>
-                  <p className="font-bold text-slate-300">
-                    {r.marks.endSem || 0}
-                  </p>
-                </div>
-                <div className="w-px h-8 bg-slate-800" />
-                <div className="text-center">
-                  <p className="text-[10px] text-slate-500 uppercase font-black tracking-widest mb-1">Total</p>
-                  <p className="font-black text-2xl text-white">
-                    {r.totalMarks}
-                  </p>
-                </div>
-              </div>
-            </motion.div>
-          ))}
-
-          {(!studentResults?.results || studentResults.results.length === 0) && (
-            <div className="p-20 text-center bg-slate-900/50 rounded-3xl border border-dashed border-slate-800">
-              <div className="bg-slate-800 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6">
-                <FileText className="text-slate-500" size={32} />
-              </div>
-              <p className="text-slate-400 font-medium">{studentResults.message || 'No results published yet for this semester.'}</p>
-              <p className="text-slate-600 text-sm mt-2">Check back after exams or contact your department.</p>
             </div>
-          )}
+            
+            {studentResults?.pdfUrl && (
+                <a 
+                  href={studentResults.pdfUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  download={`${user.rollNumber}_Sem${user.semester}.pdf`}
+                  className="px-6 py-4 bg-emerald-600 hover:bg-emerald-500 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-xl shadow-emerald-500/20 transition-all flex items-center gap-2 shrink-0 animate-pulse"
+                >
+                  <Download size={16} /> Download Official Transcript
+                </a>
+            )}
+          </motion.div>
+      )}
+
+      {/* Grid Layout */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        {/* Left: Summary Metrics */}
+        <div className="lg:col-span-1 space-y-6">
+          <div className="p-10 bg-slate-900 border border-slate-800 rounded-[3rem] relative overflow-hidden group">
+            <TrendingUp className="absolute -right-4 -top-4 text-slate-800/20 w-48 h-48 -rotate-12 transition-all duration-500 group-hover:scale-110 group-hover:text-indigo-500/10" />
+            <span className="text-[10px] font-black text-indigo-400 uppercase tracking-widest mb-4 block">Semester GPA</span>
+            <div className="flex items-baseline gap-2">
+              <span className="text-7xl font-black text-white tracking-tighter">
+                {typeof studentResults?.sgpa === 'number' ? studentResults.sgpa.toFixed(2) : (studentResults?.sgpa || '0.00')}
+              </span>
+              <span className="text-slate-500 font-black text-sm uppercase">Points</span>
+            </div>
+          </div>
+
+          <div className="p-10 bg-white dark:bg-slate-900 border border-gray-100 dark:border-slate-800 rounded-[3rem] shadow-xl relative overflow-hidden">
+             {!studentResults?.pdfUrl && (
+                <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-md flex flex-col items-center justify-center text-center p-6 z-10">
+                   <Lock className="text-indigo-500 mb-4" size={48} />
+                   <h4 className="text-white font-black uppercase text-xs tracking-widest">Transcript Locked</h4>
+                   <p className="text-[9px] text-slate-400 font-black uppercase tracking-tighter mt-2">Certified PDF is pending administrative archival.</p>
+                </div>
+             )}
+             <div className="flex flex-col gap-4">
+                {studentResults?.pdfUrl ? (
+                   <a 
+                     href={studentResults.pdfUrl}
+                     target="_blank"
+                     rel="noreferrer"
+                     className="w-full p-6 bg-emerald-600 text-white rounded-[2rem] font-black text-xs uppercase tracking-widest flex items-center justify-center gap-3 transition-all hover:scale-[1.02] shadow-2xl"
+                   >
+                     <Globe size={20} /> View Cloud Record
+                   </a>
+                ) : (
+                   <div className="w-full p-6 bg-slate-800 text-slate-500 rounded-[2rem] font-black text-xs uppercase tracking-widest flex items-center justify-center gap-3 cursor-not-allowed">
+                     <Download size={20} /> Marksheet Unavailable
+                   </div>
+                )}
+                <div className="grid grid-cols-2 gap-4">
+                   <div className="p-4 bg-indigo-500/10 rounded-2xl border border-indigo-500/10">
+                      <p className="text-[8px] font-black text-indigo-500 uppercase mb-1">Credits Earned</p>
+                      <p className="text-xl font-black text-indigo-600 dark:text-indigo-400">{studentResults?.totalCredits || 0}</p>
+                   </div>
+                   <div className="p-4 bg-emerald-500/10 rounded-2xl border border-emerald-500/10">
+                      <p className="text-[8px] font-black text-emerald-500 uppercase mb-1">Status</p>
+                      <p className="text-xl font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-tighter text-[14px]">
+                        {studentResults?.isPublished ? 'Published' : 'Preview'}
+                      </p>
+                   </div>
+                </div>
+             </div>
+          </div>
         </div>
-      </motion.div>
+
+        {/* Right: Detailed Breakdown */}
+        <div className="lg:col-span-2">
+          <div className="bg-white dark:bg-slate-900 border border-gray-100 dark:border-slate-800 rounded-[3rem] shadow-xl overflow-hidden p-4">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-separate border-spacing-0">
+                <thead>
+                  <tr>
+                    <th className="p-6 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Course Name</th>
+                    <th className="p-6 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] text-center">Credit</th>
+                    <th className="p-6 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] text-center">Marks</th>
+                    <th className="p-6 text-center text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Grade</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-50 dark:divide-slate-800">
+                  {studentResults?.results?.length > 0 ? (
+                    studentResults.results.map((r, idx) => (
+                      <motion.tr 
+                        key={r._id || idx}
+                        initial={{ opacity: 0, x: -10 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: idx * 0.05 }}
+                        className="hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-all"
+                      >
+                        <td className="p-6">
+                           <div>
+                              <p className="text-xs font-black dark:text-white uppercase tracking-tighter">{r.course?.name}</p>
+                              <p className="text-[10px] font-bold text-slate-500">{r.course?.code}</p>
+                           </div>
+                        </td>
+                        <td className="p-6 text-center text-xs font-black text-slate-600 dark:text-slate-400">{r.course?.credits || 4}</td>
+                        <td className="p-6 text-center text-xs font-black text-slate-900 dark:text-white">{(r.totalMarks || 0).toFixed(1)}</td>
+                        <td className="p-6">
+                          <div className="flex justify-center text-[10px] font-black">
+                            <span className={`px-4 py-1.5 rounded-lg border uppercase tracking-widest ${
+                              ['A', 'B'].includes(r.grade?.charAt(0)) ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20' :
+                              r.grade === 'F' ? 'bg-red-500/10 text-red-500 border-red-500/20' :
+                              'bg-amber-500/10 text-amber-500 border-amber-500/20'
+                            }`}>
+                              {r.grade || 'NA'}
+                            </span>
+                          </div>
+                        </td>
+                      </motion.tr>
+                    ))
+                  ) : (
+                    <tr>
+                      <td colSpan="4" className="p-20">
+                        <div className="flex flex-col items-center justify-center text-center opacity-40">
+                           <FileText size={48} className="mb-4 text-indigo-500" />
+                           <p className="text-[10px] font-black uppercase tracking-[0.3em] max-w-[200px]">
+                              Institutional results are currently traversing the certification protocol. 
+                           </p>
+                        </div>
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   );
 };

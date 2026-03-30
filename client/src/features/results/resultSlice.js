@@ -144,7 +144,6 @@ export const resultSlice = createSlice({
       .addCase(saveMarks.fulfilled, (state, action) => {
         state.isLoading = false;
         state.isSuccess = true;
-        // Merge saved results back into the list
         const updatedSaved = action.payload.results || [];
         state.results = state.results.map(student => {
           const match = updatedSaved.find(r => r.student.toString() === student._id.toString());
@@ -161,6 +160,15 @@ export const resultSlice = createSlice({
           }
           return student;
         });
+      })
+      .addCase(submitMarksForApproval.fulfilled, (state) => {
+        state.isLoading = false;
+        state.isSuccess = true;
+        state.results = state.results.map(student => ({
+          ...student,
+          status: 'submitted',
+          isLocked: true
+        }));
       })
       .addMatcher(
         (action) => action.type.endsWith('/pending'),

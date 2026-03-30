@@ -1,8 +1,19 @@
 import express from 'express';
 import multer from 'multer';
 import { storage } from '../config/cloudinary.js';
-import { getCourses, createCourse, getCourseByCode, updateCourseSchedule, uploadTimetableImage, getCourseStudents, removeStudentFromCourse, toggleAutoRestrict, updateCourseDeadline } from '../controllers/courseController.js';
-import { protect, admin, teacher } from '../middlewares/authMiddleware.js';
+import { 
+  getCourses, 
+  createCourse, 
+  getCourseByCode, 
+  updateCourseSchedule, 
+  uploadTimetableImage, 
+  getCourseStudents, 
+  removeStudentFromCourse, 
+  toggleAutoRestrict, 
+  updateCourseDeadline,
+  incrementCourseViews
+} from '../controllers/courseController.js';
+import { protect, admin } from '../middlewares/authMiddleware.js';
 import { isCourseTeacher } from '../middlewares/courseAuth.js';
 
 const router = express.Router();
@@ -16,6 +27,7 @@ router.delete('/:code/students/:studentId', protect, isCourseTeacher, removeStud
 router.put('/:code/schedule', protect, isCourseTeacher, updateCourseSchedule);
 router.put('/:code/auto-restrict', protect, isCourseTeacher, toggleAutoRestrict);
 router.put('/:code/deadline', protect, isCourseTeacher, updateCourseDeadline);
+router.patch('/:code/view', protect, incrementCourseViews);
 router.post('/:code/schedule/image', protect, isCourseTeacher, upload.single('file'), uploadTimetableImage);
 
 export default router;

@@ -7,6 +7,8 @@ import Submission from '../models/Submission.js';
 import generateToken from '../utils/generateToken.js';
 import { cloudinary } from '../config/cloudinary.js';
 import mongoose from 'mongoose';
+import MFASession from '../models/MFASession.js';
+import crypto from 'crypto';
 
 // Verify college email domain helper
 const isValidCollegeEmail = (email) => {
@@ -75,11 +77,38 @@ export const loginUser = async (req, res) => {
     if (user && (await user.matchPassword(password))) {
       if (!user.isActive) return res.status(403).json({ message: 'Account deactivated.' });
       
+      if (user.faceRegistered) {
+        const tempTokenRaw = crypto.randomBytes(32).toString('hex');
+        const hashedToken = crypto.createHash('sha256').update(tempTokenRaw).digest('hex');
+        const expiresAt = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes
+
+        await MFASession.create({
+          user: user._id,
+          tempToken: hashedToken,
+          expiresAt
+        });
+
+        return res.json({
+          requires2FA: true,
+          tempToken: tempTokenRaw,
+          userId: user._id,
+          message: 'Face verification required'
+        });
+      }
+
       res.json({
-        _id: user._id, name: user.name, email: user.email, role: user.role,
-        department: user.department, assignedSemesters: user.assignedSemesters,
-        semester: user.semester, enrollmentNumber: user.enrollmentNumber, batch: user.batch,
-        profilePic: user.profilePic, token: generateToken(user._id),
+        _id: user._id, 
+        name: user.name, 
+        email: user.email, 
+        role: user.role,
+        department: user.department, 
+        assignedSemesters: user.assignedSemesters,
+        semester: user.semester, 
+        enrollmentNumber: user.enrollmentNumber, 
+        batch: user.batch,
+        profilePic: user.profilePic, 
+        faceRegistered: !!user.faceRegistered, // Force boolean
+        token: generateToken(user._id),
       });
     } else {
       res.status(401).json({ message: 'Invalid email or password' });

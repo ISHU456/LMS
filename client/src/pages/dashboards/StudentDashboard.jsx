@@ -2,7 +2,8 @@ import { useEffect, useMemo, useState } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
-import { useSelector } from 'react-redux';
+import { useSelector, useDispatch } from 'react-redux';
+import { updateProfile } from '../../features/auth/authSlice';
 import {
   Brain,
   BookOpen,
@@ -33,6 +34,7 @@ import { getCourseProgressSummary, getTodayKey } from '../../utils/gamificationS
 
 const StudentDashboard = () => {
   const { user } = useSelector((state) => state.auth);
+  const dispatch = useDispatch();
   const navigate = useNavigate();
 
   const studentId = user?._id;
@@ -41,6 +43,7 @@ const StudentDashboard = () => {
   const [activeTab, setActiveTab] = useState(() => localStorage.getItem('student_active_tab') || 'overview');
   const [isLoading, setIsLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
+  const [selectedSem, setSelectedSem] = useState(() => Number(localStorage.getItem('student_selected_sem')) || user?.semester || 1);
   const [leaderboardSem, setLeaderboardSem] = useState(() => localStorage.getItem('student_leaderboard_sem') || user?.semester || 'All');
 
   useEffect(() => {
@@ -50,6 +53,10 @@ const StudentDashboard = () => {
   useEffect(() => {
     localStorage.setItem('student_leaderboard_sem', leaderboardSem);
   }, [leaderboardSem]);
+
+  useEffect(() => {
+    localStorage.setItem('student_selected_sem', selectedSem);
+  }, [selectedSem]);
   const [isMounted, setIsMounted] = useState(false);
   const itemsPerPage = 25;
 
@@ -66,8 +73,23 @@ const StudentDashboard = () => {
   useEffect(() => {
     setIsLoading(true);
     const timer = setTimeout(() => setIsLoading(false), 500);
+    
+    // Sync latest profile data on mount to ensure semester/details are fresh
+    const syncProfile = async () => {
+       try {
+          const config = { headers: { Authorization: `Bearer ${user.token}` } };
+          const res = await axios.get('http://localhost:5001/api/auth/profile', config);
+          if (res.data) {
+             dispatch(updateProfile(res.data));
+          }
+       } catch (err) {
+          console.error("Profile sync failed", err);
+       }
+    };
+    if (user?.token) syncProfile();
+
     return () => clearTimeout(timer);
-  }, [activeTab]);
+  }, [activeTab, user?.token, dispatch]);
 
   useEffect(() => {
     let cancelled = false;
@@ -77,9 +99,9 @@ const StudentDashboard = () => {
         const config = { headers: { Authorization: `Bearer ${user.token}` } };
         const res = await axios.get(`http://localhost:5001/api/courses`, config);
         
-        // Filter by student's semester and department
+        // Filter by selected semester and department
         const studentCourses = res.data.filter(c => 
-          c.semester === user?.semester && 
+          c.semester === selectedSem && 
           (c.department?.name === user?.department || c.department?.code === user?.department)
         ).map(c => ({
           id: c.code,
@@ -128,7 +150,7 @@ const StudentDashboard = () => {
       cancelled = true;
       clearInterval(interval);
     };
-  }, [user?._id, user?.token, user?.semester, user?.department]);
+  }, [user?._id, user?.token, selectedSem, user?.department]);
 
   const fetchLeaderboard = async () => {
     try {
@@ -465,8 +487,52 @@ const StudentDashboard = () => {
                 <p className="text-gray-600 dark:text-gray-300 mt-1 font-semibold flex items-center gap-2">
                   Welcome back, <span className="uppercase font-extrabold text-primary-600 dark:text-primary-400">{user?.name?.split(' ')[0] || 'Student'}</span>
                   <span className="w-1.5 h-1.5 rounded-full bg-gray-300 dark:bg-gray-700" />
-                  <span className="text-gray-500 dark:text-gray-400 text-sm font-black uppercase tracking-widest bg-gray-100 dark:bg-gray-800 px-2 py-0.5 rounded-lg border border-gray-200 dark:border-gray-700">ACTIVE SEMESTER: {user?.semester || 'N/A'}</span>
+                  <div className="flex items-center bg-gray-100 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
+                    <select 
+                      value={selectedSem} 
+                      onChange={(e) => setSelectedSem(Number(e.target.value))}
+                      className="text-gray-500 dark:text-gray-400 text-[10px] font-black uppercase tracking-widest bg-transparent px-3 py-1 outline-none cursor-pointer border-r border-gray-100 dark:border-gray-700"
+                    >
+                      {[1,2,3,4,5,6,7,8].map(s => <option key={s} value={s} className="dark:bg-gray-900">Semester {s}</option>)}
+                    </select>
+                    <div className="px-3 py-1 flex items-center gap-2">
+                       {selectedSem < user?.semester ? (
+                         <>
+                           <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                           <span className="text-emerald-500 text-[9px] font-black uppercase tracking-widest">Completed</span>
+                         </>
+                       ) : selectedSem === user?.semester ? (
+                         <>
+                           <div className="w-1.5 h-1.5 rounded-full bg-primary-600 animate-pulse" />
+                           <span className="text-primary-600 text-[9px] font-black uppercase tracking-widest italic">Active Duty</span>
+                         </>
+                       ) : (
+                         <>
+                           <div className="w-1.5 h-1.5 rounded-full bg-gray-400" />
+                           <span className="text-gray-400 text-[9px] font-black uppercase tracking-widest">Future Phase</span>
+                         </>
+                       )}
+                    </div>
+                  </div>
                 </p>
+                {!user?.faceRegistered && (
+                  <div className="mt-4 p-3 bg-blue-500/10 border border-blue-500/20 rounded-2xl flex items-center justify-between gap-4">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 bg-blue-500 text-white rounded-xl shadow-lg shadow-blue-500/20">
+                         <Target size={18} />
+                      </div>
+                      <div className="text-xs font-bold text-blue-700 dark:text-blue-400">
+                        Biometric registration pending. Secure your account and enable self-attendance.
+                      </div>
+                    </div>
+                    <button 
+                      onClick={() => navigate('/face-registration')}
+                      className="whitespace-nowrap bg-blue-600 hover:bg-blue-700 text-white text-[10px] font-black uppercase tracking-widest px-4 py-2 rounded-xl transition-all shadow-md active:scale-95"
+                    >
+                      Setup Now
+                    </button>
+                  </div>
+                )}
               </div>
 
               <div className="flex items-center gap-3">
@@ -565,6 +631,24 @@ const StudentDashboard = () => {
                 Jump to Quiz Arena
               </button>
             </div>
+            
+            {selectedSem < user?.semester && (
+              <div className="mt-4 p-4 rounded-2xl bg-emerald-500/5 border border-emerald-500/10 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-xl bg-emerald-500 text-white flex items-center justify-center shadow-lg shadow-emerald-500/20">
+                    <CheckCircle2 size={16} />
+                  </div>
+                  <div>
+                    <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-600">Semester Terminus Reached</h4>
+                    <p className="text-[9px] font-black text-gray-500 uppercase tracking-widest mt-0.5">Historical verification view active. Record sector frozen post-grading.</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 bg-emerald-500/10 text-emerald-600 px-3 py-1.5 rounded-xl border border-emerald-500/20">
+                   <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                   <span className="text-[9px] font-black uppercase tracking-widest italic">Status: COMPLETED</span>
+                </div>
+              </div>
+            )}
           </motion.div>
         </header>
 
@@ -733,12 +817,22 @@ const StudentDashboard = () => {
                               <div className="text-3xl font-extrabold text-gray-900 dark:text-white">{card.summary.progressPercentage}%</div>
                               <div className="text-[10px] font-black uppercase tracking-widest text-gray-500 dark:text-gray-400 mt-1">Captured</div>
                             </div>
-                            <button
-                              onClick={() => !isBlocked && navigate(`/course-inner/${card.course.id}`)}
-                              className={`px-4 py-2 rounded-2xl font-black text-xs uppercase tracking-widest transition shadow-md ${isBlocked ? 'bg-gray-200 text-gray-400 cursor-not-allowed' : 'bg-primary-600 text-white hover:opacity-90 shadow-primary-500/20'}`}
-                            >
-                              {isBlocked ? 'Access Denied' : 'Open Course'}
-                            </button>
+                            <div className="flex items-center gap-2">
+                                <button
+                                  onClick={() => !isBlocked && navigate(`/self-attendance/${card.course.id}`)}
+                                  className={`px-4 py-2 rounded-2xl font-black text-xs uppercase tracking-widest transition shadow-md ${isBlocked || !user?.faceRegistered ? 'bg-gray-200 text-gray-400 cursor-not-allowed' : 'bg-green-600 text-white hover:opacity-90 shadow-green-500/20'}`}
+                                  disabled={isBlocked || !user?.faceRegistered}
+                                  title={!user?.faceRegistered ? "Register face first" : ""}
+                                >
+                                  {isBlocked ? 'Blocked' : 'Self Attendance'}
+                                </button>
+                                <button
+                                  onClick={() => !isBlocked && navigate(`/course-inner/${card.course.id}`)}
+                                  className={`px-4 py-2 rounded-2xl font-black text-xs uppercase tracking-widest transition shadow-md ${isBlocked ? 'bg-gray-200 text-gray-400 cursor-not-allowed' : 'bg-primary-600 text-white hover:opacity-90 shadow-primary-500/20'}`}
+                                >
+                                  {isBlocked ? 'Locked' : 'Open Course'}
+                                </button>
+                            </div>
                           </div>
                         </div>
                       );

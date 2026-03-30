@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { Sun, Moon, Star, UserCircle, LogOut, Menu, X, LayoutDashboard, GraduationCap, Building2, Megaphone, Home, Flame, Award, Edit, Bot, ArrowLeft, FileText, CheckCircle, TrendingUp, Terminal } from 'lucide-react';
+import { Sun, Moon, Star, UserCircle, LogOut, Menu, X, LayoutDashboard, GraduationCap, Building2, Megaphone, Home, Flame, Award, Edit, Bot, ArrowLeft, FileText, CheckCircle, TrendingUp, Terminal, ShieldCheck, MapPin } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useSelector, useDispatch } from 'react-redux';
 import { logout } from '../features/auth/authSlice';
@@ -93,11 +93,15 @@ const Navbar = ({ darkMode, toggleDarkMode }) => {
     { name: 'Announcements', path: '/community', icon: <Megaphone size={18} /> },
     { name: 'Achievements', path: '/achievements', icon: <Award size={18} /> },
     ...(user ? [
-      ...(user.role === 'student' ? [{ name: 'Results', path: '/results/my', icon: <FileText size={18} /> }] : []),
+      ...(user.role === 'student' ? [
+        { name: 'Results', path: '/results/my', icon: <FileText size={18} /> },
+        { name: 'Attendance', path: '/daily-attendance', icon: <ShieldCheck size={18} /> }
+      ] : []),
       ...(user.role === 'teacher' ? [{ name: 'Mark Entry', path: '/results/entry', icon: <Edit size={18} /> }] : []),
       ...(user.role === 'admin' || user.role === 'hod' ? [
         { name: 'Results', path: '/results/verify', icon: <CheckCircle size={18} /> },
-        { name: 'Analytics', path: '/results/analytics', icon: <TrendingUp size={18} /> }
+        { name: 'Analytics', path: '/results/analytics', icon: <TrendingUp size={18} /> },
+        ...(user.role === 'admin' ? [{ name: 'GPS Config', path: '/admin/gps-config', icon: <MapPin size={18} /> }] : [])
       ] : [])
     ] : []),
     { name: 'AI Mode', path: '/ai-mode', icon: <Bot size={18} /> },
@@ -256,6 +260,7 @@ const Navbar = ({ darkMode, toggleDarkMode }) => {
                               </div>
                               Domain Registry
                             </Link>
+
                           </div>
 
                           <div className="mt-2 pt-2 border-t border-gray-100 dark:border-gray-800/50">
@@ -292,27 +297,6 @@ const Navbar = ({ darkMode, toggleDarkMode }) => {
           </div>
         </div>
       </div>
-
-      {/* Marquee Alert for Faculty/Deadlines */}
-      {settings?.globalAlert && (
-          <div className="bg-amber-500/10 dark:bg-amber-500/5 border-b border-amber-500/20 py-2.5 overflow-hidden">
-            <div className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8">
-               <marquee className="flex items-center gap-8 group" behavior="scroll" direction="left" scrollamount="12">
-                  <div className="flex items-center gap-3">
-                     <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
-                     <span className="text-[10px] font-black text-amber-600 dark:text-amber-400 uppercase tracking-widest whitespace-nowrap">
-                       {settings.globalAlert}
-                     </span>
-                     {user?.role === 'teacher' && (
-                        <Link to="/results/entry" className="ml-4 px-3 py-1 bg-amber-500 text-white rounded-lg text-[9px] font-black uppercase tracking-widest hover:bg-amber-600 transition-all shadow-lg shadow-amber-500/20">
-                          Transfer Results Now &rarr;
-                        </Link>
-                     )}
-                  </div>
-               </marquee>
-            </div>
-          </div>
-      )}
 
       {/* Mobile Menu Overlay */}
       <AnimatePresence>

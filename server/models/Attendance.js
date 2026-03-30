@@ -36,6 +36,10 @@ const attendanceSchema = new mongoose.Schema({
   entryWindowExpiresAt: {
     type: Date,
     required: true
+  },
+  isBiometricVerified: {
+    type: Boolean,
+    default: false
   }
 }, { 
   timestamps: true 

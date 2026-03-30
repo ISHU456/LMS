@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Save, Send, Upload, Download, CheckCircle, AlertCircle, FileText, ChevronRight, Lock, Unlock, Clock } from 'lucide-react';
 import Papa from 'papaparse';
 import axios from 'axios';
+import InstitutionalAlert from '../../components/InstitutionalAlert';
 
 const ResultEntry = () => {
   const dispatch = useDispatch();
@@ -14,26 +15,37 @@ const ResultEntry = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
 
+  const [courses, setCourses] = useState([]);
   const [courseId, setCourseId] = useState(searchParams.get('courseId') || '');
   const [semester, setSemester] = useState(searchParams.get('semester') || '');
   
-  // Calculate dynamic default academic year (e.g., 2025-26 for March 2026)
+  // Real-time Profile Permission Synchronization 
+  useEffect(() => {
+    const syncProfile = async () => {
+      try {
+        const config = { headers: { Authorization: `Bearer ${user.token}` } };
+        const { data } = await axios.get('http://localhost:5001/api/auth/profile', config);
+        // If data from backend has more updated permissions than store, update store
+        const { updateProfile } = await import('../../features/auth/authSlice');
+        dispatch(updateProfile(data));
+      } catch (err) { console.error("Permission sync failed:", err); }
+    };
+    if (user?.token) syncProfile();
+  }, [user?.token, dispatch]);
+  
   const getPresentAcademicYear = () => {
     const now = new Date();
     const year = now.getFullYear();
-    // Academic years usually start in July (month 6)
-    return now.getMonth() >= 6 
-      ? `${year}-${(year + 1).toString().slice(-2)}` 
-      : `${year - 1}-${year.toString().slice(-2)}`;
+    return now.getMonth() >= 6 ? `${year}-${(year + 1).toString().slice(-2)}` : `${year - 1}-${year.toString().slice(-2)}`;
   };
 
   const [academicYear, setAcademicYear] = useState(searchParams.get('academicYear') || getPresentAcademicYear());
-  const [courses, setCourses] = useState([]);
   const [localResults, setLocalResults] = useState([]);
   const [showSuccess, setShowSuccess] = useState(false);
   const [savingStudentId, setSavingStudentId] = useState(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [pendingFinalize, setPendingFinalize] = useState(false);
 
-  // Sync URL with filters
   useEffect(() => {
     const params = new URLSearchParams();
     if (courseId) params.set('courseId', courseId);
@@ -42,77 +54,129 @@ const ResultEntry = () => {
     navigate({ search: params.toString() }, { replace: true });
   }, [courseId, semester, academicYear, navigate]);
 
-  // Fetch courses assigned to teacher
   useEffect(() => {
     const fetchCourses = async () => {
       try {
         const config = { headers: { Authorization: `Bearer ${user.token}` } };
         const { data } = await axios.get('http://localhost:5001/api/courses', config);
-        
-        // Flexible Filtering for Admin / HOD / Teacher
         const myCourses = data.filter(c => {
           if (user.role === 'admin') return true;
-          
           const isDeptMatch = c.department?.name === user.department || c.department?.code === user.department;
           if (user.role === 'hod') return isDeptMatch;
-
-          // Teacher Logic
           const isAssigned = c.facultyAssigned?.some(f => (f._id || f).toString() === user._id.toString());
-          const isSemMatch = user.assignedSemesters?.length > 0 ? user.assignedSemesters.includes(c.semester) : false;
-          
+          const isSemMatch = user.assignedSemesters?.some(s => s.toString() === c.semester.toString());
           return isAssigned || (isDeptMatch && isSemMatch);
         });
-        
         setCourses(Array.isArray(myCourses) ? myCourses : []);
-        
-        // Only set initial defaults if nothing is in URL
         if (myCourses.length > 0 && !searchParams.get('courseId')) {
            const initialCourse = myCourses[0];
            setCourseId(initialCourse._id.toString());
            setSemester(initialCourse.semester.toString());
         }
-      } catch (err) {
-        console.error('Error fetching courses', err);
-      }
+      } catch (err) { console.error('Error fetching courses', err); }
     };
     fetchCourses();
   }, [user.token, searchParams]);
 
-  // Fetch students when filters change
   useEffect(() => {
     if (courseId && semester && academicYear) {
       dispatch(getStudentsForEntry({ courseId, semester, academicYear }));
     }
   }, [courseId, semester, academicYear, dispatch]);
 
-  // Sync local state with Redux results
+  // Synchronize Course Node when Semester Sector changes
+  useEffect(() => {
+    if (semester && courses.length > 0) {
+       const semCourses = courses.filter(c => c.semester.toString() === semester);
+       const currentCourseValid = semCourses.some(c => c._id === courseId);
+       
+       if (!currentCourseValid && semCourses.length > 0) {
+          setCourseId(semCourses[0]._id);
+       } else if (semCourses.length === 0) {
+          setCourseId('');
+       }
+    }
+  }, [semester, courses]);
+
   useEffect(() => {
     if (results && results.length > 0) {
       setLocalResults(results.map(r => ({ ...r })));
     }
   }, [results]);
 
+  const currentCourse = courses.find(c => c._id === courseId);
+
+  const gradeToPoints = { 'O': 10, 'A+': 9, 'A': 8, 'B+': 7, 'B': 6, 'C': 5, 'F': 0 };
+  const pointsToGrade = { 10: 'O', 9: 'A+', 8: 'A', 7: 'B+', 6: 'B', 5: 'C', 0: 'F' };
+
+  const calculateMarks = (marks, type) => {
+    let total = 0;
+    let grade = 'F';
+    const normalizedType = type?.toString().toUpperCase().trim();
+
+    if (normalizedType === 'VIVA') {
+      let score = marks.vivaScore;
+      // Handle grade strings if present
+      if (typeof score === 'string' && gradeToPoints[score.toUpperCase()] !== undefined) {
+        score = gradeToPoints[score.toUpperCase()];
+      }
+      const numScore = Number(score) || 0;
+      total = numScore * 10;
+      
+      if (numScore >= 10) grade = 'O';
+      else if (numScore >= 9) grade = 'A+';
+      else if (numScore >= 8) grade = 'A';
+      else if (numScore >= 7) grade = 'B+';
+      else if (numScore >= 6) grade = 'B';
+      else if (numScore >= 5) grade = 'C';
+      else grade = 'F';
+      
+      return { total, grade };
+    }
+
+    if (normalizedType === 'THEORY') {
+      const msts = [Number(marks.mst1) || 0, Number(marks.mst2) || 0, Number(marks.mst3) || 0];
+      const bestTwoSum = msts.sort((a, b) => b - a).slice(0, 2).reduce((sum, val) => sum + val, 0);
+      total = bestTwoSum + (Number(marks.endSem) || 0);
+    } else if (normalizedType === 'PRACTICAL') {
+      total = (Number(marks.internalPractical) || 0) + (Number(marks.externalPractical) || 0);
+    }
+
+    if (total >= 90) grade = 'O';
+    else if (total >= 80) grade = 'A+';
+    else if (total >= 70) grade = 'A';
+    else if (total >= 60) grade = 'B+';
+    else if (total >= 50) grade = 'B';
+    else if (total >= 40) grade = 'C';
+    
+    return { total, grade };
+  };
+
   const handleMarkChange = (studentId, field, value) => {
-    // 1. Enforce constraints based on field
     let max = 100;
     if (field === 'endSem') max = 60;
     if (field === 'mst1' || field === 'mst2' || field === 'mst3') max = 20;
     if (field === 'internalPractical') max = 40;
     if (field === 'externalPractical') max = 60;
+    if (field === 'vivaScore') max = 10; // 0-10 scale
 
     let val = value;
     let isAbsent = false;
-
-    if (value === 'NA' || value === 'na' || value === 'a' || value === 'A') {
-        val = 0;
-        isAbsent = true;
-    } else if (value === '') {
-        val = '';
-    } else {
-        val = Number(value);
-        if (isNaN(val)) val = '';
-        if (val < 0) val = 0;
-        if (val > max) val = max;
+    
+    if (field === 'vivaScore' && typeof value === 'string' && gradeToPoints[value.toUpperCase()] !== undefined) {
+      val = gradeToPoints[value.toUpperCase()];
+    } else if (value === 'NA' || value === 'na' || value === 'a' || value === 'A') { 
+      val = 0; 
+      isAbsent = true; 
+    }
+    else if (value === '') { 
+      val = ''; 
+    }
+    else { 
+      val = Number(value); 
+      if (isNaN(val)) val = ''; 
+      if (val < 0) val = 0; 
+      if (val > max) val = max; 
     }
 
     setLocalResults(prev => prev.map(student => {
@@ -120,177 +184,126 @@ const ResultEntry = () => {
         const updatedMarks = { ...student.marks, [field]: val };
         let updatedAbsences = [...(student.marks.absentFields || [])];
         
-        if (isAbsent) {
-            if (!updatedAbsences.includes(field)) updatedAbsences.push(field);
-        } else {
-            updatedAbsences = updatedAbsences.filter(f => f !== field);
+        if (isAbsent) { 
+          if (!updatedAbsences.includes(field)) updatedAbsences.push(field); 
+        } else { 
+          updatedAbsences = updatedAbsences.filter(f => f !== field); 
         }
 
-        // Calculate Grade immediately for persistent saving
-        let total = 0;
-        if (currentCourse?.type?.toUpperCase() === 'THEORY') {
-            const msts = [Number(updatedMarks.mst1)||0, Number(updatedMarks.mst2)||0, Number(updatedMarks.mst3)||0];
-            // Take sum of best 2 MSTs
-            const bestTwoSum = msts.sort((a, b) => b - a).slice(0, 2).reduce((sum, val) => sum + val, 0);
-            total = bestTwoSum + (Number(updatedMarks.endSem)||0);
-        } else if (currentCourse?.type?.toUpperCase() === 'PRACTICAL') {
-            total = (Number(updatedMarks.internalPractical)||0) + (Number(updatedMarks.externalPractical)||0);
-        }
+        const { total, grade } = calculateMarks(updatedMarks, currentCourse?.type);
 
-        let calculatedGrade = 'F';
-        if (total >= 90) calculatedGrade = 'O';
-        else if (total >= 80) calculatedGrade = 'A+';
-        else if (total >= 70) calculatedGrade = 'A';
-        else if (total >= 60) calculatedGrade = 'B+';
-        else if (total >= 50) calculatedGrade = 'B';
-        else if (total >= 40) calculatedGrade = 'C';
-
-        const updatedStudent = { 
-            ...student, 
-            marks: { ...updatedMarks, absentFields: updatedAbsences },
-            grade: calculatedGrade,
-            totalMarks: total
+        return { 
+          ...student, 
+          marks: { ...updatedMarks, absentFields: updatedAbsences }, 
+          grade, 
+          totalMarks: total 
         };
-
-        // Auto-save logic: Trigger save if all fields are complete
-        const cType = currentCourse?.type?.toUpperCase();
-        const m = updatedStudent.marks;
-        const isTheoryComplete = cType === 'THEORY' && m.mst1 !== '' && m.mst2 !== '' && m.mst3 !== '' && m.endSem !== '';
-        const isPracticalComplete = cType === 'PRACTICAL' && m.internalPractical !== '' && m.externalPractical !== '';
-        
-        if ((isTheoryComplete || isPracticalComplete) && !student.isLocked) {
-             // We'll call save slightly delayed or in next tick to allow state to settle
-             setTimeout(() => handleSaveSingleMark(student._id, updatedStudent), 100);
-        }
-
-        return updatedStudent;
       }
       return student;
     }));
   };
 
-  const isLocked = localResults.length > 0 && localResults.some(r => r.isLocked);
-  const currentCourse = courses.find(c => c._id === courseId);
-
   const handleSaveSingleMark = async (studentId, studentData = null) => {
     const student = studentData || localResults.find(r => r._id === studentId);
     if (!student) return;
-
     setSavingStudentId(studentId);
-    const data = {
-      courseId,
-      semester,
-      academicYear,
-      results: [{ 
-        studentId: student._id, 
-        marks: student.marks, 
-        grade: student.grade,
-        totalMarks: student.totalMarks 
-      }]
-    };
-    
     try {
-      const response = await dispatch(saveMarks(data)).unwrap();
+      const response = await dispatch(saveMarks({ 
+        courseId, 
+        semester, 
+        academicYear, 
+        results: [{ 
+          studentId: student._id, 
+          marks: student.marks, 
+          grade: student.grade, 
+          totalMarks: student.totalMarks 
+        }] 
+      })).unwrap();
       
-      // Update local state results with resultId immediately to allow locking
       if (response?.results?.length > 0) {
           const savedResult = response.results[0];
-          setLocalResults(prev => prev.map(r => r._id === studentId ? { ...r, resultId: savedResult._id, status: savedResult.status } : r));
+          setLocalResults(prev => prev.map(r => r._id === studentId ? { 
+            ...r, 
+            resultId: savedResult._id, 
+            status: savedResult.status,
+            isLocked: savedResult.isLocked 
+          } : r));
       }
-
       setShowSuccess(true);
-      setTimeout(() => {
-        setShowSuccess(false);
-        setSavingStudentId(null);
-      }, 2000);
-    } catch (err) {
-      setSavingStudentId(null);
-      console.error("Save failed:", err);
-    }
+      setTimeout(() => { setShowSuccess(false); setSavingStudentId(null); }, 2000);
+    } catch (err) { setSavingStudentId(null); }
   };
 
   const handleToggleRowLock = async (resultId, studentId) => {
-    if (!resultId) {
-        alert("Persistence Required: Save marks for this student profile before attempting to modify record lock status.");
-        return;
-    }
+    if (!resultId) return alert("Persistence Required.");
     try {
-        const config = { headers: { Authorization: `Bearer ${user.token}` } };
-        const { data } = await axios.post(`http://localhost:5001/api/results/toggle-lock/${resultId}`, {}, config);
-        
+        const { data } = await axios.post(`http://localhost:5001/api/results/toggle-lock/${resultId}`, {}, { headers: { Authorization: `Bearer ${user.token}` } });
         setLocalResults(prev => prev.map(r => r._id === studentId ? { ...r, isLocked: data.isLocked } : r));
         setShowSuccess(true);
         setTimeout(() => setShowSuccess(false), 2000);
-    } catch (err) {
-        console.error("TOGGLE LOCK ERROR:", err);
-        alert(err.response?.data?.message || "Protocol Failure: Unable to toggle record lock state.");
-    }
+    } catch (err) { alert("Protocol Failure."); }
   };
 
-  const handleSaveDraft = () => {
-    // 1. Validation
-    if (currentCourse?.type === 'THEORY') {
-        const incomplete = localResults.some(r => r.marks.mst1 === '' || r.marks.mst2 === '' || r.marks.mst3 === '' || r.marks.endSem === '');
-        if (incomplete) {
-            alert('Validation Error: All MST and EndSem fields must be filled for Theory subjects.');
-            return;
-        }
-    } else if (currentCourse?.type === 'PRACTICAL') {
-        const incomplete = localResults.some(r => !r.grade);
-        if (incomplete) {
-            alert('Validation Error: Grade must be selected for all students for Practical subjects.');
-            return;
-        }
-    }
-
-    const data = {
-      courseId,
-      semester,
-      academicYear,
-      results: localResults.map(r => ({ studentId: r._id, marks: r.marks, grade: r.grade }))
-    };
-    dispatch(saveMarks(data));
-    setShowSuccess(true);
-    setTimeout(() => setShowSuccess(false), 3000);
-  };
-
-  const handleLockMarks = async () => {
-    if (!courseId) return alert('Select course first.');
-    if (window.confirm('PERMANENT ACTION: This will lock marks for ALL students in this sector. Proceed?')) {
-        try {
-            await axios.post('http://localhost:5001/api/results/lock', { courseId, semester, academicYear }, {
-                headers: { Authorization: `Bearer ${user.token}` }
-            });
-            setShowSuccess(true);
-            dispatch(getStudentsForEntry({ courseId, semester, academicYear }));
-        } catch (err) {
-            alert(err.response?.data?.message || 'Failed to lock marks');
-        }
-    }
-  };
-
-  const handleSubmitResults = () => {
-    if (window.confirm('Are you sure you want to submit? No further edits will be allowed after approval.')) {
-      const data = { courseId, semester, academicYear };
-      dispatch(submitMarksForApproval(data));
+  const handleSaveAllDrafts = async () => {
+    if (localResults.length === 0) return;
+    try {
+      await dispatch(saveMarks({ 
+        courseId, 
+        semester, 
+        academicYear, 
+        results: localResults.map(r => ({ 
+          studentId: r._id, 
+          marks: r.marks, 
+          grade: r.grade, 
+          totalMarks: r.totalMarks 
+        })) 
+      })).unwrap();
       setShowSuccess(true);
-      setTimeout(() => setShowSuccess(false), 3000);
-    }
+      setTimeout(() => setShowSuccess(false), 2000);
+    } catch (err) { alert("Bulk Save Failure."); }
   };
 
-  const handleUnlockMarks = async () => {
-    if (!courseId) return alert('Select course first.');
-    if (window.confirm('ADMIN ACTION: This will UNLOCK marks for ALL students in this sector for further editing. Proceed?')) {
-        try {
-            await axios.post('http://localhost:5001/api/results/unlock', { courseId, semester, academicYear }, {
-                headers: { Authorization: `Bearer ${user.token}` }
-            });
-            setShowSuccess(true);
-            dispatch(getStudentsForEntry({ courseId, semester, academicYear }));
-        } catch (err) {
-            alert(err.response?.data?.message || 'Failed to unlock marks');
+  const handleSubmitResults = async (e) => {
+    if (e) { e.preventDefault(); e.stopPropagation(); }
+    if (isSubmitting) return;
+    setPendingFinalize(true);
+  };
+
+  const confirmFinalize = async () => {
+    setPendingFinalize(false);
+    setIsSubmitting(true);
+    try {
+        // First save all as draft to ensure current state is persisted
+        await dispatch(saveMarks({ 
+          courseId, 
+          semester, 
+          academicYear, 
+          results: localResults.map(r => ({ 
+            studentId: r._id, 
+            marks: r.marks, 
+            grade: r.grade, 
+            totalMarks: r.totalMarks 
+          })) 
+        })).unwrap();
+
+        // Then submit
+        const result = await dispatch(submitMarksForApproval({ courseId, semester, academicYear })).unwrap();
+        
+        if (result.count === 0) {
+           alert("Zero records were finalized. Ensure all marks are saved as 'Draft' before submitting.");
+        } else {
+           setShowSuccess(true);
+           setTimeout(() => setShowSuccess(false), 3000);
         }
-    }
+        
+        // Refresh data to show updated status/locks
+        dispatch(getStudentsForEntry({ courseId, semester, academicYear }));
+      } catch (err) { 
+        console.error("Submission error:", err);
+        alert(err.message || "Submission Protocol Failure."); 
+      } finally {
+        setIsSubmitting(false);
+      }
   };
 
   const handleCSVUpload = (e) => {
@@ -298,20 +311,40 @@ const ResultEntry = () => {
     if (file) {
       Papa.parse(file, {
         header: true,
+        skipEmptyLines: true,
         complete: (results) => {
           const uploadedData = results.data;
           setLocalResults(prev => prev.map(student => {
-            const entry = uploadedData.find(d => d.rollNumber === student.rollNumber);
+            const entry = uploadedData.find(d => 
+              d.rollNumber?.toString() === student.rollNumber?.toString() || 
+              d['Roll Number']?.toString() === student.rollNumber?.toString()
+            );
+            
             if (entry) {
-              return {
-                ...student,
-                marks: {
-                  mst1: entry.MST1 || '',
-                  mst2: entry.MST2 || '',
-                  mst3: entry.MST3 || '',
-                  endSem: entry.EndSem || '',
+              const vivaEntry = entry.VivaScore || entry.Viva || student.marks.vivaScore || '';
+              let finalVivaScore = '';
+              if (vivaEntry !== '') {
+                if (gradeToPoints[vivaEntry.toString().toUpperCase()] !== undefined) {
+                  finalVivaScore = gradeToPoints[vivaEntry.toString().toUpperCase()];
+                } else {
+                  finalVivaScore = Number(vivaEntry);
+                  if (isNaN(finalVivaScore)) finalVivaScore = '';
+                  else if (finalVivaScore > 10) finalVivaScore = 10;
                 }
+              }
+
+              const newMarks = {
+                mst1: entry.MST1 || entry['MST 1'] || student.marks.mst1 || '',
+                mst2: entry.MST2 || entry['MST 2'] || student.marks.mst2 || '',
+                mst3: entry.MST3 || entry['MST 3'] || student.marks.mst3 || '',
+                endSem: entry.EndSem || entry['End Sem'] || entry.EndSemester || student.marks.endSem || '',
+                internalPractical: entry.InternalPractical || entry.Internal || student.marks.internalPractical || '',
+                externalPractical: entry.ExternalPractical || entry.External || student.marks.externalPractical || '',
+                vivaScore: finalVivaScore
               };
+
+              const { total, grade } = calculateMarks(newMarks, currentCourse?.type);
+              return { ...student, marks: newMarks, totalMarks: total, grade };
             }
             return student;
           }));
@@ -320,427 +353,225 @@ const ResultEntry = () => {
     }
   };
 
-  const handleUpdateDeadline = async (deadline) => {
-    if (!courseId || !currentCourse) return;
-    try {
-      const config = { headers: { Authorization: `Bearer ${user.token}` } };
-      await axios.put(`http://localhost:5001/api/courses/${currentCourse.code}/deadline`, { marksDeadline: deadline }, config);
-      setShowSuccess(true);
-      // Reload courses to get updated deadline
-      const { data } = await axios.get('http://localhost:5001/api/courses', config);
-      setCourses(data);
-    } catch (err) {
-      alert("Failed to update locking deadline");
-    }
-  };
-
   const downloadTemplate = () => {
-    const data = localResults.map(r => ({
-      rollNumber: r.rollNumber,
-      name: r.name,
-      MST1: r.marks.mst1,
-      MST2: r.marks.mst2,
-      MST3: r.marks.mst3,
-      EndSem: r.marks.endSem,
-    }));
-    const csv = Papa.unparse(data);
+    let headers = { rollNumber: 'Roll Number', name: 'Name' };
+    
+    if (currentCourse?.type?.toUpperCase() === 'THEORY') {
+      headers = { ...headers, MST1: 'MST 1', MST2: 'MST 2', MST3: 'MST 3', EndSem: 'End Sem' };
+    } else if (currentCourse?.type?.toUpperCase() === 'PRACTICAL') {
+      headers = { ...headers, InternalPractical: 'Internal Practical', ExternalPractical: 'External Practical' };
+    } else if (currentCourse?.type?.toUpperCase() === 'VIVA') {
+      headers = { ...headers, VivaScore: 'Viva Grade (O, A+, A, B+, B, C, F)' };
+    }
+
+    const data = localResults.map(r => {
+      const row = { rollNumber: r.rollNumber, name: r.name };
+      if (currentCourse?.type?.toUpperCase() === 'THEORY') {
+        row.MST1 = r.marks.mst1;
+        row.MST2 = r.marks.mst2;
+        row.MST3 = r.marks.mst3;
+        row.EndSem = r.marks.endSem;
+      } else if (currentCourse?.type?.toUpperCase() === 'PRACTICAL') {
+        row.InternalPractical = r.marks.internalPractical;
+        row.ExternalPractical = r.marks.externalPractical;
+      } else if (currentCourse?.type?.toUpperCase() === 'VIVA') {
+        row.VivaScore = pointsToGrade[r.marks.vivaScore] || r.marks.vivaScore;
+      }
+      return row;
+    });
+
+    const csv = Papa.unparse({ fields: Object.keys(headers), data });
     const blob = new Blob([csv], { type: 'text/csv' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.download = `result_template_${courseId}.csv`;
+    link.download = `result_template_${currentCourse?.code || 'course'}.csv`;
     link.click();
   };
 
+
   return (
-    <div className="min-h-screen bg-gray-50 text-gray-900 p-4 md:p-8 font-sans">
-      <motion.div 
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="max-w-7xl mx-auto"
-      >
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
-          <div>
-            <div className="flex items-center gap-3 mb-2">
-                <button 
-                  onClick={() => navigate('/faculty-dashboard')}
-                  className="p-2 bg-white hover:bg-gray-100 rounded-xl text-gray-500 hover:text-gray-900 transition-all border border-gray-200 shadow-sm"
-                >
-                  <ChevronRight size={20} className="rotate-180" />
-                </button>
-                <h1 className="text-4xl font-black text-gray-900 tracking-tight">
-                  Result Management
-                </h1>
-            </div>
-            <p className="text-gray-500 font-medium">Record and submit academic performance data.</p>
-          </div>
-          
-          <div className="flex gap-3">
-            <button 
-              onClick={downloadTemplate}
-              className="px-5 py-2.5 bg-white hover:bg-gray-50 text-gray-700 rounded-xl flex items-center gap-2 transition-all border border-gray-200 shadow-sm font-bold text-xs uppercase tracking-widest"
-            >
-              <Download size={18} />
-              Download Template
-            </button>
-            <label className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl flex items-center gap-2 cursor-pointer transition-all shadow-lg shadow-blue-500/20 font-bold text-xs uppercase tracking-widest">
-              <Upload size={18} />
-              CSV Upload
-              <input type="file" onChange={handleCSVUpload} accept=".csv" className="hidden" />
-            </label>
-          </div>
-        </div>
-
-        {/* Filters - White Theme */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8 bg-white p-6 rounded-3xl border border-gray-100 shadow-xl shadow-gray-200/40">
-          <div>
-            <label className="block text-[10px] font-black text-gray-400 mb-2 uppercase tracking-[0.2em]">Target Semester</label>
-            <select 
-              value={semester} 
-              onChange={(e) => {
-                const s = e.target.value;
-                setSemester(s);
-                // Clear course if it doesn't match the new semester
-                const course = courses.find(c => c._id === courseId);
-                if (course && course.semester.toString() !== s) {
-                    setCourseId('');
-                }
-              }}
-              className="w-full bg-gray-50 border border-gray-200 rounded-2xl p-4 focus:ring-2 focus:ring-blue-500 outline-none font-black uppercase text-xs text-gray-700"
-            >
-              <option value="">Select Semester</option>
-              {(user.assignedSemesters?.length > 0 ? user.assignedSemesters : [1,2,3,4,5,6,7,8]).map(s => (
-                <option key={s} value={s}>Semester {s}</option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label className="block text-[10px] font-black text-gray-400 mb-2 uppercase tracking-[0.2em]">My Assigned Courses</label>
-            <select 
-              value={courseId} 
-              onChange={(e) => {
-                const id = e.target.value;
-                setCourseId(id);
-                const course = courses.find(c => c._id === id);
-                if (course && !semester) {
-                  setSemester(course.semester.toString());
-                }
-              }}
-              className="w-full bg-gray-50 border border-gray-200 rounded-2xl p-4 focus:ring-2 focus:ring-blue-500 outline-none transition-all font-black uppercase text-xs text-gray-700"
-            >
-              <option value="">Select Assignment</option>
-              {(Array.isArray(courses) ? (semester ? courses.filter(c => c.semester.toString() === semester) : courses) : []).map(c => (
-                <option key={c._id} value={c._id.toString()}>{c.code} - {c.name} (Sem {c.semester})</option>
-              ))}
-            </select>
-          </div>
-        </div>
-
-        {/* Results Table - White Theme */}
-        <div className="bg-white rounded-3xl border border-gray-100 relative overflow-hidden shadow-2xl shadow-gray-200/50">
-          {isLoading && (
-            <div className="absolute inset-0 bg-white/70 flex flex-col items-center justify-center z-50 backdrop-blur-sm">
-              <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-blue-600 mb-4"></div>
-              <p className="text-blue-600 font-extrabold uppercase tracking-[0.3em] text-[10px]">Processing Results...</p>
-            </div>
-          )}
-
-          <div className="max-h-[600px] overflow-y-auto custom-scrollbar overflow-x-auto">
-            <table className="w-full text-left border-collapse">
-              <thead className="sticky top-0 z-20">
-                <tr className="bg-gray-50 border-b border-gray-200 shadow-sm">
-                  <th className="p-4 font-black text-gray-400 uppercase tracking-widest text-[10px]">Roll No</th>
-                  <th className="p-4 font-black text-gray-400 uppercase tracking-widest text-[10px]">Student Details</th>
-                  {currentCourse?.type?.toUpperCase() === 'THEORY' && (
-                    <>
-                      <th className="p-4 font-black text-gray-400 uppercase tracking-widest text-[10px] text-center">MST 1 <br/><span className="text-[8px] text-gray-500 font-bold">(MAX 20)</span></th>
-                      <th className="p-4 font-black text-gray-400 uppercase tracking-widest text-[10px] text-center">MST 2 <br/><span className="text-[8px] text-gray-500 font-bold">(MAX 20)</span></th>
-                      <th className="p-4 font-black text-gray-400 uppercase tracking-widest text-[10px] text-center">MST 3 <br/><span className="text-[8px] text-gray-500 font-bold">(MAX 20)</span></th>
-                      <th className="p-4 font-black text-gray-400 uppercase tracking-widest text-[10px] text-center">End Sem <br/><span className="text-[8px] text-gray-500 font-bold">(MAX 60)</span></th>
-                    </>
-                  )}
-                  {currentCourse?.type?.toUpperCase() === 'PRACTICAL' && (
-                    <>
-                      <th className="p-4 font-black text-gray-400 uppercase tracking-widest text-[10px] text-center">Internal <br/><span className="text-[8px] text-gray-500 font-bold">(MAX 40)</span></th>
-                      <th className="p-4 font-black text-gray-400 uppercase tracking-widest text-[10px] text-center">External <br/><span className="text-[8px] text-gray-500 font-bold">(MAX 60)</span></th>
-                    </>
-                  )}
-                  <th className="p-4 font-black text-gray-400 uppercase tracking-widest text-[10px] text-center">Total (100)</th>
-                  <th className="p-4 font-black text-gray-400 uppercase tracking-widest text-[10px] text-center">Grade</th>
-                  <th className="p-4 font-black text-gray-400 uppercase tracking-widest text-[10px] text-center">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100 bg-white">
-                {(Array.isArray(localResults) ? localResults : []).map((student) => {
-                  const m = student.marks || { mst1: '', mst2: '', mst3: '', endSem: '', internalPractical: '', externalPractical: '', absentFields: [] };
-                  const isApproved = student.status === 'approved' || student.status === 'published';
-                  const isPastDeadline = currentCourse?.marksDeadline && new Date() > new Date(currentCourse.marksDeadline);
-                  const isRowLocked = student.isLocked || isLocked || isPastDeadline;
-                  const disabled = isApproved || isRowLocked;
-
-                  return (
-                  <tr key={student._id} className="hover:bg-gray-50 transition-colors">
-                    <td className="p-4 font-mono text-indigo-600 text-xs font-bold">{student.rollNumber}</td>
-                    <td className="p-4">
-                        <p className="text-sm font-black text-gray-900 uppercase tracking-tight">{student.name}</p>
-                        <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">{student.enrollmentNumber}</p>
-                    </td>
-                    
-                    {currentCourse?.type?.toUpperCase() === 'THEORY' && (
-                      <>
-                        <td className="p-4 text-center">
-                            <input 
-                                type="text"
-                                value={m.absentFields?.includes('mst1') ? 'NA' : (m.mst1 ?? '')} 
-                                placeholder="0"
-                                onChange={(e) => handleMarkChange(student._id, 'mst1', e.target.value)} 
-                                onBlur={() => handleSaveSingleMark(student._id)}
-                                disabled={disabled} 
-                                className={`w-16 border rounded-xl p-3 text-center text-xs font-black transition-all outline-none focus:ring-2 focus:ring-blue-500 ${
-                                    m.absentFields?.includes('mst1') 
-                                    ? 'bg-rose-50 border-rose-200 text-rose-600' 
-                                    : 'bg-white border-gray-200 text-gray-800'
-                                }`} 
-                            />
-                        </td>
-                        <td className="p-4 text-center">
-                            <input 
-                                type="text" 
-                                value={m.absentFields?.includes('mst2') ? 'NA' : (m.mst2 ?? '')} 
-                                placeholder="0"
-                                onChange={(e) => handleMarkChange(student._id, 'mst2', e.target.value)} 
-                                onBlur={() => handleSaveSingleMark(student._id)}
-                                disabled={disabled} 
-                                className={`w-16 border rounded-xl p-3 text-center text-xs font-black transition-all outline-none focus:ring-2 focus:ring-blue-500 ${
-                                    m.absentFields?.includes('mst2') 
-                                    ? 'bg-rose-50 border-rose-200 text-rose-600' 
-                                    : 'bg-white border-gray-200 text-gray-800'
-                                }`} 
-                            />
-                        </td>
-                        <td className="p-4 text-center">
-                            <input 
-                                type="text" 
-                                value={m.absentFields?.includes('mst3') ? 'NA' : (m.mst3 ?? '')} 
-                                placeholder="0"
-                                onChange={(e) => handleMarkChange(student._id, 'mst3', e.target.value)} 
-                                onBlur={() => handleSaveSingleMark(student._id)}
-                                disabled={disabled} 
-                                className={`w-16 border rounded-xl p-3 text-center text-xs font-black transition-all outline-none focus:ring-2 focus:ring-blue-500 ${
-                                    m.absentFields?.includes('mst3') 
-                                    ? 'bg-rose-50 border-rose-200 text-rose-600' 
-                                    : 'bg-white border-gray-200 text-gray-800'
-                                }`} 
-                            />
-                        </td>
-                        <td className="p-4 text-center">
-                            <input 
-                                type="text" 
-                                value={m.absentFields?.includes('endSem') ? 'NA' : (m.endSem ?? '')} 
-                                placeholder="0"
-                                onChange={(e) => handleMarkChange(student._id, 'endSem', e.target.value)} 
-                                onBlur={() => handleSaveSingleMark(student._id)}
-                                disabled={disabled} 
-                                className={`w-20 border rounded-xl p-3 text-center text-xs font-black transition-all outline-none focus:ring-2 focus:ring-blue-500 ${
-                                    m.absentFields?.includes('endSem') 
-                                    ? 'bg-rose-50 border-rose-200 text-rose-600' 
-                                    : 'bg-white border-gray-200 text-gray-800'
-                                }`} 
-                            />
-                        </td>
-                      </>
-                    )}
-
-                    {currentCourse?.type?.toUpperCase() === 'PRACTICAL' && (
-                      <>
-                        <td className="p-4 text-center">
-                            <input 
-                                type="text" 
-                                value={m.absentFields?.includes('internalPractical') ? 'NA' : (m.internalPractical ?? '')} 
-                                placeholder="0"
-                                onChange={(e) => handleMarkChange(student._id, 'internalPractical', e.target.value)} 
-                                onBlur={() => handleSaveSingleMark(student._id)}
-                                disabled={disabled} 
-                                className={`w-16 border rounded-xl p-3 text-center text-xs font-black transition-all outline-none focus:ring-2 focus:ring-blue-500 ${
-                                    m.absentFields?.includes('internalPractical') 
-                                    ? 'bg-rose-50 border-rose-200 text-rose-600' 
-                                    : 'bg-white border-gray-200 text-gray-800'
-                                }`} 
-                            />
-                        </td>
-                        <td className="p-4 text-center">
-                            <input 
-                                type="text" 
-                                value={m.absentFields?.includes('externalPractical') ? 'NA' : (m.externalPractical ?? '')} 
-                                placeholder="0"
-                                onChange={(e) => handleMarkChange(student._id, 'externalPractical', e.target.value)} 
-                                onBlur={() => handleSaveSingleMark(student._id)}
-                                disabled={disabled} 
-                                className={`w-16 border rounded-xl p-3 text-center text-xs font-black transition-all outline-none focus:ring-2 focus:ring-blue-500 ${
-                                    m.absentFields?.includes('externalPractical') 
-                                    ? 'bg-rose-50 border-rose-200 text-rose-600' 
-                                    : 'bg-white border-gray-200 text-gray-800'
-                                }`} 
-                            />
-                        </td>
-                      </>
-                    )}
-
-                    <td className="p-4 text-center">
-                      <span className="text-xl font-black font-mono text-gray-900">
-                        {currentCourse?.type?.toUpperCase() === 'THEORY' 
-                          ? (() => {
-                              const msts = [Number(m.mst1)||0, Number(m.mst2)||0, Number(m.mst3)||0];
-                              const bestTwoSum = msts.sort((a, b) => b - a).slice(0, 2).reduce((sum, val) => sum + val, 0);
-                              return (bestTwoSum + (Number(m.endSem)||0)).toFixed(1);
-                            })()
-                          : (currentCourse?.type?.toUpperCase() === 'PRACTICAL' 
-                              ? (Number(m.internalPractical)||0) + (Number(m.externalPractical)||0) 
-                              : student.grade || '---')
-                        }
-                      </span>
-                    </td>
-                    <td className="p-4 text-center">
-                      {(() => {
-                        let total = 0;
-                        if (currentCourse?.type?.toUpperCase() === 'THEORY') {
-                            const msts = [Number(m.mst1)||0, Number(m.mst2)||0, Number(m.mst3)||0];
-                            const bestTwoSum = msts.sort((a, b) => b - a).slice(0, 2).reduce((sum, val) => sum + val, 0);
-                            total = bestTwoSum + (Number(m.endSem)||0);
-                        } else if (currentCourse?.type?.toUpperCase() === 'PRACTICAL') {
-                            total = (Number(m.internalPractical)||0) + (Number(m.externalPractical)||0);
-                        } else if (student.grade) {
-                            return <span className="text-lg font-black text-blue-600">{student.grade}</span>;
-                        } else {
-                            return <span className="text-gray-300 italic text-[10px] font-black uppercase tracking-widest">Pending</span>;
-                        }
-                        
-                        let g = 'F';
-                        if (total >= 90) g = 'O';
-                        else if (total >= 80) g = 'A+';
-                        else if (total >= 70) g = 'A';
-                        else if (total >= 60) g = 'B+';
-                        else if (total >= 50) g = 'B';
-                        else if (total >= 40) g = 'C';
-
-                        return (
-                            <div className="flex flex-col items-center">
-                                <span className={`text-lg font-black ${g === 'F' ? 'text-rose-500' : 'text-emerald-500'}`}>{g}</span>
-                                <span className="text-[7px] font-black text-gray-400 shadow-sm px-1 rounded uppercase tracking-tighter">Auto</span>
-                            </div>
-                        );
-                      })()}
-                    </td>
-                    <td className="p-4 text-center">
-                      <div className="flex items-center justify-center gap-2">
-                        <button 
-                            onClick={() => handleToggleRowLock(student.resultId, student._id)}
-                            className={`p-2 rounded-xl transition-all border shadow-sm ${
-                                student.isLocked 
-                                ? 'bg-amber-50 text-amber-600 border-amber-200' 
-                                : 'bg-emerald-50 text-emerald-600 border-emerald-200'
-                            }`}
-                            title={student.isLocked ? "Click to unlock row for editing" : "Record is editable"}
-                        >
-                            {student.isLocked ? <Lock size={14} /> : <Unlock size={14} />}
-                        </button>
-
-                        <span className={`px-2 py-0.5 rounded-lg text-[9px] font-black uppercase tracking-widest border ${
-                            student.status === 'approved' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' :
-                            student.status === 'submitted' ? 'bg-blue-50 text-blue-600 border-blue-100' :
-                            student.status === 'draft' ? 'bg-amber-50 text-amber-600 border-amber-100' :
-                            'bg-gray-100 text-gray-400 border-gray-200'
-                        }`}>
-                            {student.status === 'not_started' ? 'DRAFT' : student.status}
-                        </span>
-                        
-                        {!disabled && (
-                            <button 
-                                onClick={() => handleSaveSingleMark(student._id)}
-                                disabled={savingStudentId === student._id}
-                                className={`p-2.5 rounded-xl transition-all border shadow-sm ${
-                                  savingStudentId === student._id 
-                                  ? 'bg-blue-100 text-blue-600 border-blue-200 animate-pulse' 
-                                  : 'bg-white hover:bg-blue-600 text-blue-600 hover:text-white border-blue-200'
-                                }`}
-                                title="Save Profile"
-                            >
-                                {savingStudentId === student._id ? (
-                                  <div className="animate-spin h-3 w-3 border-2 border-blue-600 border-t-transparent rounded-full" />
-                                ) : <Save size={14} />}
-                            </button>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                  );
-                })}
-                {localResults.length === 0 && !isLoading && (
-                  <tr>
-                    <td colSpan="7" className="p-12 text-center text-slate-500">
-                      No students found. Please select filters.
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-
-          {/* Integrated Actions Footer - Attached to Marklist */}
-          {localResults.length > 0 && (
-            <div className="sticky bottom-0 z-40 flex flex-wrap justify-end gap-5 p-6 bg-gray-50/90 backdrop-blur-md border-t border-gray-100">
-              <div className="mr-auto flex flex-col justify-center text-left">
-                  <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Active Batch</p>
-                  <p className="text-sm font-black text-indigo-600 uppercase tracking-tight">{currentCourse?.name} ({currentCourse?.code})</p>
+    <div className="min-h-full bg-slate-50 dark:bg-[#020617] p-4 md:p-10 transition-colors duration-300">
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="max-w-7xl mx-auto">
+          <header className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
+            <div>
+              <div className="flex items-center gap-3 mb-2">
+                  <button onClick={() => navigate('/faculty-dashboard')} className="p-3 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-2xl text-slate-500 border border-slate-100 dark:border-slate-800 transition-all shadow-sm"><ChevronRight size={20} className="rotate-180" /></button>
+                  <h1 className="text-4xl font-black text-slate-900 dark:text-white tracking-tight uppercase italic">Result Entry</h1>
               </div>
-              
-              <button 
-                onClick={handleSaveDraft}
-                disabled={isLocked || localResults.some(r => r.status === 'approved')}
-                className="px-6 py-3.5 bg-white hover:bg-gray-100 rounded-xl flex items-center gap-2 transition-all text-gray-700 font-extrabold text-[10px] uppercase tracking-widest border border-gray-200 shadow-sm disabled:opacity-30"
-              >
-                <Save size={16} />
-                Save Selection
-              </button>
-              
-              <button 
-                onClick={handleSubmitResults}
-                disabled={isLocked || localResults.some(r => r.status === 'submitted' || r.status === 'approved')}
-                className={`px-8 py-3.5 rounded-xl flex items-center gap-2 transition-all shadow-lg text-white font-extrabold text-[10px] uppercase tracking-widest ${
-                  (isLocked || localResults.some(r => r.status === 'submitted' || r.status === 'approved'))
-                  ? 'bg-gray-200 text-gray-400 cursor-not-allowed border border-gray-300'
-                  : 'bg-indigo-600 hover:bg-indigo-700 hover:scale-105 shadow-indigo-600/20'
-                }`}
-              >
-                <Send size={16} />
-                Finalize & Submit
-              </button>
+              <p className="text-slate-400 dark:text-slate-500 font-black text-[10px] uppercase tracking-[0.2em] ml-2">Certification Protocol Nodes</p>
             </div>
-          )}
-        </div>
-      </motion.div>
+            <div className="flex gap-3">
+              <button onClick={downloadTemplate} className="px-6 py-3 bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-2xl text-[10px] font-black uppercase tracking-widest text-slate-600 dark:text-slate-300 shadow-sm hover:bg-slate-50 transition-all">Download Template</button>
+              <label className="px-6 py-3 bg-blue-600 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest cursor-pointer shadow-xl shadow-blue-500/20 hover:bg-blue-700 transition-all">CSV Upload<input type="file" onChange={handleCSVUpload} accept=".csv" className="hidden" /></label>
+            </div>
+          </header>
 
-      {/* Toast Notification */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8 bg-white dark:bg-slate-900/50 p-6 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 shadow-xl dark:shadow-none transition-all">
+             <div className="space-y-1">
+                <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest ml-4">Sector Selection</p>
+                <select value={semester} onChange={e=>setSemester(e.target.value)} className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-2xl p-4 font-black text-[10px] uppercase outline-none focus:ring-2 focus:ring-blue-500 transition-all">
+                   <option value="">Semester</option>
+                   {[1,2,3,4,5,6,7,8].map(s=>(<option key={s} value={s.toString()}>Sem {s}</option>))}
+                </select>
+             </div>
+             <div className="space-y-1">
+                <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest ml-4">Course Node</p>
+                <select value={courseId} onChange={e=>setCourseId(e.target.value)} className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-2xl p-4 font-black text-[10px] uppercase outline-none focus:ring-2 focus:ring-blue-500 transition-all">
+                   <option value="">Course</option>
+                   {courses.filter(c => !semester || c.semester.toString() === semester).map(c=>(<option key={c._id} value={c._id}>{c.name}</option>))}
+                </select>
+             </div>
+          </div>
+
+          <div className="bg-white dark:bg-slate-900/50 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 overflow-hidden shadow-2xl dark:shadow-none transition-all">
+             <div className="overflow-x-auto custom-scrollbar">
+                <table className="w-full text-left border-collapse">
+                   <thead className="bg-slate-50 dark:bg-slate-800/50 border-b border-slate-100 dark:border-slate-700">
+                      <tr>
+                         <th className="p-6 text-[10px] font-black uppercase tracking-widest text-slate-400">Roll No</th>
+                         <th className="p-6 text-[10px] font-black uppercase tracking-widest text-slate-400">Participant Name</th>
+                         {currentCourse?.type?.toUpperCase() === 'THEORY' && (
+                            <>
+                               <th className="p-6 text-[10px] font-black uppercase tracking-widest text-slate-400 text-center">MST 1</th>
+                               <th className="p-6 text-[10px] font-black uppercase tracking-widest text-slate-400 text-center">MST 2</th>
+                               <th className="p-6 text-[10px] font-black uppercase tracking-widest text-slate-400 text-center">MST 3</th>
+                               <th className="p-6 text-[10px] font-black uppercase tracking-widest text-slate-400 text-center">End Sem</th>
+                            </>
+                         )}
+                         {currentCourse?.type?.toUpperCase() === 'PRACTICAL' && (
+                            <>
+                               <th className="p-6 text-[10px] font-black uppercase tracking-widest text-slate-400 text-center">Internal</th>
+                               <th className="p-6 text-[10px] font-black uppercase tracking-widest text-slate-400 text-center">External</th>
+                            </>
+                         )}
+                         {currentCourse?.type?.toUpperCase() === 'VIVA' && (
+                            <th className="p-6 text-[10px] font-black uppercase tracking-widest text-slate-400 text-center">Viva Score</th>
+                         )}
+                         <th className="p-6 text-[10px] font-black uppercase tracking-widest text-slate-400 text-center">Total Unit</th>
+                         <th className="p-4 text-[10px] font-black uppercase tracking-widest text-slate-400 text-center">Grade</th>
+                         <th className="p-4 text-[10px] font-black uppercase tracking-widest text-slate-400 text-center">Submission Node</th>
+                         <th className="p-4 text-[10px] font-black uppercase tracking-widest text-slate-400 text-center">Status</th>
+                         <th className="p-4 text-[10px] font-black uppercase tracking-widest text-slate-400 text-center">Row Key</th>
+                      </tr>
+                   </thead>
+                   <tbody>
+                      {localResults.map((student, idx) => (
+                         <motion.tr 
+                            key={student._id} 
+                            initial={{ opacity: 0, x: -10 }} 
+                            animate={{ opacity: 1, x: 0 }} 
+                            transition={{ delay: idx * 0.05 }} 
+                            className="border-b border-slate-50 dark:border-slate-800 hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-all group"
+                         >
+                            <td className="p-6 font-mono font-bold text-blue-600 dark:text-blue-400 text-xs tracking-tighter">{student.rollNumber}</td>
+                            <td className="p-6">
+                               <p className="font-black text-sm uppercase tracking-tight text-slate-900 dark:text-white">{student.name}</p>
+                               <p className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mt-0.5">Academic Record Node</p>
+                            </td>
+                            {currentCourse?.type?.toUpperCase() === 'THEORY' && (
+                               <>
+                                  {['mst1', 'mst2', 'mst3', 'endSem'].map(f => (
+                                     <td key={f} className="p-4 text-center">
+                                        <input type="text" value={student.marks[f] || ''} onChange={e=>handleMarkChange(student._id, f, e.target.value)} onBlur={()=>handleSaveSingleMark(student._id)} disabled={student.isLocked} className="w-14 h-11 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-xl text-center font-black text-xs text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-emerald-500 transition-all tabular-nums" />
+                                     </td>
+                                  ))}
+                               </>
+                            )}
+                            {currentCourse?.type?.toUpperCase() === 'PRACTICAL' && (
+                               <>
+                                  {['internalPractical', 'externalPractical'].map(f => (
+                                     <td key={f} className="p-4 text-center">
+                                        <input type="text" value={student.marks[f] || ''} onChange={e=>handleMarkChange(student._id, f, e.target.value)} onBlur={()=>handleSaveSingleMark(student._id)} disabled={student.isLocked} className="w-14 h-11 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-xl text-center font-black text-xs text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-emerald-500 transition-all tabular-nums" />
+                                     </td>
+                                  ))}
+                               </>
+                            )}
+                            {currentCourse?.type?.toUpperCase() === 'VIVA' && (
+                               <td className="p-4 text-center">
+                                  <select 
+                                     value={student.marks.vivaScore} 
+                                     onChange={e=>handleMarkChange(student._id, 'vivaScore', e.target.value)} 
+                                     onBlur={()=>handleSaveSingleMark(student._id)} 
+                                     disabled={student.isLocked} 
+                                     className="w-20 h-11 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-xl text-center font-black text-xs text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
+                                  >
+                                     <option value="">Grade</option>
+                                     {Object.entries(gradeToPoints).map(([grade, pts])=>(<option key={grade} value={pts}>{grade}</option>))}
+                                  </select>
+                               </td>
+                            )}
+                            <td className="p-4 text-center font-black text-xl tabular-nums text-slate-900 dark:text-white leading-none">{student.totalMarks}</td>
+                            <td className="p-4 text-center">
+                               <span className={`text-2xl font-black italic tracking-tighter ${student.grade === 'F' ? 'text-rose-500' : 'text-indigo-600 dark:text-indigo-400'}`}>{student.grade}</span>
+                            </td>
+                            <td className="p-4 text-center">
+                               <p className="text-[9px] font-black uppercase tracking-tight text-slate-900 dark:text-slate-200">{student.uploaderName || 'Unassigned'}</p>
+                               <p className="text-[7px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mt-0.5 italic">Uploader Node</p>
+                            </td>
+                            <td className="p-4 text-center">
+                               <span className={`px-4 py-1.5 rounded-full text-[8px] font-black uppercase tracking-widest border ${
+                                  student.status === 'published' ? 'bg-indigo-500 text-white border-transparent shadow-lg shadow-indigo-500/20' : 
+                                  student.status === 'approved' ? 'bg-emerald-500 text-white border-transparent shadow-lg shadow-emerald-500/20' : 
+                                  student.status === 'submitted' ? 'bg-amber-500 text-white border-transparent shadow-lg shadow-amber-500/20' : 
+                                  'bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-500 border-slate-200 dark:border-slate-700'
+                               }`}>{student.status}</span>
+                            </td>
+                            <td className="p-4 text-center">
+                               <div className="flex items-center justify-center gap-3">
+                                  <button onClick={()=>handleToggleRowLock(student.resultId, student._id)} className={`p-3 rounded-xl border transition-all ${student.isLocked?'bg-rose-50 dark:bg-rose-500/10 border-rose-100 dark:border-rose-900 text-rose-500':'bg-emerald-50 dark:bg-emerald-500/10 border-emerald-100 dark:border-emerald-900 text-emerald-500'} hover:scale-110 shadow-sm`}>{student.isLocked?<Lock size={14}/>:<Unlock size={14}/>}</button>
+                               </div>
+                            </td>
+                         </motion.tr>
+                      ))}
+                   </tbody>
+                </table>
+             </div>
+             
+             {localResults.length > 0 && (
+                <div className="p-8 bg-slate-50/50 dark:bg-slate-800/30 border-t border-slate-100 dark:border-slate-800 flex justify-end items-center gap-6">
+                    <div className="mr-auto">
+                       <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Active Curriculum Sector</p>
+                       <p className="text-sm font-black text-indigo-600 dark:text-indigo-400 uppercase tracking-tight">{currentCourse?.name} ({currentCourse?.type})</p>
+                    </div>
+                    <div className="flex gap-4">
+                       <button onClick={handleSaveAllDrafts} className="px-8 py-5 bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 text-slate-600 dark:text-slate-300 rounded-[2rem] text-[10px] font-black uppercase tracking-widest hover:bg-slate-50 transition-all">Save All Drafts</button>
+                        <button 
+                          onClick={(e) => { e.preventDefault(); e.stopPropagation(); setPendingFinalize(true); }} 
+                          disabled={isSubmitting}
+                          className={`px-12 py-5 bg-indigo-600 text-white rounded-[2rem] text-[10px] font-black uppercase tracking-widest shadow-2xl shadow-indigo-600/30 transition-all ${isSubmitting ? 'opacity-50 cursor-not-allowed' : 'hover:scale-105 active:scale-95'}`}
+                        >
+                          {isSubmitting ? 'Processing...' : 'Finalize Submission Protocol'}
+                        </button>
+                    </div>
+                 </div>
+             )}
+          </div>
+        </motion.div>
+
       <AnimatePresence>
         {showSuccess && (
-          <motion.div 
-            initial={{ opacity: 0, y: 50 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 50 }}
-            className="fixed bottom-8 right-8 bg-green-500 text-white px-6 py-4 rounded-2xl shadow-2xl flex items-center gap-3 z-50 overflow-hidden"
-          >
-            <CheckCircle className="text-white" />
-            <div>
-              <p className="font-bold">Success!</p>
-              <p className="text-sm text-green-100">Action completed successfully.</p>
-            </div>
-            <motion.div 
-              initial={{ width: '100%' }}
-              animate={{ width: 0 }}
-              transition={{ duration: 3 }}
-              className="absolute bottom-0 left-0 h-1 bg-green-300"
-            />
-          </motion.div>
+          <motion.div initial={{ opacity:0, y:30, scale:0.9 }} animate={{ opacity:1, y:0, scale:1 }} exit={{ opacity:0, y:30, scale:0.9 }} className="fixed bottom-10 right-10 bg-emerald-600 text-white px-10 py-5 rounded-[2rem] shadow-2xl font-black uppercase text-[10px] tracking-[0.3em] flex items-center gap-4 z-[100] border-2 border-white/20 backdrop-blur-md"><CheckCircle size={20}/> Protocol Update Synchronized</motion.div>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {pendingFinalize && (
+          <div className="fixed inset-0 z-[200] flex items-center justify-center p-8 bg-black/60 backdrop-blur-2xl">
+            <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.9 }} className="bg-white dark:bg-slate-900 w-full max-w-lg rounded-[3.5rem] p-12 shadow-2xl border border-gray-100 dark:border-gray-800 text-center relative overflow-hidden">
+               <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-indigo-600 via-primary-600 to-indigo-600" />
+               <div className="w-20 h-20 rounded-3xl bg-indigo-500/10 text-indigo-500 flex items-center justify-center mx-auto mb-8">
+                  <Send size={32} />
+               </div>
+               <h3 className="text-3xl font-black text-slate-900 dark:text-white uppercase tracking-tighter mb-4">Submission Protocol</h3>
+               <p className="text-slate-500 dark:text-slate-400 text-xs font-bold leading-relaxed mb-10 px-6 uppercase tracking-tight">You are about to finalize the marks list for approval. This operation will save all current drafts and lock the records for subsequent HOD/Admin verification.</p>
+               
+               <div className="flex flex-col gap-3">
+                  <button onClick={confirmFinalize} className="w-full py-5 bg-indigo-600 text-white rounded-3xl font-black uppercase text-[10px] tracking-widest shadow-2xl shadow-indigo-600/30 hover:scale-[1.02] transition-all">Confirm Submission</button>
+                  <button onClick={() => setPendingFinalize(false)} className="w-full py-5 bg-slate-100 dark:bg-slate-800 text-slate-500 rounded-3xl font-black uppercase text-[10px] tracking-widest transition-all">Abort Protocol</button>
+               </div>
+            </motion.div>
+          </div>
         )}
       </AnimatePresence>
     </div>

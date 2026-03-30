@@ -29,6 +29,10 @@ export const login = createAsyncThunk('auth/login', async (userData, thunkAPI) =
     const data = await response.json();
     if (!response.ok) throw new Error(data.message);
     
+    if (data.requires2FA) {
+      return data; // Don't save to localStorage yet
+    }
+    
     localStorage.setItem('user', JSON.stringify(data));
     return data;
   } catch (error) {
@@ -74,11 +78,20 @@ export const authSlice = createSlice({
   },
   extraReducers: (builder) => {
     builder
-      .addCase(login.pending, (state) => { state.isLoading = true; })
+      .addCase(login.pending, (state) => { 
+        state.isLoading = true; 
+        state.user = null;
+        state.isError = false;
+        state.isSuccess = false;
+        state.message = '';
+      })
       .addCase(login.fulfilled, (state, action) => {
         state.isLoading = false;
         state.isSuccess = true;
-        state.user = action.payload;
+        // Only set the user globally IF it's a full session (no 2FA required)
+        if (!action.payload.requires2FA) {
+           state.user = action.payload;
+        }
       })
       .addCase(login.rejected, (state, action) => {
         state.isLoading = false;

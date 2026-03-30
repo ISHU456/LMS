@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { 
   BookOpen, Search, Plus, X, Save,
   Calculator, Cpu, Code as CodeIcon, 
-  ArrowRight, GraduationCap, 
+  ArrowRight, GraduationCap, Eye,
   Activity, Zap, Layout, Building2, FlaskConical as Flask, Atom,
   Flag, Map, Compass, Target, Rocket, Star, Crown, Layers, Layers3, Lock, CheckCircle2 
 } from 'lucide-react';
@@ -92,7 +92,6 @@ const Courses = () => {
   }, [user, selectedDept, activeSem]);
 
   useEffect(() => {
-    // Polling actual online counts for all visible courses
     const fetchAllCounts = async () => {
       const counts = {};
       for (const course of courses) {
@@ -120,7 +119,7 @@ const Courses = () => {
     return BookOpen;
   };
 
-  // Role Checks
+  const isTeacher = user?.role === 'teacher';
   const isHOD = user?.role === 'hod' || user?.role === 'admin';
   const isStudent = user?.role === 'student';
 
@@ -138,11 +137,20 @@ const Courses = () => {
 
   const filteredCourses = (courses || []).filter(c => {
      if (activeSem !== 'All' && `Sem-${c.semester}` !== activeSem) return false;
-     if (isStudent && c.semester !== (user.semester || 1)) return false;
+     // Students can see current and previous semesters, but not future ones
+     if (isStudent && c.semester > (user?.semester || 1)) return false;
      if (courseType !== 'all' && c.type !== courseType) return false;
      if (search && !c.name.toLowerCase().includes(search.toLowerCase()) && !c.code.toLowerCase().includes(search.toLowerCase())) return false;
      return true;
-  }).sort((a, b) => (a.facultyAssigned?.[0]?.name || '').localeCompare(b.facultyAssigned?.[0]?.name || ''));
+  }).sort((a, b) => {
+    if (isTeacher) {
+      const aAssigned = a.facultyAssigned?.some(f => (f._id || f) === user?._id);
+      const bAssigned = b.facultyAssigned?.some(f => (f._id || f) === user?._id);
+      if (aAssigned && !bAssigned) return -1;
+      if (!aAssigned && bAssigned) return 1;
+    }
+    return (a.name || '').localeCompare(b.name || '');
+  });
 
   const totalCredits = filteredCourses.reduce((sum, c) => sum + c.credits, 0);
 
@@ -168,25 +176,19 @@ const Courses = () => {
       });
       alert('New academic module established.');
       setShowModal(false);
-      // Re-fetch courses
-      const deptId = selectedDept?._id;
       const res = await axios.get(`http://localhost:5001/api/courses`, {
-        params: { departmentId: deptId, semester: activeSem === 'All' ? undefined : activeSem.split('-')[1] },
+        params: { departmentId: selectedDept?._id, semester: activeSem === 'All' ? undefined : activeSem.split('-')[1] },
         headers: { Authorization: `Bearer ${user.token}` }
       });
       setCourses(res.data);
-    } catch (err) {
-      alert(err.response?.data?.message || 'Operation failed.');
-    } finally {
-      setIsSaving(false);
-    }
+    } catch (err) { alert('Operation failed.'); }
+    finally { setIsSaving(false); }
   };
 
   return (
     <>
     <div className="flex h-[calc(100vh-80px)] w-full bg-[#fafbfc] dark:bg-[#060811] overflow-hidden">
       
-      {/* 1. ARCHITECTURAL SIDEBAR NAVIGATION */}
       <aside className={`h-full bg-white dark:bg-[#0b0f19] border-r border-gray-100 dark:border-gray-800 flex flex-col shrink-0 z-50 overflow-hidden shadow-2xl transition-all duration-300 ${sidebarOpen ? 'w-72' : 'w-20'}`}>
         <div className={`p-6 border-b border-gray-50 dark:border-gray-800/50 sticky top-0 bg-white dark:bg-[#0b0f19] z-20 ${sidebarOpen ? 'p-8 flex justify-between items-center' : 'p-4 flex justify-center'}`}>
           <div className="flex items-center gap-4 mb-2">
@@ -220,7 +222,6 @@ const Courses = () => {
         )}
 
         <nav className={`flex-1 py-8 space-y-2 overflow-y-auto min-h-0 custom-scrollbar pr-2 ${sidebarOpen ? 'px-6' : 'px-3'}`}>
-             <p className={`text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] whitespace-nowrap transition-opacity ${sidebarOpen ? 'opacity-100 mb-4 pl-4' : 'opacity-0 h-0 hidden'}`}>Semester Filter</p>
              {semesters.map((sem) => (
                  <button 
                   key={sem.id} 
@@ -230,76 +231,20 @@ const Courses = () => {
                   <div className={`flex items-center relative z-10 ${sidebarOpen ? 'w-full justify-between' : 'justify-center w-full'}`}>
                     <div className={`flex items-center ${sidebarOpen ? 'gap-3' : 'justify-center'}`}>
                       <div className={`w-8 h-8 shrink-0 rounded-xl flex items-center justify-center transition-colors ${activeSem === sem.id ? 'bg-white/20 text-white' : sem.color}`}>
-                        {isSemLocked(sem.id) ? <Lock size={14} className="text-gray-400 group-hover:text-rose-500" /> : isSemCompleted(sem.id) ? <CheckCircle2 size={16} className="text-emerald-500" /> : <sem.icon size={16} />}
+                        {isSemLocked(sem.id) ? <Lock size={14} /> : isSemCompleted(sem.id) ? <CheckCircle2 size={16} /> : <sem.icon size={16} />}
                       </div>
-                      {sidebarOpen && (
-                        <span className="text-[9px] font-black uppercase tracking-widest leading-none whitespace-nowrap">{sem.label}</span>
-                      )}
+                      {sidebarOpen && <span className="text-[9px] font-black uppercase tracking-widest">{sem.label}</span>}
                     </div>
-                    {activeSem === sem.id && sidebarOpen && (
-                      <div className="w-1.5 h-1.5 bg-white rounded-full relative z-10 animate-pulse" />
-                    )}
-                    {isSemLocked(sem.id) && sidebarOpen && (
-                      <Lock size={10} className="text-gray-400" />
-                    )}
-                    {isSemCompleted(sem.id) && sidebarOpen && activeSem !== sem.id && (
-                      <span className="text-[7px] font-black text-emerald-500 uppercase tracking-tight">Completed</span>
-                    )}
                   </div>
                 </button>
              ))}
-             
-             <div className={`pt-8 mt-8 border-t border-gray-100 dark:border-gray-800/10 space-y-2`}>
-               <p className={`text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] whitespace-nowrap transition-opacity ${sidebarOpen ? 'opacity-100 mb-4 pl-4' : 'opacity-0 h-0 hidden'}`}>Subject Protocol</p>
-                {[
-                  { id: 'all', label: 'All Protocols', icon: Layout },
-                  { id: 'theory', label: 'Theory Matrix', icon: BookOpen },
-                  { id: 'lab', label: 'Applied Lab', icon: Flask }
-                ].map((type) => (
-                  <button 
-                    key={type.id} 
-                    onClick={() => setCourseType(type.id)}
-                    className={`w-full flex items-center gap-4 relative rounded-2xl transition-all duration-300 group ${courseType === type.id ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/20' : 'bg-transparent text-gray-500 hover:bg-gray-50 dark:hover:bg-gray-800/50 hover:text-gray-900 dark:hover:text-white'} ${sidebarOpen ? 'px-4 py-2' : 'h-12 justify-center'}`}
-                  >
-                  <div className={`flex items-center relative z-10 ${sidebarOpen ? 'w-full justify-between' : 'justify-center w-full'}`}>
-                    <div className={`flex items-center ${sidebarOpen ? 'gap-3' : 'justify-center'}`}>
-                      <div className={`w-8 h-8 shrink-0 rounded-xl flex items-center justify-center transition-colors ${courseType === type.id ? 'bg-white/20' : 'bg-gray-100 dark:bg-gray-800 group-hover:bg-white dark:group-hover:bg-gray-700'}`}>
-                        <type.icon size={16} className={courseType === type.id ? 'text-white' : 'text-gray-400 dark:text-gray-500'} />
-                      </div>
-                      {sidebarOpen && (
-                        <span className="text-[9px] font-black uppercase tracking-widest leading-none whitespace-nowrap">{type.label}</span>
-                      )}
-                    </div>
-                  </div>
-                  </button>
-                ))}
-             </div>
         </nav>
-
-        <div className={`border-t border-gray-100 dark:border-gray-800/50 ${sidebarOpen ? 'p-6' : 'p-3'}`}>
-          <div className={`p-4 bg-primary-600 rounded-[2rem] text-white shadow-2xl shadow-primary-600/20 relative overflow-hidden group flex flex-col items-center justify-center ${sidebarOpen ? '' : 'h-14 w-full rounded-2xl'}`}>
-             <div className={`relative z-10 w-full flex flex-col ${sidebarOpen ? 'items-start' : 'items-center'}`}>
-                <p className={`text-[8px] font-black text-primary-200 uppercase tracking-widest ${sidebarOpen ? 'opacity-100 mb-1' : 'opacity-0 h-0 hidden'}`}>Selected Load</p>
-                <div className="flex items-baseline gap-2 mt-1">
-                   <span className={`font-black tracking-tighter ${sidebarOpen ? 'text-2xl' : 'text-sm'}`}>{totalCredits}</span>
-                   <span className={`text-[8px] font-black uppercase opacity-60 ${sidebarOpen ? 'opacity-100' : 'opacity-0 h-0 hidden'}`}>Cr</span>
-                </div>
-             </div>
-             {sidebarOpen && <GraduationCap size={40} className="absolute -bottom-2 -right-2 opacity-15 group-hover:scale-110 transition-transform" />}
-          </div>
-        </div>
       </aside>
 
-      {/* SCROLLABLE CONTENT AREA */}
       <main className="flex-1 overflow-y-auto custom-scrollbar bg-slate-50/50 dark:bg-[#060811] flex flex-col transition-all">
          
-      {/* COMPACT TOP NAVIGATION / SEARCH */}
       <header className="sticky top-0 z-20 px-8 py-5 bg-white/80 dark:bg-[#060811]/80 backdrop-blur-xl border-b border-gray-100 dark:border-gray-800 flex flex-col md:flex-row items-center justify-between gap-4">
          <div className="flex flex-col">
-            <div className="flex items-center gap-2 mb-1">
-               <span className="w-1.5 h-1.5 rounded-full bg-primary-500 animate-pulse"></span>
-               <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest">{selectedDept?.code || 'GEN'} / {activeSem}</p>
-            </div>
             <h2 className="text-xl font-black text-gray-900 dark:text-white uppercase tracking-tighter leading-none">
                {selectedDept?.name || 'All Departments'}
             </h2>
@@ -307,284 +252,131 @@ const Courses = () => {
 
          <div className="flex items-center gap-3 w-full md:w-auto">
             <div className="relative group md:w-72">
-               <Search size={14} className="absolute left-5 top-1/2 -translate-y-1/2 text-gray-400 group-hover:text-primary-500 transition-colors" />
-               <input 
-                 type="text" 
-                 value={search} 
-                 onChange={e=>setSearch(e.target.value)} 
-                 placeholder="Search curriculum..." 
-                 className="w-full bg-gray-50 dark:bg-gray-800/50 pl-12 pr-4 py-3 rounded-xl outline-none text-[10px] font-black uppercase tracking-widest placeholder:text-gray-400 dark:placeholder:text-gray-600 border border-transparent focus:border-primary-500/30 transition-all" 
-               />
+               <Search size={14} className="absolute left-5 top-1/2 -translate-y-1/2 text-gray-400" />
+               <input type="text" value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search curriculum..." className="w-full bg-gray-50 dark:bg-gray-800/50 pl-12 pr-4 py-3 rounded-xl outline-none text-[10px] font-black uppercase tracking-widest transition-all" />
             </div>
             {isHOD && (
-               <button 
-                 onClick={handleOpenModal}
-                 className="hidden xl:flex items-center gap-2 px-5 py-3 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-xl font-black text-[9px] uppercase tracking-widest shadow-xl hover:bg-primary-600 hover:text-white transition-all whitespace-nowrap"
-               >
+               <button onClick={handleOpenModal} className="px-5 py-3 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-xl font-black text-[9px] uppercase tracking-widest shadow-xl">
                   <Plus size={14} /> Subject
                </button>
             )}
          </div>
       </header>
 
-         {/* COURSE FLEET */}
-         <div className="p-8 pb-32">
-            <div className="flex items-center justify-between mb-10">
-               <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 rounded-2xl bg-indigo-600 text-white flex items-center justify-center shadow-lg shadow-indigo-600/20">
-                     <BookOpen size={20} />
+          <div className="p-8 pb-32">
+            {isSemCompleted(activeSem) && (
+              <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} className="mb-8 p-6 rounded-[2.5rem] bg-emerald-500/10 border border-emerald-500/20 backdrop-blur-xl flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 rounded-3xl bg-emerald-500 text-white flex items-center justify-center shadow-lg shadow-emerald-500/20">
+                    <CheckCircle2 size={24} />
                   </div>
-                  <div className="flex flex-col">
-                     <h3 className="text-xl font-black text-gray-900 dark:text-white uppercase tracking-tighter leading-none">Fleet Inventory</h3>
-                     <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mt-1">Operational Manifest</p>
+                  <div>
+                    <h3 className="text-sm font-black text-emerald-600 uppercase tracking-widest">Academic Success Milestone</h3>
+                    <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest mt-1">This semester has been archived as successfully completed.</p>
                   </div>
-               </div>
-               <div className="flex items-center gap-3 px-5 py-2.5 bg-emerald-500/5 border border-emerald-500/10 rounded-2xl">
-                   <Activity size={14} className="text-emerald-500 animate-pulse" />
-                   <span className="text-[10px] font-black text-emerald-600 uppercase tracking-widest">{filteredCourses.length} Deployments Active</span>
-               </div>
-            </div>
-
+                </div>
+                <div className="flex flex-col items-end">
+                   <div className="px-4 py-1.5 rounded-full bg-emerald-500 text-white text-[9px] font-black uppercase tracking-widest shadow-lg shadow-emerald-500/20 animate-pulse">Status: ALREADY COMPLETED</div>
+                   <span className="text-[8px] font-black text-gray-400 uppercase tracking-widest mt-2">{activeSem.replace('-', ' ')} Archives</span>
+                </div>
+              </motion.div>
+            )}
             <div className="grid grid-cols-1 md:grid-cols-2 2xl:grid-cols-3 gap-8">
                <AnimatePresence mode="popLayout">
                  {loading ? (
                    <div className="col-span-full py-20 flex flex-col items-center gap-4">
                      <div className="w-12 h-12 border-4 border-primary-600 border-t-transparent rounded-full animate-spin" />
-                     <p className="text-sm font-black text-gray-400 uppercase tracking-widest">Accessing Mainframe...</p>
                    </div>
-                  ) : isSemLocked(activeSem) ? (
-                    <div className="col-span-full py-20 flex flex-col items-center justify-center text-center">
-                      <div className="w-20 h-20 rounded-[2.5rem] bg-gray-100 dark:bg-gray-800 flex items-center justify-center mb-6 shadow-inner relative overflow-hidden group">
-                         <div className="absolute inset-0 bg-gradient-to-br from-primary-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-                         <Lock size={32} className="text-gray-400 dark:text-gray-600 relative z-10" />
-                      </div>
-                      <h3 className="text-xl font-black text-gray-900 dark:text-white uppercase tracking-tighter mb-2">Semester Access Restricted</h3>
-                      <p className="text-xs font-black text-gray-400 uppercase tracking-widest max-w-xs mx-auto leading-relaxed">
-                        Curriculum protocol for {activeSem} is currently inactive. You will gain access once you reach this academic milestone.
-                      </p>
-                    </div>
-                  ) : isSemCompleted(activeSem) ? (
-                    <div className="col-span-full py-20 flex flex-col items-center justify-center text-center">
-                      <div className="w-20 h-20 rounded-[2.5rem] bg-emerald-50 dark:bg-emerald-900/20 flex items-center justify-center mb-6 shadow-inner relative overflow-hidden group border border-emerald-100 dark:border-emerald-800">
-                         <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-                         <CheckCircle2 size={32} className="text-emerald-500 relative z-10" />
-                      </div>
-                      <h3 className="text-xl font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-tighter mb-2">Semester Achieved</h3>
-                      <p className="text-xs font-black text-gray-400 uppercase tracking-widest max-w-xs mx-auto leading-relaxed">
-                        You have successfully completed all modules for {activeSem}. This curriculum is now part of your academic archive.
-                      </p>
-                    </div>
-                  ) : filteredCourses.length === 0 ? (
-                    <div className="col-span-full py-20 text-center">
-                      <p className="text-base font-black text-gray-400 uppercase tracking-widest">No subjects found in this matrix</p>
-                    </div>
-                  ) : (
-                   filteredCourses.map((course) => {
-                     const Icon = getCourseIcon(course.name);
-                     const activeNow = liveCounts[course.code] || 0;
-                     const facultyName = course.facultyAssigned?.[0]?.name || 'Staff';
-                     
-                     return (
-                       <motion.div 
-                         key={course._id} 
-                         layout 
-                         initial={{ opacity: 0, scale: 0.95 }} 
-                         animate={{ opacity: 1, scale: 1 }} 
-                         exit={{ opacity: 0, scale: 0.9 }} 
-                         className="group"
-                       >
-                          <Link to={`/course-inner/${course.code}`} className="block h-full">
-                             <div className="h-full glass rounded-[2.5rem] border border-transparent dark:border-gray-800 bg-white dark:bg-[#0d101a] p-8 transition-all duration-300 hover:shadow-2xl hover:border-primary-500/30 hover:-translate-y-1.5 flex flex-col relative overflow-hidden">
-                                
-                                <div className="absolute top-6 right-6 flex items-center gap-2 px-3 py-1 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 rounded-full border border-emerald-100 dark:border-emerald-800/50">
-                                   <Activity size={10} className="animate-pulse"/>
-                                   <span className="text-[8px] font-black uppercase tracking-widest">{activeNow} LIVE</span>
-                                </div>
+                  ) : filteredCourses.map((course) => {
+                      const Icon = getCourseIcon(course.name);
+                      const activeNow = liveCounts[course.code] || 0;
+                      const facultyName = course.facultyAssigned?.[0]?.name || 'Staff';
+                      const isAssigned = isTeacher && course.facultyAssigned?.some(f => (f._id || f) === user?._id);
+                      const shouldBeDull = isTeacher && !isAssigned;
 
-                                <div className="flex items-center gap-4 mb-6">
-                                   <div className={`w-14 h-14 rounded-2xl flex items-center justify-center shadow-lg ${course.type === 'lab' ? 'bg-amber-500 text-white' : 'bg-primary-600 text-white'}`}>
-                                      <Icon size={28} />
-                                   </div>
-                                   <div className="flex flex-col">
-                                      <span className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">{course.code}</span>
-                                      <div className="flex items-center gap-2.5">
-                                         <span className="text-xs font-black dark:text-white uppercase tracking-tighter">CREDITS: {course.credits}</span>
-                                         <div className={`w-1.5 h-1.5 rounded-full ${course.type === 'lab' ? 'bg-amber-500' : 'bg-primary-500'}`}></div>
-                                         <span className={`text-[9px] font-black uppercase ${course.type === 'lab' ? 'text-amber-500' : 'text-primary-500'}`}>{course.type}</span>
-                                      </div>
-                                   </div>
+                      return (
+                        <motion.div 
+                          key={course._id} 
+                          layout 
+                          initial={{ opacity: 0, scale: 0.95 }} 
+                          animate={{ opacity: 1, scale: 1 }} 
+                          className={`group ${shouldBeDull ? 'grayscale-[1] opacity-40 contrast-[0.8]' : ''}`}
+                        >
+                           <Link to={`/course-inner/${course.code}`} className="block h-full relative">
+                              {shouldBeDull && (
+                                <div className="absolute top-4 left-4 z-20 px-3 py-1 bg-gray-600/20 backdrop-blur-md rounded-full border border-gray-600/30 text-[8px] font-black text-gray-500 uppercase tracking-widest">
+                                  READ ONLY
                                 </div>
+                              )}
+                              <div className={`h-full glass rounded-[3rem] border border-transparent dark:border-gray-800 ${shouldBeDull ? 'bg-gray-100/50 dark:bg-gray-900/50' : 'bg-white dark:bg-[#0d101a]'} p-8 transition-all duration-300 hover:shadow-2xl hover:border-primary-500/30 hover:-translate-y-1.5 flex flex-col relative overflow-hidden`}>
+                                 
+                                 <div className="absolute top-6 right-6 flex flex-col items-end gap-2">
+                                    <div className="flex items-center gap-2 px-3 py-1 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 rounded-full border border-emerald-100 dark:border-emerald-800/50 shadow-sm">
+                                       <Activity size={10} className="animate-pulse"/>
+                                       <span className="text-[8px] font-black uppercase tracking-widest">{activeNow} LIVE</span>
+                                    </div>
+                                    <div className="flex items-center gap-2 px-3 py-1 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 rounded-full border border-blue-100 dark:border-blue-800/50 shadow-sm">
+                                       <Eye size={10}/>
+                                       <span className="text-[8px] font-black uppercase tracking-widest">{course.views || 0} VIEWS</span>
+                                    </div>
+                                 </div>
 
-                                <div className="flex-1">
-                                   <h3 className="text-xl font-black text-gray-900 dark:text-white leading-tight uppercase tracking-tighter mb-3 group-hover:text-primary-600 transition-colors">
-                                      {course.name}
-                                   </h3>
-                                   <p className="text-gray-400 font-bold text-xs uppercase tracking-widest mb-6 leading-relaxed line-clamp-2">
-                                      {course.description || `Master the fundamentals of ${course.name} with our elite curriculum matrix.`}
-                                   </p>
-                                </div>
+                                 <div className="flex items-center gap-4 mb-8">
+                                    <div className={`w-14 h-14 rounded-2xl flex items-center justify-center shadow-lg ${course.type === 'lab' ? 'bg-amber-500 text-white' : 'bg-primary-600 text-white'}`}>
+                                       <Icon size={28} />
+                                    </div>
+                                    <div className="flex flex-col">
+                                       <span className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">{course.code}</span>
+                                       <span className="text-xs font-black dark:text-white uppercase tracking-tighter">LEVEL {course.credits} UNIT</span>
+                                    </div>
+                                 </div>
 
-                                <div className="pt-6 border-t border-gray-100 dark:border-gray-800 flex items-center justify-between">
-                                   <div className="flex items-center gap-3">
-                                      <div className="w-9 h-9 rounded-xl bg-indigo-500 flex items-center justify-center text-white text-[10px] font-black shadow-inner">
-                                         {facultyName.split(' ').map(n=>n[0]).join('')}
-                                      </div>
-                                      <p className="text-xs font-black dark:text-white uppercase truncate max-w-[120px] leading-none">{facultyName}</p>
-                                   </div>
-                                   <div className="w-10 h-10 rounded-xl bg-gray-50 dark:bg-gray-800 text-gray-400 group-hover:bg-primary-600 group-hover:text-white transition-all flex items-center justify-center">
-                                      <ArrowRight size={18} />
-                                   </div>
-                                </div>
-                             </div>
-                          </Link>
-                       </motion.div>
-                     );
-                   })
-                 )}
+                                 <div className="flex-1">
+                                    <h3 className="text-xl font-black text-gray-900 dark:text-white leading-tight uppercase tracking-tighter mb-4 group-hover:text-primary-600">
+                                       {course.name}
+                                    </h3>
+                                 </div>
+
+                                 <div className="pt-6 border-t border-gray-100 dark:border-gray-800 flex items-center justify-between">
+                                    <div className="flex items-center gap-3">
+                                       <div className="w-10 h-10 rounded-2xl bg-indigo-500 flex items-center justify-center text-white text-[10px] font-black">
+                                          {facultyName.split(' ').map(n=>n[0]).join('')}
+                                       </div>
+                                       <div>
+                                          <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest leading-none">Lead Strategist</p>
+                                          <p className="text-xs font-black dark:text-white uppercase transition-colors">{facultyName}</p>
+                                       </div>
+                                    </div>
+                                    <div className="w-10 h-10 rounded-2xl bg-gray-50 dark:bg-gray-800 text-gray-400 group-hover:bg-primary-600 group-hover:text-white transition-all flex items-center justify-center shadow-inner">
+                                       <ArrowRight size={18} />
+                                    </div>
+                                 </div>
+                              </div>
+                           </Link>
+                        </motion.div>
+                      );
+                  })}
                </AnimatePresence>
             </div>
          </div>
       </main>
     </div>
     
-    {/* Course Establishment Modal */}
     <AnimatePresence>
       {showModal && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 md:p-8 backdrop-blur-xl bg-black/60">
-          <motion.div 
-            initial={{ opacity: 0, scale: 0.9, y: 20 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.9, y: 20 }}
-            className="bg-white dark:bg-[#0b0f19] w-full max-w-2xl rounded-[3rem] shadow-2xl overflow-hidden border border-gray-100 dark:border-gray-800"
-          >
-            <div className="relative p-10 md:p-12">
-               <button 
-                 onClick={() => setShowModal(false)}
-                 className="absolute top-8 right-8 p-3 text-gray-400 hover:text-primary-500 hover:bg-primary-50 dark:hover:bg-primary-900/20 rounded-2xl transition-all"
-               >
-                 <X size={24} />
-               </button>
-
-               <div className="mb-10">
-                 <h2 className="text-3xl font-black dark:text-white uppercase tracking-tighter">
-                   Establish New Module
-                 </h2>
-                 <p className="text-gray-500 font-medium uppercase text-xs tracking-[0.2em] mt-2">
-                   Defining new curriculum parameters for {selectedDept?.code || 'Global'} Sector
-                 </p>
-               </div>
-
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-8 backdrop-blur-xl bg-black/60">
+          <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="bg-white dark:bg-[#0b0f19] w-full max-w-2xl rounded-[3rem] p-12 shadow-2xl overflow-hidden border border-gray-100 dark:border-gray-800">
+               <h2 className="text-3xl font-black dark:text-white uppercase tracking-tighter mb-10">Establish New Module</h2>
                <form onSubmit={handleSubmit} className="space-y-6">
-                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="space-y-2">
-                       <label className="text-[10px] font-black uppercase tracking-widest text-gray-500 ml-1">Unit Title</label>
-                       <input 
-                         required 
-                         type="text" 
-                         placeholder="Data Science..."
-                         value={formData.name}
-                         onChange={(e) => setFormData({...formData, name: e.target.value})}
-                         className="w-full bg-gray-50 dark:bg-gray-800/50 border border-transparent focus:border-primary-500 focus:bg-white dark:focus:bg-gray-800 rounded-2xl px-6 py-4 text-sm font-bold outline-none transition-all dark:text-white"
-                       />
-                    </div>
-
-                    <div className="space-y-2">
-                       <label className="text-[10px] font-black uppercase tracking-widest text-gray-500 ml-1">Unit Code</label>
-                       <input 
-                         required 
-                         type="text" 
-                         placeholder="CS301"
-                         value={formData.code}
-                         style={{ textTransform: 'uppercase' }}
-                         onChange={(e) => setFormData({...formData, code: e.target.value.toUpperCase()})}
-                         className="w-full bg-gray-50 dark:bg-gray-800/50 border border-transparent focus:border-primary-500 focus:bg-white dark:focus:bg-gray-800 rounded-2xl px-6 py-4 text-sm font-bold outline-none transition-all dark:text-white"
-                       />
-                    </div>
-
-                    <div className="space-y-2">
-                       <label className="text-[10px] font-black uppercase tracking-widest text-gray-500 ml-1">Academic Sector</label>
-                       <select 
-                         required
-                         value={formData.department}
-                         onChange={(e) => setFormData({...formData, department: e.target.value})}
-                         className="w-full bg-gray-50 dark:bg-gray-800/50 border border-transparent focus:border-primary-500 rounded-2xl px-6 py-4 text-sm font-bold outline-none transition-all dark:text-white"
-                       >
-                         {departments.map(d => (
-                           <option key={d._id} value={d._id}>{d.name} ({d.code})</option>
-                         ))}
-                       </select>
-                    </div>
-
-                    <div className="space-y-2">
-                       <label className="text-[10px] font-black uppercase tracking-widest text-gray-500 ml-1">Semester Cycle</label>
-                       <select 
-                         required
-                         value={formData.semester}
-                         onChange={(e) => setFormData({...formData, semester: parseInt(e.target.value)})}
-                         className="w-full bg-gray-50 dark:bg-gray-800/50 border border-transparent focus:border-primary-500 rounded-2xl px-6 py-4 text-sm font-bold outline-none transition-all dark:text-white"
-                       >
-                         {[1,2,3,4,5,6,7,8].map(s => (
-                           <option key={s} value={s}>Semester {s}</option>
-                         ))}
-                       </select>
-                    </div>
-
-                    <div className="space-y-2">
-                       <label className="text-[10px] font-black uppercase tracking-widest text-gray-500 ml-1">Credit Weight</label>
-                       <input 
-                         required 
-                         type="number" 
-                         min="1" max="6"
-                         value={formData.credits}
-                         onChange={(e) => setFormData({...formData, credits: parseInt(e.target.value)})}
-                         className="w-full bg-gray-50 dark:bg-gray-800/50 border border-transparent focus:border-primary-500 focus:bg-white dark:focus:bg-gray-800 rounded-2xl px-6 py-4 text-sm font-bold outline-none transition-all dark:text-white"
-                       />
-                    </div>
-
-                    <div className="space-y-2">
-                       <label className="text-[10px] font-black uppercase tracking-widest text-gray-500 ml-1">Delivery Type</label>
-                       <select 
-                         required
-                         value={formData.type}
-                         onChange={(e) => setFormData({...formData, type: e.target.value})}
-                         className="w-full bg-gray-50 dark:bg-gray-800/50 border border-transparent focus:border-primary-500 rounded-2xl px-6 py-4 text-sm font-bold outline-none transition-all dark:text-white"
-                       >
-                         <option value="theory">Theory Unit</option>
-                         <option value="lab">Laboratory Unit</option>
-                         <option value="project">Project / Studio Unit</option>
-                       </select>
-                    </div>
+                 <div className="grid grid-cols-2 gap-6">
+                    <input required type="text" placeholder="Unit Title..." value={formData.name} onChange={(e) => setFormData({...formData, name: e.target.value})} className="w-full bg-gray-50 dark:bg-gray-800/50 rounded-2xl px-6 py-4 text-sm font-bold outline-none" />
+                    <input required type="text" placeholder="CS301" value={formData.code} onChange={(e) => setFormData({...formData, code: e.target.value.toUpperCase()})} className="w-full bg-gray-50 dark:bg-gray-800/50 rounded-2xl px-6 py-4 text-sm font-bold outline-none" />
                  </div>
-
-                 <div className="space-y-2">
-                   <label className="text-[10px] font-black uppercase tracking-widest text-gray-500 ml-1">Unit Description</label>
-                   <textarea 
-                     rows="3"
-                     placeholder="Outline objectives..."
-                     value={formData.description}
-                     onChange={(e) => setFormData({...formData, description: e.target.value})}
-                     className="w-full bg-gray-50 dark:bg-gray-800/50 border border-transparent focus:border-primary-500 rounded-2xl px-6 py-4 text-sm font-bold outline-none transition-all dark:text-white resize-none"
-                   ></textarea>
-                 </div>
-
                  <div className="flex gap-4 pt-6">
-                    <button 
-                      type="button"
-                      onClick={() => setShowModal(false)}
-                      className="flex-1 py-5 bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 rounded-3xl font-black uppercase tracking-widest hover:bg-gray-200 transition-all"
-                    >
-                      Cancel
-                    </button>
-                    <button 
-                      type="submit"
-                      disabled={isSaving}
-                      className="flex-[2] py-5 bg-primary-600 text-white rounded-3xl font-black uppercase tracking-widest hover:bg-primary-500 shadow-2xl shadow-primary-500/20 transition-all flex items-center justify-center gap-3 disabled:bg-gray-400"
-                    >
-                      <Save size={20} /> {isSaving ? 'Establishing...' : 'Confirm Module'}
-                    </button>
+                    <button type="button" onClick={() => setShowModal(false)} className="flex-1 py-5 bg-gray-100 dark:bg-gray-800 rounded-3xl font-black uppercase tracking-widest">Cancel</button>
+                    <button type="submit" className="flex-[2] py-5 bg-primary-600 text-white rounded-3xl font-black uppercase tracking-widest shadow-2xl">Confirm Module</button>
                  </div>
                </form>
-            </div>
           </motion.div>
         </div>
       )}

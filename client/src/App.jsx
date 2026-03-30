@@ -10,6 +10,8 @@ import AchievementToaster from './components/AchievementToaster';
 import Footer from './components/Footer';
 import Chatbot from './components/Chatbot';
 import ScrollToTop from './components/ScrollToTop';
+import LockedOverlay from './components/LockedOverlay';
+import GlobalAlertMarquee from './components/GlobalAlertMarquee';
 
 // Auth pages
 import Login from './pages/auth/Login';
@@ -61,9 +63,13 @@ import ContestList from './pages/coding_contests/ContestList';
 import ContestArena from './pages/coding_contests/ContestArena';
 import ContestLeaderboard from './pages/coding_contests/ContestLeaderboard';
 import AdminContestManager from './pages/coding_contests/AdminContestManager';
-
-import LockedOverlay from './components/LockedOverlay';
 import NotificationListener from './components/NotificationListener';
+import { MFAProvider } from './modules/mfa/MFAContext';
+import MFAVerify from './pages/auth/MFAVerify';
+import FaceRegistrationPage from './pages/auth/FaceRegistrationPage';
+import SelfAttendance from './pages/attendance/SelfAttendance';
+import DailyAttendance from './pages/attendance/DailyAttendance';
+import GPSConfigPage from './pages/admin/GPSConfigPage';
 
 // Protected Route Component for Role-based Access Control
 const ProtectedRoute = ({ children, allowedRoles, checkDept = true }) => {
@@ -81,6 +87,14 @@ const ProtectedRoute = ({ children, allowedRoles, checkDept = true }) => {
         message="Your current role clearance does not permit entry to this sector." 
       />
     );
+  }
+
+  // Redirect to face registration for students if not yet done
+  if (user.role === 'student' && !user.faceRegistered) {
+     const currentPath = window.location.pathname;
+     if (currentPath !== '/face-registration' && !currentPath.includes('/login') && currentPath !== '/') {
+        return <Navigate to="/face-registration" replace />;
+     }
   }
 
   // Redirect to department selection if not admin and department not selected in DB and localStorage
@@ -137,9 +151,10 @@ const AppContent = () => {
   const toggleDarkMode = () => setDarkMode(!darkMode);
 
   return (
-    <div className="h-screen flex flex-col bg-gray-50/50 dark:bg-dark-bg/50 transition-colors duration-300 overflow-hidden">
+    <div className="h-screen flex flex-col bg-slate-50 dark:bg-[#030712] transition-colors duration-300 overflow-hidden">
       <Navbar darkMode={darkMode} toggleDarkMode={toggleDarkMode} />
-      <main className="flex-grow flex flex-col relative w-full overflow-y-auto smooth-scroll min-h-0">
+      <GlobalAlertMarquee />
+      <main className="flex-grow flex flex-col relative w-full overflow-y-auto smooth-scroll min-h-0 bg-transparent">
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/login" element={<Login />} />
@@ -315,6 +330,27 @@ const AppContent = () => {
 403 - Unauthorized Access</h1>
              </div>
           } />
+          <Route path="/verify-mfa" element={<MFAVerify />} />
+          <Route path="/face-registration" element={
+            <ProtectedRoute>
+              <FaceRegistrationPage />
+            </ProtectedRoute>
+          } />
+          <Route path="/self-attendance/:courseId" element={
+            <ProtectedRoute allowedRoles={['student']}>
+              <SelfAttendance />
+            </ProtectedRoute>
+          } />
+          <Route path="/daily-attendance" element={
+            <ProtectedRoute allowedRoles={['student']}>
+              <DailyAttendance />
+            </ProtectedRoute>
+          } />
+          <Route path="/admin/gps-config" element={
+            <ProtectedRoute allowedRoles={['admin']}>
+              <GPSConfigPage />
+            </ProtectedRoute>
+          } />
         </Routes>
       </main>
       {!isAIMode && <Footer />}
@@ -328,9 +364,11 @@ const AppContent = () => {
 function App() {
   return (
     <Router>
-      <ScrollToTop />
-      <FluidBackground />
-      <AppContent />
+      <MFAProvider>
+        <ScrollToTop />
+        <FluidBackground />
+        <AppContent />
+      </MFAProvider>
     </Router>
   );
 }

@@ -104,7 +104,7 @@ resultSchema.pre('save', function (next) {
   } else if (this.courseType === 'PRACTICAL') {
     this.totalMarks = (this.marks.internalPractical || 0) + (this.marks.externalPractical || 0);
   } else if (this.courseType === 'VIVA') {
-    this.totalMarks = (this.marks.vivaScore || 0);
+    this.totalMarks = (this.marks.vivaScore || 0) * 10;
   }
 
   // Grading Logic (Standardized for 100-point total)

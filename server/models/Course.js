@@ -6,9 +6,9 @@ const courseSchema = new mongoose.Schema({
   credits: { type: Number, required: true, min: 1, max: 6 },
   department: { type: mongoose.Schema.Types.ObjectId, ref: 'Department', required: true },
   semester: { type: Number, required: true, min: 1, max: 8 },
-  type: { type: String, enum: ['THEORY', 'PRACTICAL', 'VIVA'], required: true },
+  type: { type: String, required: true, default: 'THEORY' }, // Simplified
   description: { type: String },
-  syllabusUrl: { type: String }, // Link to PDF or document upload
+  syllabusUrl: { type: String },
   textbooks: [{
     title: String,
     author: String,
@@ -16,7 +16,7 @@ const courseSchema = new mongoose.Schema({
   }],
   prerequisites: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Course' }],
   facultyAssigned: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
-  batches: [{ type: String }], // e.g., '2023-2027'
+  batches: [{ type: String }],
   schedule: [{
     day: { type: String, required: true },
     time: { type: String, required: true },
@@ -29,7 +29,8 @@ const courseSchema = new mongoose.Schema({
   meetingLink: { type: String, default: 'https://meet.google.com/new' },
   excludedStudents: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
   autoRestrictEnabled: { type: Boolean, default: true },
-  marksDeadline: { type: Date } // Deadline for result entry after which it locks
+  marksDeadline: { type: Date },
+  views: { type: Number, default: 0 }
 }, {
   timestamps: true
 });

@@ -305,37 +305,30 @@ export const analyzeFile = async (req, res) => {
 
 export const getAiUsageSummary = async (req, res) => {
   try {
-    const usage = await AiCreditLog.aggregate([
-      { $sort: { timestamp: -1 } },
-      { $group: {
-          _id: "$user",
-          lastUsage: { $first: "$timestamp" },
-          totalUsage: { $sum: 1 },
-          lastAction: { $first: "$action" }
-        }
-      },
+    const usage = await User.aggregate([
       { $lookup: {
-          from: 'users',
+          from: 'aicreditlogs',
           localField: '_id',
-          foreignField: '_id',
-          as: 'userInfo'
+          foreignField: 'user',
+          as: 'logs'
         }
       },
-      { $unwind: "$userInfo" },
       { $project: {
           _id: 1,
-          lastUsage: 1,
-          totalUsage: 1,
-          lastAction: 1,
-          name: "$userInfo.name",
-          email: "$userInfo.email",
-          role: "$userInfo.role",
-          credits: "$userInfo.credits"
+          name: 1,
+          email: 1,
+          role: 1,
+          credits: 1,
+          totalUsage: { $size: "$logs" },
+          lastUsage: { $max: "$logs.timestamp" },
+          lastAction: { $arrayElemAt: ["$logs.action", -1] }
         }
-      }
+      },
+      { $sort: { totalUsage: -1, name: 1 } }
     ]);
     res.json(usage);
   } catch (err) {
+    console.error('Audit Failure:', err);
     res.status(500).json({ message: "Failed to audit neural core." });
   }
 };

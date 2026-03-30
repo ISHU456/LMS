@@ -61,6 +61,7 @@ const userSchema = new mongoose.Schema(
     aboutMe: { type: String },
     cgpa: { type: Number }, // For students
     percentage: { type: Number }, // For students
+    faceRegistered: { type: Boolean, default: false },
   },
   {
     timestamps: true,

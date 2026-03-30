@@ -178,26 +178,39 @@ const DashboardOverview = ({ user }) => {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-        {/* Left: Your Subjects Fixed List */}
+        {/* Left: Authorized Governance Nodes Matrix */}
         <div className="lg:col-span-1 space-y-4">
           <div className="flex items-center justify-between px-2">
-            <h3 className="text-[10px] font-black text-gray-900 dark:text-white uppercase tracking-widest">Global Node Map</h3>
-            <span className="text-[9px] font-black text-rose-500 px-2 py-0.5 bg-rose-50 dark:bg-rose-900/20 rounded-full">{stats.length} Nodes</span>
+            <h3 className="text-[10px] font-black text-gray-900 dark:text-white uppercase tracking-widest flex items-center gap-2">
+              <ShieldCheck size={14} className="text-emerald-500" /> Authorized Governance Nodes
+            </h3>
+            <span className="text-[9px] font-black text-emerald-500 px-2 py-0.5 bg-emerald-50 dark:bg-emerald-900/20 rounded-full">{stats.length} Active</span>
           </div>
           <div className="space-y-3 h-[600px] overflow-y-auto pr-2 custom-scrollbar">
             {stats.map((s, i) => (
               <motion.div key={s.courseId} onClick={() => setActiveCourseIndex(i)}
                 whileHover={{ x: 4 }}
-                className={`w-full p-5 rounded-[28px] text-left transition-all border flex items-center justify-between gap-4 group cursor-pointer ${activeCourseIndex === i ? 'bg-gray-900 dark:bg-white dark:text-gray-900 text-white shadow-2xl' : 'bg-white dark:bg-gray-900 border-gray-100 dark:border-gray-800 hover:border-gray-300'}`}>
-                <div className="min-w-0">
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className={`text-[9px] font-black px-1.5 py-0.5 rounded-md border ${activeCourseIndex === i ? 'bg-white/10 border-white/20 text-white dark:bg-gray-100 dark:text-gray-900' : 'bg-gray-50 border-gray-100 text-gray-400'}`}>{s.courseCode}</span>
-                    <span className={`text-[8px] font-black uppercase ${activeCourseIndex === i ? 'text-gray-400' : 'text-gray-300'}`}>{s.studentCount} Units</span>
-                  </div>
-                  <h4 className={`text-xs font-black uppercase truncate ${activeCourseIndex === i ? 'text-white dark:text-gray-900' : 'text-gray-900 dark:text-white'}`}>{s.courseName}</h4>
+                className={`w-full p-6 rounded-[32px] text-left transition-all border flex flex-col gap-4 group cursor-pointer ${activeCourseIndex === i ? 'bg-gray-900 dark:bg-white dark:text-gray-900 text-white shadow-2xl scale-105' : 'bg-white dark:bg-gray-900 border-gray-100 dark:border-gray-800 hover:border-emerald-300'}`}>
+                <div className="flex justify-between items-start">
+                   <div className="flex flex-col">
+                      <span className={`text-[9px] font-black px-2 py-0.5 rounded-lg border w-fit mb-2 ${activeCourseIndex === i ? 'bg-white/10 border-white/20 text-white dark:bg-gray-100 dark:text-gray-900' : 'bg-emerald-50 border-emerald-100 text-emerald-600'}`}>
+                        {s.courseCode}
+                      </span>
+                      <h4 className={`text-sm font-black uppercase tracking-tight leading-tight ${activeCourseIndex === i ? 'text-white dark:text-gray-900' : 'text-gray-900 dark:text-white'}`}>
+                        {s.courseName}
+                      </h4>
+                   </div>
+                   <div className={`p-2 rounded-2xl transition-all ${activeCourseIndex === i ? 'bg-white/10 text-white dark:text-gray-300 shadow-inner' : 'bg-gray-50 text-emerald-500'}`}>
+                      <ShieldCheck size={18}/>
+                   </div>
                 </div>
-                <div className={`p-2 rounded-xl transition-all ${activeCourseIndex === i ? 'bg-white/10 text-white dark:text-gray-300' : 'bg-gray-50 text-gray-300 group-hover:text-indigo-500'}`}>
-                   <ArrowUpRight size={14}/>
+                
+                <div className="flex items-center justify-between mt-2 pt-4 border-t border-dashed border-gray-100 dark:border-white/10">
+                   <div className="flex items-center gap-2">
+                      <div className={`w-2 h-2 rounded-full animate-pulse ${activeCourseIndex === i ? 'bg-emerald-400' : 'bg-emerald-500'}`} />
+                      <span className={`text-[8px] font-black uppercase tracking-widest ${activeCourseIndex === i ? 'text-gray-400' : 'text-gray-400'}`}>Access: Full Admin</span>
+                   </div>
+                   <span className={`text-[8px] font-black uppercase ${activeCourseIndex === i ? 'text-emerald-400' : 'text-gray-300'}`}>Semester {s.semester}</span>
                 </div>
               </motion.div>
             ))}
@@ -222,37 +235,6 @@ const DashboardOverview = ({ user }) => {
                   ))}
                </div>
 
-               {/* Student Engagement Pictograph */}
-               <div className="bg-white dark:bg-gray-900 p-6 rounded-[40px] border border-gray-100 dark:border-gray-800 shadow-sm">
-                  <div className="flex items-center justify-between mb-6">
-                    <div>
-                       <h3 className="text-[10px] font-black text-gray-900 dark:text-white uppercase tracking-widest">Active Engagement Pictograph</h3>
-                       <p className="text-[8px] font-bold text-gray-400 mt-1 uppercase">Visual status matrix of all enrolled units</p>
-                    </div>
-                    <div className="flex gap-2">
-                       <div className="flex items-center gap-1"><div className="w-1.5 h-1.5 rounded-full bg-emerald-500"/><span className="text-[7px] font-black text-emerald-600 uppercase">Stable</span></div>
-                       <div className="flex items-center gap-1"><div className="w-1.5 h-1.5 rounded-full bg-amber-500"/><span className="text-[7px] font-black text-amber-600 uppercase">Warning</span></div>
-                       <div className="flex items-center gap-1"><div className="w-1.5 h-1.5 rounded-full bg-rose-500"/><span className="text-[7px] font-black text-rose-600 uppercase">Critical</span></div>
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-10 gap-2 overflow-hidden">
-                    {activeCourseStudents.length > 0 ? activeCourseStudents.map((st, sidx) => {
-                       const isLow = Math.random() > 0.8; // Simulated for visual variety in pictograph
-                       const isBlocked = Math.random() > 0.95;
-                       return (
-                         <motion.div key={st._id} initial={{ opacity: 0, scale: 0 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: sidx * 0.01 }}
-                           className={`aspect-square rounded-lg flex items-center justify-center relative group cursor-help ${isBlocked ? 'bg-rose-100 text-rose-600' : isLow ? 'bg-amber-100 text-amber-600' : 'bg-emerald-50 text-emerald-600'}`}>
-                            <Users size={12} fill={isBlocked ? '#f43f5e' : isLow ? '#f59e0b' : '#10b981'} opacity={0.3}/>
-                            <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 bg-gray-900 text-white text-[8px] font-black px-2 py-1 rounded-md opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-50 pointer-events-none uppercase tracking-widest">
-                               {st.name}
-                            </div>
-                         </motion.div>
-                       );
-                    }) : Array.from({length: 40}).map((_, idx) => (
-                      <div key={idx} className="aspect-square rounded-lg bg-gray-50 dark:bg-gray-800 animate-pulse"/>
-                    ))}
-                  </div>
-               </div>
 
                {/* Multi-Metric Visualization Grid */}
                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

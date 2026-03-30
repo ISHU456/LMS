@@ -4,9 +4,11 @@ import {
   BarChart3, LayoutGrid, CheckCircle2, Globe, Sparkles, Filter, 
   ChevronRight, ArrowUpDown, Download, Printer, ShieldCheck,
   Zap, AlertCircle, Loader2, Search, MoreHorizontal, Unlock,
-  XCircle, Bell, Clock
+  XCircle, Bell, Clock, Archive, Upload, Cloud
 } from 'lucide-react';
 import axios from 'axios';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
 const AdminResultHub = ({ user }) => {
   const [semester, setSemester] = useState(() => localStorage.getItem('adminResultSem') || '1');
@@ -17,11 +19,14 @@ const AdminResultHub = ({ user }) => {
   });
   const [department, setDepartment] = useState(() => localStorage.getItem('adminResultDept') || 'All');
   const [departments, setDepartments] = useState([]);
-  const [data, setData] = useState({ students: [], courses: [], matrix: {} });
+  const [data, setData] = useState({ students: [], courses: [], matrix: {}, studentFinals: {} });
   const [loading, setLoading] = useState(false);
   const [compiling, setCompiling] = useState(false);
+  const [syncingId, setSyncingId] = useState(null);
+  const [batchSyncing, setBatchSyncing] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [sortConfig, setSortConfig] = useState({ key: 'rollNumber', direction: 'asc' });
+  const [publishing, setPublishing] = useState(false);
 
   const fetchDepartments = async () => {
     try {
@@ -145,6 +150,195 @@ const AdminResultHub = ({ user }) => {
     }
   };
 
+  const generateTranscriptPDF = (student) => {
+    const doc = new jsPDF();
+    const results = data.matrix[student._id] || {};
+    const final = data.studentFinals?.[student._id] || {};
+    const courses = data.courses.filter(c => results[c._id]);
+    
+    // Header
+    doc.setFillColor(15, 23, 42); // bg-slate-900
+    doc.rect(0, 0, 210, 45, 'F');
+    
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(24);
+    doc.setFont("helvetica", "bold");
+    doc.text("INSTITUTIONAL GRADE TRANSCRIPT", 20, 25);
+    
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "normal");
+    doc.text(`ACADEMIC NODE: ${academicYear} | SEMESTER: ${semester} | DEPT: ${student.department || department}`, 20, 35);
+    
+    // Student Info
+    doc.setTextColor(50, 50, 50);
+    doc.setFontSize(14);
+    doc.text("IDENTITY PROFILE", 20, 60);
+    
+    autoTable(doc, {
+      startY: 65,
+      head: [['Field', 'Identity Data']],
+      body: [
+        ['FULL NAME', student.name.toUpperCase()],
+        ['ROLL NUMBER', student.rollNumber],
+        ['ENROLLMENT No', student.enrollmentNumber || 'N/A'],
+        ['DEPARTMENT', student.department || department],
+        ['SEMESTER', semester]
+      ],
+      theme: 'plain',
+      styles: { fontSize: 10, cellPadding: 4 },
+      columnStyles: { 0: { fontStyle: 'bold', width: 40 } }
+    });
+
+    // Results Table
+    doc.text("CURRICULAR PERFORMANCE LATTICE", 20, doc.lastAutoTable.finalY + 15);
+    
+    const tableData = courses.map(c => {
+      const r = results[c._id];
+      return [c.code, c.name, c.credits || 4, r.totalMarks, r.grade || 'F'];
+    });
+
+    autoTable(doc, {
+      startY: doc.lastAutoTable.finalY + 20,
+      head: [['Code', 'Subject Name', 'Credits', 'Obtained', 'Grade']],
+      body: tableData,
+      theme: 'grid',
+      headStyles: { fillColor: [15, 23, 42], textColor: 255, fontSize: 10, fontStyle: 'bold' },
+      styles: { fontSize: 9, cellPadding: 5 },
+      alternateRowStyles: { fillColor: [248, 250, 252] }
+    });
+
+    // Summary
+    const totalObtained = courses.reduce((sum, c) => sum + (results[c._id]?.totalMarks || 0), 0);
+    const avgMarks = final.percentage || (courses.length > 0 ? (totalObtained / courses.length).toFixed(2) : 0);
+    
+    doc.setFontSize(12);
+    doc.rect(20, doc.lastAutoTable.finalY + 10, 170, 30);
+    doc.text(`CONSOLIDATED SGPA: ${final.sgpa || 'NOT COMPILED'}`, 30, doc.lastAutoTable.finalY + 20);
+    doc.text(`PERCENTAGE: ${avgMarks}% | STATUS: ${final.isPublished ? 'OFFICIALLY PUBLISHED' : 'PRE-RELEASE PROTOTYPE'}`, 30, doc.lastAutoTable.finalY + 30);
+    
+    // Footer
+    const footerY = 280;
+    doc.setFontSize(8);
+    doc.setTextColor(150, 150, 150);
+    doc.text("E-TRANSCRIPT CERTIFIED BY NEURAL GOVERNANCE NODE | VOID IF ALTERED", 105, footerY, { align: 'center' });
+    doc.text(`Generation Date: ${new Date().toLocaleString()}`, 105, footerY + 5, { align: 'center' });
+
+    doc.save(`transcript_${student.rollNumber}_sem${semester}.pdf`);
+  };
+
+  const generateAndSyncTranscript = async (student) => {
+    // 1. Generate PDF
+    const doc = new jsPDF();
+    const results = data.matrix[student._id] || {};
+    const final = data.studentFinals?.[student._id] || {};
+    const courses = data.courses.filter(c => results[c._id]);
+    
+    // Header
+    doc.setFillColor(15, 23, 42); // bg-slate-900
+    doc.rect(0, 0, 210, 45, 'F');
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(24);
+    doc.setFont("helvetica", "bold");
+    doc.text("OFFICIAL GRADE TRANSCRIPT", 20, 25);
+    doc.setFontSize(10);
+    doc.text(`CERTIFIED DIGITAL ARCHIVE | SEMESTER: ${semester} | ACADEMIC NODE: ${academicYear}`, 20, 35);
+    
+    // Identity Profile
+    doc.setTextColor(50, 50, 50);
+    doc.setFontSize(14);
+    doc.text("IDENTITY PROFILE", 20, 60);
+    autoTable(doc, {
+      startY: 65,
+      head: [['Field', 'Identity Data']],
+      body: [
+        ['STUDENT NAME', student.name.toUpperCase()],
+        ['ROLL NUMBER', student.rollNumber],
+        ['ENROLLMENT No', student.enrollmentNumber || 'N/A'],
+        ['DEPARTMENT', student.department || department],
+        ['SEMESTER', semester]
+      ],
+      theme: 'plain',
+    });
+
+    // Curricular Lattice
+    const tableData = courses.map(c => {
+      const r = results[c._id];
+      return [c.code, c.name, c.credits || 4, r.totalMarks, r.grade || 'F'];
+    });
+    autoTable(doc, {
+      startY: doc.lastAutoTable.finalY + 20,
+      head: [['Code', 'Subject', 'CR', 'Marks', 'Grade']],
+      body: tableData,
+      theme: 'grid',
+      headStyles: { fillColor: [15, 23, 42] }
+    });
+
+    // Final Node
+    const totalObtained = courses.reduce((sum, c) => sum + (results[c._id]?.totalMarks || 0), 0);
+    doc.rect(20, doc.lastAutoTable.finalY + 10, 170, 30);
+    doc.text(`SGPA: ${final.sgpa || 'COMM-SYNC'}`, 30, doc.lastAutoTable.finalY + 20);
+    doc.text(`PERCENTAGE: ${final.percentage || 'N/A'}% | OFFICIAL RECORD`, 30, doc.lastAutoTable.finalY + 30);
+
+    const pdfBlob = doc.output('blob');
+
+    // 2. Upload to Cloud
+    try {
+      setSyncingId(student._id);
+      const formData = new FormData();
+      formData.append('transcript', pdfBlob, `${student.rollNumber}_Sem${semester}.pdf`);
+      formData.append('studentId', student._id);
+      formData.append('semester', semester);
+      formData.append('academicYear', academicYear);
+
+      await axios.post('http://localhost:5001/api/results/upload-transcript', formData, {
+        headers: { 
+          Authorization: `Bearer ${user.token}`,
+          'Content-Type': 'multipart/form-data'
+        }
+      });
+      fetchSummary();
+    } catch (err) {
+      alert("Digital archival failure. Verify cloud connectivity.");
+    } finally {
+      setSyncingId(null);
+    }
+  };
+
+  const handleBatchSync = async () => {
+    const compiledStudents = data.students.filter(s => data.studentFinals?.[s._id]?.sgpa);
+    if (compiledStudents.length === 0) {
+      alert("No compiled results detected. Please run 'Compile Final Results' first.");
+      return;
+    }
+    if (!window.confirm(`BATCH PROTOCOL: Generate and cloud-sync transcripts for all ${compiledStudents.length} compiled students?`)) return;
+
+    setBatchSyncing(true);
+    for (const student of compiledStudents) {
+       if (data.studentFinals?.[student._id]?.pdfUrl) continue; // Skip already synced
+       await generateAndSyncTranscript(student);
+    }
+    setBatchSyncing(false);
+    alert("Batch sync protocol finalized.");
+  };
+
+  const handlePublishSector = async () => {
+    if (!window.confirm(`BROADCAST PROTOCOL: Publish all compiled results for ${department} Sem ${semester}? Students will gain immediate visibility of their academic standing.`)) return;
+    try {
+      setPublishing(true);
+      await axios.post('http://localhost:5001/api/results/publish-final', {
+        semester, academicYear, department
+      }, {
+        headers: { Authorization: `Bearer ${user.token}` }
+      });
+      alert('Academic Broadcast Successfully Deployed.');
+      fetchSummary();
+    } catch (err) {
+      alert('Broadcast transmission failure.');
+    } finally {
+      setPublishing(false);
+    }
+  };
+
   const filteredStudents = data.students.filter(s => 
     s.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     s.rollNumber.toLowerCase().includes(searchTerm.toLowerCase())
@@ -188,6 +382,14 @@ const AdminResultHub = ({ user }) => {
             className="flex-1 xl:flex-none px-6 py-4 bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-2xl font-black text-[10px] uppercase tracking-widest hover:shadow-xl transition-all"
           >
             Refresh Stream
+          </button>
+          <button 
+             onClick={handlePublishSector}
+             disabled={publishing || data.students.length === 0}
+             className="px-6 py-4 bg-emerald-600 hover:bg-emerald-500 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-xl shadow-emerald-600/20 transition-all flex items-center gap-2"
+          >
+            {publishing ? <Loader2 size={16} className="animate-spin" /> : <Globe size={16} />}
+            Publish Sector Results
           </button>
           <button 
             onClick={handleCompile}
@@ -291,6 +493,15 @@ const AdminResultHub = ({ user }) => {
                       <span className="text-[9px] font-black text-red-600 uppercase tracking-widest">Completion</span>
                    </div>
                 </th>
+                <th className="p-6 text-center min-w-[200px] bg-indigo-50/30 dark:bg-indigo-900/10">
+                   <div className="flex items-center justify-center gap-2">
+                       <Download className="text-indigo-600" size={14} />
+                      <span className="text-[9px] font-black text-indigo-600 uppercase tracking-widest">Official Transcript</span>
+                   </div>
+                </th>
+                <th className="p-6 text-center min-w-[100px] bg-slate-50 dark:bg-slate-800">
+                    <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Pub. Status</span>
+                </th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
@@ -348,6 +559,48 @@ const AdminResultHub = ({ user }) => {
                           <span className="text-[10px] font-black text-emerald-500">{percent}% Sync</span>
                           {percent === 100 && <ShieldCheck size={14} className="text-emerald-500" />}
                        </div>
+                    </td>
+
+                    <td className="p-6 bg-indigo-50/10 dark:bg-indigo-900/5">
+                       <div className="flex flex-col items-center gap-2">
+                          {data.studentFinals?.[student._id]?.pdfUrl ? (
+                             <a 
+                               href={data.studentFinals[student._id].pdfUrl} 
+                               target="_blank" 
+                               rel="noreferrer"
+                               className="px-6 py-3 bg-white dark:bg-gray-800 text-emerald-600 border-2 border-emerald-500 rounded-2xl font-black text-[9px] uppercase tracking-tighter flex items-center gap-2 w-full justify-center hover:bg-emerald-50 transition-all shadow-xl shadow-emerald-500/10"
+                             >
+                                <Download size={14} /> View Official PDF
+                             </a>
+                          ) : data.studentFinals?.[student._id]?.sgpa ? (
+                             <button 
+                                onClick={() => generateAndSyncTranscript(student)}
+                                disabled={syncingId === student._id}
+                                className="px-6 py-3 bg-red-600 text-white rounded-2xl font-black text-[9px] uppercase tracking-tighter flex items-center gap-2 w-full justify-center hover:bg-red-700 transition-all shadow-xl shadow-red-600/20 disabled:opacity-50 active:scale-95"
+                             >
+                                {syncingId === student._id ? <Loader2 size={14} className="animate-spin" /> : <Printer size={14} />}
+                                Download PDF Result
+                             </button>
+                          ) : (
+                             <div className="px-6 py-3 bg-gray-100 text-gray-400 rounded-2xl font-black text-[9px] uppercase tracking-tighter flex items-center gap-2 w-full justify-center border border-dashed border-gray-300 italic opacity-50">
+                                Pre-Compilation
+                             </div>
+                          )}
+                       </div>
+                    </td>
+
+                    <td className="p-6 text-center">
+                        {data.studentFinals?.[student._id]?.isPublished ? (
+                           <div className="flex items-center justify-center text-emerald-500 gap-1 bg-emerald-50 dark:bg-emerald-500/10 py-2 rounded-lg border border-emerald-100 dark:border-emerald-500/20">
+                              <CheckCircle2 size={12} />
+                              <span className="text-[8px] font-black uppercase">LIVE</span>
+                           </div>
+                        ) : (
+                           <div className="flex items-center justify-center text-slate-400 gap-1 bg-slate-50 dark:bg-slate-800 py-2 rounded-lg border border-slate-200 dark:border-slate-700">
+                              <Archive size={12} />
+                              <span className="text-[8px] font-black uppercase">DRAFT</span>
+                           </div>
+                        )}
                     </td>
                   </tr>
                 );

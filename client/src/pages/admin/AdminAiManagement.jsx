@@ -81,7 +81,7 @@ const AdminAiManagement = () => {
             >
               <div className="flex items-center gap-4 mb-6">
                 <div className="w-14 h-14 rounded-2xl bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 flex items-center justify-center font-black text-lg border border-indigo-100 dark:border-indigo-800">
-                  {u.name[0]}UI
+                  {u.name[0]}
                 </div>
                 <div className="min-w-0 flex-1">
                   <h3 className="font-extrabold text-gray-900 dark:text-white truncate uppercase tracking-tight">{u.name}</h3>
@@ -93,25 +93,33 @@ const AdminAiManagement = () => {
               <div className="grid grid-cols-2 gap-4">
                 <div className="p-4 rounded-2xl bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-700">
                    <p className="text-[9px] font-black text-gray-500 uppercase tracking-widest mb-1">Total Pulses</p>
-                   <p className="text-xl font-black text-gray-900 dark:text-white">{u.totalUsage}</p>
+                   <p className="text-xl font-black text-gray-900 dark:text-white">{u.totalUsage || 0}</p>
                 </div>
                 <div className="p-4 rounded-2xl bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-700">
                    <p className="text-[9px] font-black text-gray-500 uppercase tracking-widest mb-1">Credits Pool</p>
-                   <p className="text-xl font-black text-indigo-500">{u.credits}</p>
+                   <p className="text-xl font-black text-indigo-500">{u.credits || 0}</p>
                 </div>
               </div>
 
               <div className="mt-6 flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <History size={12} className="text-gray-400" />
-                  <span className="text-[9px] font-bold text-gray-500">Last Active: {new Date(u.lastUsage).toLocaleDateString()}</span>
+                  <span className="text-[9px] font-bold text-gray-500">
+                    Last Active: {u.lastUsage ? new Date(u.lastUsage).toLocaleDateString() : 'Never'}
+                  </span>
                 </div>
                 <div className="px-3 py-1 bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 text-[8px] font-black uppercase tracking-widest rounded-full">
-                  {u.lastAction === 'analyze' ? 'Deep Scan' : 'Standard Query'}
+                  {u.lastAction ? (u.lastAction === 'analyze' ? 'Deep Scan' : 'Query') : 'Identity Idle'}
                 </div>
               </div>
             </motion.div>
           ))}
+          {filtered.length === 0 && (
+            <div className="col-span-full py-32 flex flex-col items-center justify-center bg-white dark:bg-gray-900 border border-dashed border-gray-200 dark:border-gray-800 rounded-[3rem] opacity-40">
+               <Brain size={48} className="text-gray-300 mb-4"/>
+               <p className="text-[10px] font-black uppercase tracking-[0.4em] text-gray-400">No identity nodes detected in current sector</p>
+            </div>
+          )}
         </div>
       )}
     </div>

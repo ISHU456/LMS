@@ -50,6 +50,10 @@ const finalResultSchema = new mongoose.Schema(
       type: Date,
       default: Date.now,
     },
+    pdfUrl: {
+      type: String,
+      default: '',
+    },
   },
   {
     timestamps: true,

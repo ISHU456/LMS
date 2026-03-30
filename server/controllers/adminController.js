@@ -504,12 +504,27 @@ export const getAnnualAttendanceReport = async (req, res) => {
 export const deleteCourse = async (req, res) => {
     try {
         const { id } = req.params;
-        const course = await Course.findByIdAndDelete(id);
-        if (!course) return res.status(404).json({ message: 'Course not found.' });
+        const course = await Course.findById(id);
+        if (!course) return res.status(404).json({ message: 'Course not found in the academic repository.' });
 
-        res.json({ message: 'Course eliminated from the academic lattice.' });
+        // Cascaded Protocol: Purge all associated sector records
+        await Promise.all([
+            Result.deleteMany({ course: id }),
+            Enrollment.deleteMany({ course: id }),
+            Attendance.deleteMany({ course: id }),
+            Submission.deleteMany({ $or: [
+                { assignment: { $in: await Assignment.find({ course: id }).distinct('_id') } },
+                { course: id }
+            ]}),
+            Assignment.deleteMany({ course: id }),
+            Progress.deleteMany({ courseId: id }),
+            Announcement.deleteMany({ courseId: id }),
+            Course.findByIdAndDelete(id)
+        ]);
+
+        res.json({ message: 'Course and all associated academic records successfully purged from the system core.' });
     } catch (e) {
-        res.status(500).json({ message: e.message });
+        res.status(500).json({ message: 'Cascade failure during course decommissioning.', error: e.message });
     }
 };
 
@@ -751,6 +766,20 @@ export const rejectCourseResults = async (req, res) => {
         });
 
         res.json({ message: `Mark-list decommissioned. ${result.modifiedCount} students updated for revision.` });
+        
+        // Find teacher assigned to this course to notify
+        const cObj = await Course.findById(courseId);
+        if (cObj && cObj.facultyAssigned && cObj.facultyAssigned.length > 0) {
+            await Notification.create({
+                recipient: cObj.facultyAssigned[0],
+                sender: req.user._id,
+                title: 'CRITICAL: Mark-List Rejected',
+                message: `The results for ${cObj.name} (Sem ${semester}) have been REJECTED by Admin. Reason: ${reason || 'Protocol Violation'}. Please revise and re-submit.`,
+                type: 'error',
+                popupActive: true,
+                link: `/results/entry?courseId=${courseId}&semester=${semester}`
+            });
+        }
     } catch (e) {
         res.status(500).json({ message: e.message });
     }
@@ -766,6 +795,7 @@ export const notifyFaculty = async (req, res) => {
             title: `Admin Alert: Mark-List Discrepancy`,
             message: `URGENT MESSAGE FROM ADMIN REGARDING ${course?.name} (Sem ${semester}): ${message}`,
             type: 'warning',
+            popupActive: true,
             link: `/results/entry?courseId=${courseId}&semester=${semester}`
         });
 

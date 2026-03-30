@@ -70,7 +70,7 @@ export const getStudentsForEntry = async (req, res) => {
       course: courseId,
       semester: semNum,
       academicYear: academicYear || '2025-26'
-    });
+    }).populate('createdBy', 'name');
 
     // Map students with existing results
     const studentsWithMarks = students.map(student => {
@@ -80,12 +80,13 @@ export const getStudentsForEntry = async (req, res) => {
         name: student.name,
         rollNumber: student.rollNumber,
         enrollmentNumber: student.enrollmentNumber,
-        marks: result ? result.marks : { mst1: '', mst2: '', mst3: '', endSem: '', internalPractical: '', externalPractical: '' },
+        marks: result ? result.marks : { mst1: '', mst2: '', mst3: '', endSem: '', internalPractical: '', externalPractical: '', vivaScore: '' },
         totalMarks: result ? result.totalMarks : 0,
         grade: result ? result.grade : null,
         status: result ? result.status : 'not_started',
         isLocked: result ? result.isLocked : false,
-        resultId: result ? result._id : null
+        resultId: result ? result._id : null,
+        uploaderName: result?.createdBy?.name || 'N/A'
       };
     });
 
@@ -189,7 +190,23 @@ export const getSemesterSummary = async (req, res) => {
       }
     });
 
-    res.json({ students, courses, matrix });
+    // 5. Get final results (SGPA/CGPA)
+    const finalResults = await FinalResult.find({
+      semester: semNum,
+      academicYear: academicYear || '2025-26'
+    });
+
+    const studentFinals = {};
+    finalResults.forEach(fr => {
+      studentFinals[fr.student.toString()] = {
+        sgpa: fr.sgpa,
+        percentage: fr.percentage,
+        isPublished: fr.isPublished,
+        pdfUrl: fr.pdfUrl
+      };
+    });
+
+    res.json({ students, courses, matrix, studentFinals });
   } catch (error) {
     console.error('SUMMARY ERROR:', error);
     res.status(500).json({ message: 'Error generating summary', error: error.message });
@@ -226,7 +243,7 @@ export const saveMarks = async (req, res) => {
           academicYear,
           courseType: course.type.toUpperCase(),
           createdBy: req.user._id,
-          marks: { mst1: '', mst2: '', mst3: '', endSem: '', internalPractical: '', externalPractical: '' }
+          marks: { mst1: '', mst2: '', mst3: '', endSem: '', internalPractical: '', externalPractical: '', vivaScore: '' }
         });
       }
 
@@ -246,6 +263,11 @@ export const saveMarks = async (req, res) => {
 
       if (item.grade) result.grade = item.grade;
       if (item.totalMarks !== undefined) result.totalMarks = item.totalMarks;
+      
+      // Update createdBy if not already set, or if an admin is taking over
+      if (!result.createdBy || req.user.role === 'admin' || req.user.role === 'hod') {
+          result.createdBy = req.user._id;
+      }
       
       result.status = 'draft';
       return await result.save();
@@ -274,9 +296,25 @@ export const submitMarks = async (req, res) => {
   try {
     const { courseId, semester, academicYear } = req.body;
     const semNum = parseInt(semester);
+    const targetYear = academicYear || '2025-26';
+
+    // Verify course exists and user has access
+    const course = await Course.findById(courseId);
+    if (!course) return res.status(404).json({ message: 'Course not found' });
+
+    // Identify results for this course/sem/year regardless of who created them, 
+    // as long as they are currently in draft or rejected status
+    // Identify results for this course/sem/year regardless of who created them, 
+    // as long as they are currently in draft or rejected status
+    const filter = { 
+      course: courseId, 
+      semester: semNum, 
+      academicYear: targetYear, 
+      status: { $in: ['draft', 'rejected', 'not_started'] } 
+    };
 
     const updated = await Result.updateMany(
-      { course: courseId, semester: semNum, academicYear, createdBy: req.user._id, status: { $ne: 'approved' } },
+      filter,
       { 
         status: 'submitted', 
         submittedAt: new Date(),
@@ -286,9 +324,15 @@ export const submitMarks = async (req, res) => {
       }
     );
 
-    // Notify Admin/HOD
-    const course = await Course.findById(courseId);
-    const hods = await User.find({ role: 'hod', department: course.department });
+    // Find HODs for this department - be flexible with String vs ID stored in User
+    const hods = await User.find({ 
+      role: 'hod', 
+      $or: [
+        { department: course.department },
+        { department: course.department?.name },
+        { department: course.department?.code }
+      ].filter(Boolean)
+    });
     
     await Promise.all(hods.map(async (hod) => {
       await Notification.create({
@@ -305,11 +349,11 @@ export const submitMarks = async (req, res) => {
       performedBy: req.user._id,
       course: courseId,
       semester: semNum,
-      academicYear,
-      details: { count: updated.nModified }
+      academicYear: targetYear,
+      details: { count: updated.modifiedCount || updated.nModified }
     });
 
-    res.json({ message: 'Marks submitted for approval', count: updated.nModified });
+    res.json({ message: 'Marks submitted for approval', count: updated.modifiedCount || updated.nModified });
   } catch (error) {
     res.status(500).json({ message: 'Server Error', error: error.message });
   }
@@ -412,24 +456,36 @@ export const getMyResults = async (req, res) => {
   try {
     // Check if FinalResult exists for student
     const finalResult = await FinalResult.findOne({ 
-      student: req.user._id, 
-      isPublished: true 
+      student: req.user._id
     });
 
     if (!finalResult) {
-       return res.json({ results: [], sgpa: 0, totalCredits: 0, message: "Results not yet generated." });
+       return res.json({ results: [], sgpa: 0, totalCredits: 0, message: "Academic records are currently being compiled." });
     }
 
-    const results = await Result.find({ 
-      student: req.user._id, 
-      status: 'published' 
+    // Official Detailed Results (Table) - Now unique per course to prevent duplication
+    const allResults = await Result.find({ 
+      student: req.user._id,
+      semester: finalResult.semester
     }).populate('course', 'name code credits type');
+
+    // De-duplicate by course ID (preferring 'published' status if available)
+    const uniqueMap = new Map();
+    allResults.forEach(r => {
+        const cid = r.course?._id?.toString();
+        if (!uniqueMap.has(cid) || r.status === 'published') {
+            uniqueMap.set(cid, r);
+        }
+    });
+    const results = Array.from(uniqueMap.values());
 
     res.json({ 
       results, 
       sgpa: finalResult.sgpa, 
-      totalCredits: finalResult.totalMarksMax / 100 * 4, // Mock calc
-      isFinal: true 
+      totalCredits: finalResult.totalMarksMax / 100 * 4, 
+      isPublished: finalResult.isPublished,
+      pdfUrl: finalResult.pdfUrl,
+      message: finalResult.isPublished ? "Official Results Published" : "Final Transcript Generated (Pre-Release Preview)"
     });
   } catch (error) {
     res.status(500).json({ message: 'Server Error', error: error.message });
@@ -479,9 +535,31 @@ export const generateFinalResult = async (req, res) => {
     const { semester, academicYear, department } = req.body;
     const semNum = parseInt(semester);
 
-    // 1. Get all students of this semester/dept
+    // 1. Resolve department if specified
     const studentQuery = { role: 'student', semester: semNum };
-    if (department && department !== 'All') studentQuery.department = department;
+    
+    if (department && department !== 'All') {
+      const dept = await Department.findOne({ 
+        $or: [
+          { name: department },
+          { code: department },
+          { name: { $regex: new RegExp(`^${department}$`, 'i') } },
+          { code: { $regex: new RegExp(`^${department}$`, 'i') } }
+        ]
+      });
+      
+      if (dept) {
+        studentQuery.$or = [
+          { department: dept.name },
+          { department: dept.code },
+          { department: { $regex: new RegExp(`^${dept.name}$`, 'i') } },
+          { department: { $regex: new RegExp(`^${dept.code}$`, 'i') } }
+        ];
+      } else {
+        studentQuery.department = { $regex: new RegExp(`^${department}$`, 'i') };
+      }
+    }
+    
     const students = await User.find(studentQuery);
     
     // 2. For each student, check if all their courses are approved
@@ -491,32 +569,46 @@ export const generateFinalResult = async (req, res) => {
         // Find all results for this student in this semester with populated course details
         const individualResults = await Result.find({ 
           student: student._id, 
-          semester: parseInt(semester), 
-          academicYear 
+          semester: semNum, 
+          academicYear: academicYear || '2025-26'
         }).populate('course');
         
-        // Find all courses for this semester/dept
-        const courseQuery = { semester: parseInt(semester) };
+        // Find all courses for this student's department and semester
+        const courseQuery = { semester: semNum };
         if (student.department) {
+           const stdDept = await Department.findOne({
+             $or: [
+               { name: student.department },
+               { code: student.department }
+             ]
+           });
+           
            courseQuery.$or = [
-             { department: student.department },
-             { 'department.name': student.department },
-             { 'department.code': student.department }
-           ];
+             { department: stdDept ? stdDept._id : null },
+             { departmentName: student.department },
+             { departmentCode: student.department }
+           ].filter(c => c.department !== null);
+           
+           // If no formal department found, try a broad match
+           if (!stdDept) {
+              delete courseQuery.$or;
+           }
         }
+        
         const courses = await Course.find(courseQuery);
 
-        const allApprovedOrPublished = individualResults.every(r => r.status === 'approved' || r.status === 'published');
-        // Check if student has results for most mandatory courses
-        const countMatched = individualResults.length >= courses.length; 
-
-        if (allApprovedOrPublished && individualResults.length > 0) {
+        // Allow 'submitted', 'approved', or 'published' results to be compiled by Admin
+        const validResults = individualResults.filter(r => 
+          ['submitted', 'approved', 'published'].includes(r.status)
+        );
+        
+        if (validResults.length > 0) {
             let totalObtained = 0;
             let totalMax = 0;
             let weightPoints = 0;
             let totalCredits = 0;
 
-            individualResults.forEach(r => {
+            validResults.forEach(r => {
                 const credits = r.course?.credits || 4; // Fallback to 4 credits
                 totalObtained += r.totalMarks;
                 totalMax += 100; // Assuming 100 is max marks per subject
@@ -528,14 +620,14 @@ export const generateFinalResult = async (req, res) => {
             const sgpa = totalCredits > 0 ? (weightPoints / totalCredits) : 0;
 
             const final = await FinalResult.findOneAndUpdate(
-                { student: student._id, semester: semNum, academicYear },
+                { student: student._id, semester: semNum, academicYear: academicYear },
                 {
-                    courseResults: individualResults.map(r => r._id),
+                    courseResults: validResults.map(r => r._id),
                     totalMarksObtained: totalObtained,
                     totalMarksMax: totalMax,
                     percentage: percentage.toFixed(2),
                     sgpa: sgpa.toFixed(2),
-                    isPublished: true,
+                    isPublished: false, // Default to false, let admin publish later
                     generatedBy: req.user._id,
                     department: student.department
                 },
@@ -544,7 +636,7 @@ export const generateFinalResult = async (req, res) => {
 
             // Synchronize student profile stats
             await User.findByIdAndUpdate(student._id, {
-                cgpa: sgpa.toFixed(2), // Simplification: using current SGPA as latest CGPA
+                cgpa: sgpa.toFixed(2), // Latest SGPA
                 percentage: percentage.toFixed(2)
             });
 
@@ -557,7 +649,45 @@ export const generateFinalResult = async (req, res) => {
     res.status(500).json({ message: 'Server Error', error: error.message });
   }
 };
+// @desc    Publish all compiled results for a sector
+// @route   POST /api/results/publish-final
+// @access  Admin/HOD
+export const publishFinalResults = async (req, res) => {
+    try {
+        const { semester, academicYear, department } = req.body;
+        const semNum = parseInt(semester);
 
+        const filter = { semester: semNum, academicYear };
+        if (department && department !== 'All') filter.department = department;
+
+        const result = await FinalResult.updateMany(filter, { isPublished: true });
+        
+        res.json({ message: `Successfully published results for ${result.modifiedCount} students.`, count: result.modifiedCount });
+    } catch (error) {
+        res.status(500).json({ message: 'Publishing Protocol Failure', error: error.message });
+    }
+};
+
+// @desc    Upload generated transcript PDF
+// @route   POST /api/results/upload-transcript
+// @access  Admin/HOD
+import { v2 as cloudinary } from 'cloudinary';
+export const uploadTranscript = async (req, res) => {
+    try {
+        const { studentId, semester, academicYear } = req.body;
+        if (!req.file) return res.status(400).json({ message: 'No file uploaded' });
+
+        const final = await FinalResult.findOneAndUpdate(
+            { student: studentId, semester: parseInt(semester), academicYear },
+            { pdfUrl: req.file.path }, 
+            { new: true, upsert: true }
+        );
+
+        res.json({ message: 'Transcript Archive Synchronized', pdfUrl: req.file.path });
+    } catch (error) {
+        res.status(500).json({ message: 'Archival Failure', error: error.message });
+    }
+};
 // @desc    Get final results (Student)
 // @route   GET /api/results/final
 // @access  Student

@@ -117,22 +117,23 @@ const CourseDetail = () => {
   
   const [courseInfo, setCourseInfo] = useState(null);
 
-  // Authorization check for Course Management (Upload/Delete)
+  // Management Permission: strictly assigned teachers (or HOD/Admin oversight)
   const isAuthorizedTeacher = isAdminHOD || (user?.role === 'teacher' && (
-     courseInfo?.facultyAssigned?.some(f => (f._id?.toString() || f.toString()) === user?._id?.toString()) ||
-     ((courseInfo?.department?.name === user?.department || courseInfo?.department?.code === user?.department) &&
-      (user?.assignedSemesters?.length > 0 ? user.assignedSemesters.includes(courseInfo?.semester) : true))
+     courseInfo?.facultyAssigned?.some(f => (f._id?.toString() || f.toString()) === user?._id?.toString())
   ));
 
+  // Access Permission: allow all faculty into the page, but restricted students
+  const isFacultyRole = user?.role === 'teacher' || user?.role === 'admin' || user?.role === 'hod';
+  
   const isEnrolledStudent = isStudent && (
-    (courseInfo?.department?.name === user?.department || courseInfo?.department?.code === user?.department) &&
-    Number(courseInfo?.semester) <= Number(user?.semester)
+     (courseInfo?.department?.name === user?.department || courseInfo?.department?.code === user?.department) &&
+     Number(courseInfo?.semester) <= Number(user?.semester)
   );
   
   const isExcluded = isStudent && courseInfo?.excludedStudents?.includes(user?._id);
 
   const isFutureSemester = isStudent && Number(courseInfo?.semester) > Number(user?.semester);
-  const isLocked = courseInfo && !(isAuthorizedTeacher || (isEnrolledStudent && !isExcluded));
+  const isLocked = courseInfo && !(isFacultyRole || (isEnrolledStudent && !isExcluded));
   const [dbProgress, setDbProgress] = useState({ percentage: 0, completedCount: 0, totalItems: 0 });
   
   // New Schedule Item State (deprecated for sidebar, moved to Schedule.jsx)
@@ -291,6 +292,8 @@ const CourseDetail = () => {
   const canvasRef = useRef(null);
   const isDrawing = useRef(false);
 
+  const hasIncrementedView = useRef(null);
+
   const fetchCourseData = async () => {
     try {
       const res = await axios.get(`http://localhost:5001/api/courses/${courseId}`, {
@@ -307,6 +310,16 @@ const CourseDetail = () => {
       console.error('Failed to fetch course info', err);
     }
   };
+
+  // Dedicated effect for incrementing views once per unique course mount
+  useEffect(() => {
+    if (courseId && user?.token && hasIncrementedView.current !== courseId) {
+       hasIncrementedView.current = courseId;
+       axios.patch(`http://localhost:5001/api/courses/${courseId}/view`, {}, {
+         headers: { Authorization: `Bearer ${user.token}` }
+       }).catch(err => console.error('Failed to increment views', err));
+    }
+  }, [courseId, user?.token]);
 
   useEffect(() => {
     if (previewItem?.type === 'pdf' && canvasRef.current) {
@@ -819,16 +832,16 @@ const CourseDetail = () => {
         <p className="text-gray-500 dark:text-gray-400 font-medium leading-relaxed mb-10 text-sm">
           {isFutureSemester 
             ? `Protocol for Semester ${courseInfo?.semester} is currently inactive. You will gain access to this curriculum once you reach the required academic milestone.`
-            : `This system is strictly reserved for authorized faculty and enrolled students of ${courseInfo?.code}. Your credential signature does not match the active roster for this sector.`
+            : `This system is strictly reserved for authorized faculty and enrolled students. Your credential signature does not match the active roster for the ${courseInfo?.code || 'requested'} sector.`
           }
         </p>
 
         <div className="grid grid-cols-1 gap-4">
            <button 
              onClick={() => navigate('/courses')}
-             className="w-full flex items-center justify-center gap-3 py-5 rounded-[2rem] bg-gray-900 dark:bg-white text-white dark:text-gray-900 font-black text-xs uppercase tracking-widest hover:scale-[1.02] active:scale-[0.98] transition-all shadow-xl"
+             className="w-full flex items-center justify-center gap-3 py-5 rounded-[2rem] bg-gray-900 dark:bg-white text-white dark:text-gray-900 font-black text-xs uppercase tracking-widest hover:scale-[1.02] active:scale-[0.98] transition-all shadow-xl hover:shadow-primary-500/20"
            >
-             <ArrowLeft size={16} /> Close Terminal & Exit
+             <ArrowLeft size={16} /> RETURN TO COURSE DIRECTORY
            </button>
         </div>
       </motion.div>
@@ -868,7 +881,8 @@ const CourseDetail = () => {
           progress={progress}
           gamificationState={gamificationState}
           onlineStudents={onlineStudents}
-          isTeacher={isUserTeacher}
+          isTeacher={isFacultyRole}
+          canManage={isAuthorizedTeacher}
           navigate={navigate}
         />
 

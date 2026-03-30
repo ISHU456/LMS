@@ -14,7 +14,9 @@ import {
   unlockResults,
   toggleResultLock,
   getSemesterSummary,
-  getTranscript
+  getTranscript,
+  publishFinalResults,
+  uploadTranscript
 } from '../controllers/resultController.js';
 import { protect, authorize } from '../middlewares/authMiddleware.js';
 
@@ -30,7 +32,15 @@ router.get('/my-results', protect, authorize('student'), getMyResults);
 router.get('/analytics', protect, authorize('admin', 'hod'), getAnalytics);
 router.get('/semester-summary', protect, authorize('admin', 'hod'), getSemesterSummary);
 router.post('/generate-final', protect, authorize('admin', 'hod'), generateFinalResult);
+router.post('/publish-final', protect, authorize('admin', 'hod'), publishFinalResults);
 router.get('/final', protect, authorize('student'), getFinalResults);
+
+// Multimedia Archival Hub
+import multer from 'multer';
+import { storage } from '../config/cloudinary.js';
+const upload = multer({ storage });
+router.post('/upload-transcript', protect, authorize('admin', 'hod'), upload.single('transcript'), uploadTranscript);
+
 router.post('/lock', protect, authorize('admin', 'hod', 'teacher'), lockResults);
 router.post('/unlock', protect, authorize('admin', 'hod', 'teacher'), unlockResults);
 router.post('/toggle-lock/:id', protect, authorize('admin', 'hod', 'teacher'), toggleResultLock);
