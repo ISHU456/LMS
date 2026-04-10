@@ -3,8 +3,9 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { getStudentsForEntry, saveMarks, submitMarksForApproval, reset } from '../../features/results/resultSlice';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Save, Send, Upload, Download, CheckCircle, AlertCircle, FileText, ChevronRight, Lock, Unlock, Clock } from 'lucide-react';
+import { Save, Send, Upload, Download, CheckCircle, AlertCircle, FileText, ChevronRight, Lock, Unlock, Clock, Activity } from 'lucide-react';
 import Papa from 'papaparse';
+import * as XLSX from 'xlsx';
 import axios from 'axios';
 import InstitutionalAlert from '../../components/InstitutionalAlert';
 
@@ -18,6 +19,7 @@ const ResultEntry = () => {
   const [courses, setCourses] = useState([]);
   const [courseId, setCourseId] = useState(searchParams.get('courseId') || '');
   const [semester, setSemester] = useState(searchParams.get('semester') || '');
+  const [section, setSection] = useState(searchParams.get('section') || 'A');
   
   // Real-time Profile Permission Synchronization 
   useEffect(() => {
@@ -51,25 +53,25 @@ const ResultEntry = () => {
     if (courseId) params.set('courseId', courseId);
     if (semester) params.set('semester', semester);
     if (academicYear) params.set('academicYear', academicYear);
+    if (section) params.set('section', section);
     navigate({ search: params.toString() }, { replace: true });
-  }, [courseId, semester, academicYear, navigate]);
+  }, [courseId, semester, academicYear, section, navigate]);
 
   useEffect(() => {
     const fetchCourses = async () => {
       try {
         const config = { headers: { Authorization: `Bearer ${user.token}` } };
         const { data } = await axios.get('http://localhost:5001/api/courses', config);
-        const myCourses = data.filter(c => {
-          if (user.role === 'admin') return true;
-          const isDeptMatch = c.department?.name === user.department || c.department?.code === user.department;
-          if (user.role === 'hod') return isDeptMatch;
-          const isAssigned = c.facultyAssigned?.some(f => (f._id || f).toString() === user._id.toString());
-          const isSemMatch = user.assignedSemesters?.some(s => s.toString() === c.semester.toString());
-          return isAssigned || (isDeptMatch && isSemMatch);
+        const myCourses = data.map(c => {
+           const isAssigned = c.facultyAssigned?.some(f => (f._id || f).toString() === user._id.toString());
+           
+           return { ...c, isAuthorized: isAssigned || (user.role === 'admin') };
         });
+
         setCourses(Array.isArray(myCourses) ? myCourses : []);
+
         if (myCourses.length > 0 && !searchParams.get('courseId')) {
-           const initialCourse = myCourses[0];
+           const initialCourse = myCourses.find(c => c.isAuthorized) || myCourses[0];
            setCourseId(initialCourse._id.toString());
            setSemester(initialCourse.semester.toString());
         }
@@ -80,29 +82,67 @@ const ResultEntry = () => {
 
   useEffect(() => {
     if (courseId && semester && academicYear) {
-      dispatch(getStudentsForEntry({ courseId, semester, academicYear }));
+      dispatch(getStudentsForEntry({ courseId, semester, academicYear, section }));
     }
-  }, [courseId, semester, academicYear, dispatch]);
+  }, [courseId, semester, academicYear, section, dispatch]);
 
   // Synchronize Course Node when Semester Sector changes
-  useEffect(() => {
-    if (semester && courses.length > 0) {
-       const semCourses = courses.filter(c => c.semester.toString() === semester);
-       const currentCourseValid = semCourses.some(c => c._id === courseId);
-       
-       if (!currentCourseValid && semCourses.length > 0) {
-          setCourseId(semCourses[0]._id);
-       } else if (semCourses.length === 0) {
-          setCourseId('');
-       }
+  const handleSemesterChange = (newSem) => {
+    setSemester(newSem);
+    if (newSem && courses.length > 0) {
+      const semCourses = courses.filter(c => c.semester.toString() === newSem);
+      if (semCourses.length > 0) {
+        setCourseId(semCourses[0]._id.toString());
+      } else {
+        setCourseId('');
+      }
     }
-  }, [semester, courses]);
+  };
 
   useEffect(() => {
-    if (results && results.length > 0) {
+    setHasInitialized(false);
+  }, [courseId, semester, academicYear, section]);
+
+  const [hasInitialized, setHasInitialized] = useState(false);
+
+  useEffect(() => {
+    if (!isLoading && results && results.length > 0 && !hasInitialized) {
       setLocalResults(results.map(r => ({ ...r })));
+      setHasInitialized(true);
+    } else if (!isLoading && (!results || results.length === 0)) {
+       if (hasInitialized) {
+         setLocalResults([]);
+         setHasInitialized(false);
+       }
     }
-  }, [results]);
+  }, [results, hasInitialized, isLoading]);
+
+  // Handle re-sync after save results
+  useEffect(() => {
+    if (isSuccess && results.length > 0) {
+      // Partially update localResults only for non-volatile fields (ids, status) 
+      // to avoid interrupting active typing if blur takes time
+      setLocalResults(prev => prev.map(local => {
+        const match = results.find(r => r._id === local._id);
+        if (match) {
+          return {
+             ...local,
+             resultId: match.resultId,
+             status: match.status,
+             isLocked: match.isLocked,
+             totalMarks: match.totalMarks,
+             grade: match.grade
+          };
+        }
+        return local;
+      }));
+      dispatch(reset()); // Reset success flag to prevent loops
+    }
+  }, [isSuccess, results, dispatch]);
+
+  useEffect(() => {
+    setHasInitialized(false);
+  }, [courseId, semester, academicYear, section]);
 
   const currentCourse = courses.find(c => c._id === courseId);
 
@@ -205,7 +245,7 @@ const ResultEntry = () => {
 
   const handleSaveSingleMark = async (studentId, studentData = null) => {
     const student = studentData || localResults.find(r => r._id === studentId);
-    if (!student) return;
+    if (!student) return null;
     setSavingStudentId(studentId);
     try {
       const response = await dispatch(saveMarks({ 
@@ -220,8 +260,9 @@ const ResultEntry = () => {
         }] 
       })).unwrap();
       
+      let savedResult = null;
       if (response?.results?.length > 0) {
-          const savedResult = response.results[0];
+          savedResult = response.results[0];
           setLocalResults(prev => prev.map(r => r._id === studentId ? { 
             ...r, 
             resultId: savedResult._id, 
@@ -231,17 +272,29 @@ const ResultEntry = () => {
       }
       setShowSuccess(true);
       setTimeout(() => { setShowSuccess(false); setSavingStudentId(null); }, 2000);
-    } catch (err) { setSavingStudentId(null); }
+      return savedResult;
+    } catch (err) { 
+        setSavingStudentId(null); 
+        return null;
+    }
   };
 
   const handleToggleRowLock = async (resultId, studentId) => {
-    if (!resultId) return alert("Persistence Required.");
+    let targetResultId = resultId;
+    
+    // Auto-persist if entry hasn't been saved yet
+    if (!targetResultId) {
+       const saved = await handleSaveSingleMark(studentId);
+       if (!saved) return; // Error handled in handleSaveSingleMark
+       targetResultId = saved._id;
+    }
+
     try {
-        const { data } = await axios.post(`http://localhost:5001/api/results/toggle-lock/${resultId}`, {}, { headers: { Authorization: `Bearer ${user.token}` } });
-        setLocalResults(prev => prev.map(r => r._id === studentId ? { ...r, isLocked: data.isLocked } : r));
+        const { data } = await axios.post(`http://localhost:5001/api/results/toggle-lock/${targetResultId}`, {}, { headers: { Authorization: `Bearer ${user.token}` } });
+        setLocalResults(prev => prev.map(r => r._id === studentId ? { ...r, resultId: targetResultId, isLocked: data.isLocked } : r));
         setShowSuccess(true);
         setTimeout(() => setShowSuccess(false), 2000);
-    } catch (err) { alert("Protocol Failure."); }
+    } catch (err) { alert("Protocol Failure: Could not synchronize row lock."); }
   };
 
   const handleSaveAllDrafts = async () => {
@@ -353,6 +406,45 @@ const ResultEntry = () => {
     }
   };
 
+  const handleExcelExport = () => {
+    if (localResults.length === 0) return;
+    
+    // 1. Prepare Data Matrix
+    const data = localResults.map(r => {
+      const row = { 
+        'Roll Number': r.rollNumber, 
+        'Student Name': r.name,
+        'Section': r.section 
+      };
+      
+      if (currentCourse?.type?.toUpperCase() === 'THEORY') {
+        row['MST 1'] = r.marks.mst1 || 0;
+        row['MST 2'] = r.marks.mst2 || 0;
+        row['MST 3'] = r.marks.mst3 || 0;
+        row['End Sem'] = r.marks.endSem || 0;
+      } else if (currentCourse?.type?.toUpperCase() === 'PRACTICAL') {
+        row['Internal'] = r.marks.internalPractical || 0;
+        row['External'] = r.marks.externalPractical || 0;
+      } else if (currentCourse?.type?.toUpperCase() === 'VIVA') {
+        const gradeMap = { 10: 'O', 9: 'A+', 8: 'A', 7: 'B+', 6: 'B', 5: 'C', 0: 'F' };
+        row['Viva Grade'] = gradeMap[r.marks.vivaScore] || 'F';
+      }
+      
+      row['Total Marks'] = r.totalMarks;
+      row['Grade'] = r.grade;
+      row['Status'] = r.status.toUpperCase();
+      return row;
+    });
+
+    // 2. Build High-Fidelity Workbook
+    const worksheet = XLSX.utils.json_to_sheet(data);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Academic Records");
+
+    // 3. Trigger Download Protocol
+    XLSX.writeFile(workbook, `Academic_Report_${currentCourse?.code}_${academicYear}.xlsx`);
+  };
+
   const downloadTemplate = () => {
     let headers = { rollNumber: 'Roll Number', name: 'Name' };
     
@@ -402,15 +494,16 @@ const ResultEntry = () => {
               <p className="text-slate-400 dark:text-slate-500 font-black text-[10px] uppercase tracking-[0.2em] ml-2">Certification Protocol Nodes</p>
             </div>
             <div className="flex gap-3">
+              <button onClick={() => dispatch(getStudentsForEntry({ courseId, semester, academicYear, section }))} className="px-6 py-3 bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-2xl text-[10px] font-black uppercase tracking-widest text-blue-600 dark:text-blue-400 shadow-sm hover:bg-slate-50 transition-all flex items-center gap-2 italic"><Activity size={12}/> Refresh Sync</button>
               <button onClick={downloadTemplate} className="px-6 py-3 bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-2xl text-[10px] font-black uppercase tracking-widest text-slate-600 dark:text-slate-300 shadow-sm hover:bg-slate-50 transition-all">Download Template</button>
-              <label className="px-6 py-3 bg-blue-600 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest cursor-pointer shadow-xl shadow-blue-500/20 hover:bg-blue-700 transition-all">CSV Upload<input type="file" onChange={handleCSVUpload} accept=".csv" className="hidden" /></label>
+              <button onClick={handleExcelExport} className="px-6 py-3 bg-emerald-600 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-xl shadow-emerald-500/20 hover:bg-emerald-700 transition-all flex items-center gap-2 italic">Export Excel Hub</button>
             </div>
           </header>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8 bg-white dark:bg-slate-900/50 p-6 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 shadow-xl dark:shadow-none transition-all">
              <div className="space-y-1">
                 <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest ml-4">Sector Selection</p>
-                <select value={semester} onChange={e=>setSemester(e.target.value)} className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-2xl p-4 font-black text-[10px] uppercase outline-none focus:ring-2 focus:ring-blue-500 transition-all">
+                <select value={semester} onChange={e=>handleSemesterChange(e.target.value)} className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-2xl p-4 font-black text-[10px] uppercase outline-none focus:ring-2 focus:ring-blue-500 transition-all">
                    <option value="">Semester</option>
                    {[1,2,3,4,5,6,7,8].map(s=>(<option key={s} value={s.toString()}>Sem {s}</option>))}
                 </select>
@@ -422,9 +515,46 @@ const ResultEntry = () => {
                    {courses.filter(c => !semester || c.semester.toString() === semester).map(c=>(<option key={c._id} value={c._id}>{c.name}</option>))}
                 </select>
              </div>
+             <div className="md:col-span-2 space-y-1">
+                <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest ml-4">Class Section</p>
+                <div className="flex gap-4">
+                   {['A', 'B'].map(s => (
+                      <button 
+                        key={s} 
+                        onClick={() => setSection(s)}
+                        className={`flex-1 p-4 rounded-2xl font-black text-xs transition-all border ${section === s ? 'bg-indigo-600 text-white border-transparent shadow-lg shadow-indigo-500/20' : 'bg-slate-50 dark:bg-slate-800 text-slate-400 border-slate-100 dark:border-slate-700 hover:bg-slate-100'}`}
+                      >
+                        SECTION {s}
+                      </button>
+                   ))}
+                </div>
+             </div>
           </div>
 
-          <div className="bg-white dark:bg-slate-900/50 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 overflow-hidden shadow-2xl dark:shadow-none transition-all">
+          <div className="relative bg-white dark:bg-slate-900/50 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 overflow-hidden shadow-2xl dark:shadow-none transition-all">
+             {(courseId && currentCourse && !currentCourse.isAuthorized && user.role !== 'admin') ? (
+                <div className="absolute inset-0 z-[100] backdrop-blur-xl bg-white/40 dark:bg-[#020617]/40 flex flex-col items-center justify-center p-12 text-center animate-in fade-in duration-500">
+                    <div className="w-24 h-24 rounded-full bg-rose-500/10 text-rose-500 flex items-center justify-center mb-6 shadow-2xl shadow-rose-500/20">
+                       <Lock size={40} strokeWidth={2.5} />
+                    </div>
+                    <h2 className="text-3xl font-black text-slate-900 dark:text-white uppercase tracking-tighter mb-4 italic">Access Terminated</h2>
+                    <p className="text-slate-500 dark:text-slate-400 text-[10px] font-black uppercase tracking-[0.2em] max-w-sm leading-relaxed mb-8">This curriculum node is outside your current authorization sector. Marks entry is physically locked.</p>
+                    <button 
+                      onClick={async () => {
+                        try {
+                          await axios.post('http://localhost:5001/api/access-requests', { courseId }, { headers: { Authorization: `Bearer ${user.token}` } });
+                          alert("Access Request Transmitted. Synchronizing with Neural Governance Hub.");
+                        } catch (err) {
+                          alert(err.response?.data?.message || "Transmission Failure.");
+                        }
+                      }} 
+                      className="px-10 py-5 bg-indigo-600 text-white rounded-3xl font-black uppercase text-[10px] tracking-widest shadow-2xl shadow-indigo-600/30 hover:scale-105 active:scale-95 transition-all"
+                    >
+                      Ask Permission from Admin
+                    </button>
+                </div>
+             ) : null}
+
              <div className="overflow-x-auto custom-scrollbar">
                 <table className="w-full text-left border-collapse">
                    <thead className="bg-slate-50 dark:bg-slate-800/50 border-b border-slate-100 dark:border-slate-700">
@@ -456,7 +586,7 @@ const ResultEntry = () => {
                       </tr>
                    </thead>
                    <tbody>
-                      {localResults.map((student, idx) => (
+                      {[...localResults].sort((a, b) => a.name.localeCompare(b.name)).map((student, idx) => (
                          <motion.tr 
                             key={student._id} 
                             initial={{ opacity: 0, x: -10 }} 
@@ -467,7 +597,10 @@ const ResultEntry = () => {
                             <td className="p-6 font-mono font-bold text-blue-600 dark:text-blue-400 text-xs tracking-tighter">{student.rollNumber}</td>
                             <td className="p-6">
                                <p className="font-black text-sm uppercase tracking-tight text-slate-900 dark:text-white">{student.name}</p>
-                               <p className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mt-0.5">Academic Record Node</p>
+                               <div className="flex items-center gap-2 mt-0.5">
+                                  <span className="text-[9px] font-black text-blue-500 uppercase">{student.rollNumber}</span>
+                                  <span className="text-[9px] font-black px-1.5 py-0.5 bg-slate-200 dark:bg-slate-800 text-slate-500 dark:text-slate-400 rounded-md">SEC {student.section}</span>
+                                </div>
                             </td>
                             {currentCourse?.type?.toUpperCase() === 'THEORY' && (
                                <>
@@ -476,7 +609,7 @@ const ResultEntry = () => {
                                         <input type="text" value={student.marks[f] || ''} onChange={e=>handleMarkChange(student._id, f, e.target.value)} onBlur={()=>handleSaveSingleMark(student._id)} disabled={student.isLocked} className="w-14 h-11 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-xl text-center font-black text-xs text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-emerald-500 transition-all tabular-nums" />
                                      </td>
                                   ))}
-                               </>
+                                </>
                             )}
                             {currentCourse?.type?.toUpperCase() === 'PRACTICAL' && (
                                <>
@@ -485,7 +618,7 @@ const ResultEntry = () => {
                                         <input type="text" value={student.marks[f] || ''} onChange={e=>handleMarkChange(student._id, f, e.target.value)} onBlur={()=>handleSaveSingleMark(student._id)} disabled={student.isLocked} className="w-14 h-11 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-xl text-center font-black text-xs text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-emerald-500 transition-all tabular-nums" />
                                      </td>
                                   ))}
-                               </>
+                                </>
                             )}
                             {currentCourse?.type?.toUpperCase() === 'VIVA' && (
                                <td className="p-4 text-center">

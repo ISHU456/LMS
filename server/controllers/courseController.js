@@ -81,12 +81,23 @@ export const getCourseStudents = async (req, res) => {
     const courseAssignments = await Assignment.find({ $or: [{ extraCourseId: code }, { course: course._id }] });
     const totalItems = courseResources.length + courseAssignments.length;
 
-    // 2. Find students
-    const students = await User.find({
+    // 2. Find students (Enforced Alpha-Bravo Ranking)
+    const { semester, section } = req.query;
+    const studentFilter = {
       role: 'student',
-      semester: parseInt(req.query.semester) || course.semester,
-      $or: [{ department: course.department.name }, { department: course.department.code }]
-    }).select('name email profilePic enrollmentNumber rollNumber');
+      semester: parseInt(semester) || course.semester,
+      $or: [
+        { department: course.department.name }, 
+        { department: course.department.code },
+        { department: { $regex: new RegExp(`^${course.department.code}$|^${course.department.name}$`, 'i') } }
+      ]
+    };
+
+    if (section && section !== 'all') {
+      studentFilter.section = section;
+    }
+
+    const students = await User.find(studentFilter).select('name email profilePic enrollmentNumber rollNumber section');
 
     const activeStudents = students.filter(s => !course.excludedStudents?.some(excludedId => excludedId.equals(s._id)));
 
@@ -98,7 +109,16 @@ export const getCourseStudents = async (req, res) => {
       const studentSubmissions = await Submission.find({ student: student._id, assignment: { $in: courseAssignments.map(a => a._id) }, status: { $in: ['submitted', 'graded', 'late'] } });
       const totalXP = resourceXP + studentSubmissions.reduce((acc, sub) => acc + (sub.marksObtained || sub.automatedScore || 0), 0);
       const percentage = totalItems > 0 ? Math.round(((completedResourceIds.length + studentSubmissions.length) / totalItems) * 100) : 0;
-      return { _id: student._id, name: student.name, profilePic: student.profilePic, rollNumber: student.rollNumber, progress: percentage, xp: totalXP, rank: 0 };
+      return { 
+        _id: student._id, 
+        name: student.name, 
+        profilePic: student.profilePic, 
+        rollNumber: student.rollNumber, 
+        section: student.section,
+        progress: percentage, 
+        xp: totalXP, 
+        rank: 0 
+      };
     }));
 
     res.json(studentData.sort((a, b) => b.xp - a.xp).map((s, idx) => ({ ...s, rank: idx + 1 })));

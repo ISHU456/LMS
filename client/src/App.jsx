@@ -58,11 +58,7 @@ import ResultVerification from './pages/results/ResultVerification';
 import StudentResults from './pages/results/StudentResults';
 import ResultsAnalytics from './pages/results/ResultsAnalytics';
 
-// Coding Contest pages
-import ContestList from './pages/coding_contests/ContestList';
-import ContestArena from './pages/coding_contests/ContestArena';
-import ContestLeaderboard from './pages/coding_contests/ContestLeaderboard';
-import AdminContestManager from './pages/coding_contests/AdminContestManager';
+
 import NotificationListener from './components/NotificationListener';
 import { MFAProvider } from './modules/mfa/MFAContext';
 import MFAVerify from './pages/auth/MFAVerify';
@@ -89,8 +85,8 @@ const ProtectedRoute = ({ children, allowedRoles, checkDept = true }) => {
     );
   }
 
-  // Redirect to face registration for students if not yet done
-  if (user.role === 'student' && !user.faceRegistered) {
+  // Redirect to face registration for students, admins, and teachers if not yet done
+  if ((user.role === 'student' || user.role === 'admin' || user.role === 'teacher') && !user.faceRegistered) {
      const currentPath = window.location.pathname;
      if (currentPath !== '/face-registration' && !currentPath.includes('/login') && currentPath !== '/') {
         return <Navigate to="/face-registration" replace />;
@@ -265,6 +261,8 @@ const AppContent = () => {
               <Achievements />
             </ProtectedRoute>
           } />
+
+
           
           <Route path="/ai-tutor" element={
             <ProtectedRoute>
@@ -302,28 +300,6 @@ const AppContent = () => {
             </ProtectedRoute>
           } />
 
-          {/* Coding Arena System */}
-          <Route path="/coding-arena" element={
-            <ProtectedRoute allowedRoles={['student', 'admin']}>
-              <ContestList />
-            </ProtectedRoute>
-          } />
-          <Route path="/coding-arena/contest/:contestId" element={
-            <ProtectedRoute allowedRoles={['student', 'admin']}>
-              <ContestArena />
-            </ProtectedRoute>
-          } />
-          <Route path="/coding-arena/leaderboard/:contestId" element={
-            <ProtectedRoute allowedRoles={['student', 'admin']}>
-              <ContestLeaderboard />
-            </ProtectedRoute>
-          } />
-          <Route path="/coding-arena/admin" element={
-            <ProtectedRoute allowedRoles={['admin']}>
-              <AdminContestManager />
-            </ProtectedRoute>
-          } />
-
           <Route path="/unauthorized" element={
              <div className="flex-1 flex items-center justify-center">
                <h1 className="text-3xl font-bold uppercase">
@@ -332,7 +308,7 @@ const AppContent = () => {
           } />
           <Route path="/verify-mfa" element={<MFAVerify />} />
           <Route path="/face-registration" element={
-            <ProtectedRoute>
+            <ProtectedRoute checkDept={false}>
               <FaceRegistrationPage />
             </ProtectedRoute>
           } />

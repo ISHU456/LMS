@@ -27,7 +27,9 @@ import {
     unlockCourseResults,
     approveCourseResults,
     rejectCourseResults,
-    notifyFaculty
+    notifyFaculty,
+    getPendingTeachers,
+    authorizeTeacher
 } from '../controllers/adminController.js';
 import { protect, admin } from '../middlewares/authMiddleware.js';
 
@@ -47,6 +49,8 @@ router.get('/teachers/attendance', getTeachersWithAttendance);
 router.post('/teachers/attendance', markTeacherAttendance);
 
 // TEACHER & COURSE MGMT
+router.get('/teachers/pending', getPendingTeachers);
+router.post('/teachers/pending/:id/authorize', authorizeTeacher);
 router.get('/teachers/:id', getTeacherDetails);
 router.put('/teachers/:teacherId/assignments', updateTeacherAssignments);
 router.get('/students/:id', getStudentDetails);

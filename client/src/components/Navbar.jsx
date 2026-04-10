@@ -91,7 +91,6 @@ const Navbar = ({ darkMode, toggleDarkMode }) => {
     { name: 'Home', path: '/', icon: <Home size={18} /> },
     { name: 'Courses', path: '/courses', icon: <GraduationCap size={18} /> },
     { name: 'Announcements', path: '/community', icon: <Megaphone size={18} /> },
-    { name: 'Achievements', path: '/achievements', icon: <Award size={18} /> },
     ...(user ? [
       ...(user.role === 'student' ? [
         { name: 'Results', path: '/results/my', icon: <FileText size={18} /> },
@@ -100,8 +99,9 @@ const Navbar = ({ darkMode, toggleDarkMode }) => {
       ...(user.role === 'teacher' ? [{ name: 'Mark Entry', path: '/results/entry', icon: <Edit size={18} /> }] : []),
       ...(user.role === 'admin' || user.role === 'hod' ? [
         { name: 'Results', path: '/results/verify', icon: <CheckCircle size={18} /> },
-        { name: 'Analytics', path: '/results/analytics', icon: <TrendingUp size={18} /> },
-        ...(user.role === 'admin' ? [{ name: 'GPS Config', path: '/admin/gps-config', icon: <MapPin size={18} /> }] : [])
+        ...(user.role === 'admin' ? [
+          { name: 'GPS Config', path: '/admin/gps-config', icon: <MapPin size={18} /> }
+        ] : [])
       ] : [])
     ] : []),
     { name: 'AI Mode', path: '/ai-mode', icon: <Bot size={18} /> },
@@ -110,7 +110,7 @@ const Navbar = ({ darkMode, toggleDarkMode }) => {
   const [isProfileOpen, setIsProfileOpen] = useState(false);
 
   return (
-    <nav className="sticky top-0 z-[999] bg-white/80 dark:bg-[#0f172a]/80 backdrop-blur-xl border-b border-gray-100 dark:border-gray-800/50 transition-all duration-300">
+    <nav className="sticky top-0 z-[999] bg-white dark:bg-[#0f172a] lg:bg-white/80 lg:dark:bg-[#0f172a]/80 lg:backdrop-blur-xl border-b border-gray-100 dark:border-gray-800/50 transition-all duration-300">
       <div className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-20">
           {/* Logo */}
@@ -221,7 +221,12 @@ const Navbar = ({ darkMode, toggleDarkMode }) => {
                              <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1 opacity-60">Verified Identity</p>
                              <div className="flex items-center justify-between">
                                 <p className="text-[11px] font-black text-gray-900 dark:text-white uppercase truncate">{user.name}</p>
-                                <span className="text-[8px] px-2 py-0.5 bg-primary-500/10 text-primary-600 dark:text-primary-400 rounded-lg font-black uppercase whitespace-nowrap border border-primary-500/10">{user.role}</span>
+                                <div className="flex items-center gap-1">
+                                   {user.role === 'student' && user.section && (
+                                      <span className="text-[8px] px-2 py-0.5 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 rounded-lg font-black uppercase whitespace-nowrap border border-emerald-500/10">SEC {user.section}</span>
+                                   )}
+                                   <span className="text-[8px] px-2 py-0.5 bg-primary-500/10 text-primary-600 dark:text-primary-400 rounded-lg font-black uppercase whitespace-nowrap border border-primary-500/10">{user.role}</span>
+                                </div>
                              </div>
                           </div>
                           

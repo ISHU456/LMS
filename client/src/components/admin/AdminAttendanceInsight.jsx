@@ -89,7 +89,7 @@ const AdminAttendanceInsight = ({ userId, type, user }) => {
                 <h4 className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-6 flex items-center gap-2">
                     <TrendingUp size={14} /> Annual Continuity Index
                 </h4>
-                <div className="h-48 w-full min-w-0">
+                <div className="h-[250px] w-full min-h-[250px] min-w-0">
                     {isMounted && (
                       <ResponsiveContainer width="100%" height="100%">
                         <BarChart data={report}>

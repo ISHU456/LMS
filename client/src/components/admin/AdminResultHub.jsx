@@ -4,7 +4,7 @@ import {
   BarChart3, LayoutGrid, CheckCircle2, Globe, Sparkles, Filter, 
   ChevronRight, ArrowUpDown, Download, Printer, ShieldCheck,
   Zap, AlertCircle, Loader2, Search, MoreHorizontal, Unlock,
-  XCircle, Bell, Clock, Archive, Upload, Cloud
+  XCircle, Bell, Clock, Archive, Upload, Cloud, RefreshCw, GraduationCap, Building
 } from 'lucide-react';
 import axios from 'axios';
 import jsPDF from 'jspdf';
@@ -18,6 +18,7 @@ const AdminResultHub = ({ user }) => {
     return now.getMonth() >= 6 ? `${year}-${(year + 1).toString().slice(-2)}` : `${year - 1}-${year.toString().slice(-2)}`;
   });
   const [department, setDepartment] = useState(() => localStorage.getItem('adminResultDept') || 'All');
+  const [section, setSection] = useState(() => localStorage.getItem('adminResultSec') || 'all');
   const [departments, setDepartments] = useState([]);
   const [data, setData] = useState({ students: [], courses: [], matrix: {}, studentFinals: {} });
   const [loading, setLoading] = useState(false);
@@ -40,7 +41,7 @@ const AdminResultHub = ({ user }) => {
   const fetchSummary = async () => {
     try {
       setLoading(true);
-      const { data } = await axios.get(`http://localhost:5001/api/results/semester-summary?semester=${semester}&academicYear=${academicYear}&department=${department}`, {
+      const { data } = await axios.get(`http://localhost:5001/api/results/semester-summary?semester=${semester}&academicYear=${academicYear}&department=${department}&section=${section}`, {
         headers: { Authorization: `Bearer ${user.token}` }
       });
       setData(data);
@@ -60,7 +61,8 @@ const AdminResultHub = ({ user }) => {
     fetchSummary();
     localStorage.setItem('adminResultSem', semester);
     localStorage.setItem('adminResultDept', department);
-  }, [semester, academicYear, department]);
+    localStorage.setItem('adminResultSec', section);
+  }, [semester, academicYear, department, section]);
 
   const handleUnlockCourse = async (courseId, courseName) => {
     if (!window.confirm(`Force unlock all identity records for ${courseName}? This override permits faculty to modify results after standard locking.`)) return;
@@ -360,85 +362,97 @@ const AdminResultHub = ({ user }) => {
   return (
     <div className="space-y-8 pb-20">
       {/* Header Section */}
-      <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-6">
-        <div>
-          <h2 className="text-3xl font-black dark:text-white uppercase tracking-tighter flex items-center gap-3">
-             <BarChart3 className="text-red-600" size={32} /> Semester Result Hub
+      <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-8">
+        <div className="min-w-0">
+          <h2 className="text-3xl lg:text-4xl font-black dark:text-white uppercase tracking-tighter flex flex-wrap items-center gap-4">
+             <BarChart3 className="text-red-600 w-8 h-8 lg:w-10 lg:h-10" /> Semester Result Hub
           </h2>
-          <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mt-2">
-            Multi-Subject Performance Lattice & Result Compilation Engine
+          <p className="text-[10px] lg:text-[11px] font-black text-gray-400 uppercase tracking-[0.25em] mt-3 italic leading-relaxed">
+            Multi-Dimensional Performance Lattice & Digital Compilation Engine
           </p>
         </div>
 
-        <div className="flex gap-4 w-full xl:w-auto">
-          <button 
-            onClick={handlePublishDeadline}
-            className="flex-1 xl:flex-none px-6 py-4 bg-amber-500/10 text-amber-600 border border-amber-500/20 rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-amber-500 hover:text-white transition-all flex items-center gap-2"
-          >
-            <Bell size={16} /> Broadcast Deadline
-          </button>
+        <div className="grid grid-cols-2 md:grid-cols-4 lg:flex gap-3 w-full lg:w-auto h-fit">
           <button 
             onClick={fetchSummary}
-            className="flex-1 xl:flex-none px-6 py-4 bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-2xl font-black text-[10px] uppercase tracking-widest hover:shadow-xl transition-all"
+            className="p-4 bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 lg:border-none lg:bg-transparent text-gray-400 hover:text-red-500 rounded-2xl flex items-center justify-center transition-all active:scale-95"
+            title="Refresh Feed"
           >
-            Refresh Stream
+            <RefreshCw size={18} className={loading ? "animate-spin" : ""} />
           </button>
+          
+          <button 
+            onClick={handlePublishDeadline}
+            className="px-5 md:px-6 py-4 bg-amber-500/10 text-amber-600 border border-amber-500/20 rounded-2xl font-black text-[9px] md:text-[10px] uppercase tracking-widest hover:bg-amber-600 hover:text-white transition-all flex items-center justify-center gap-2 group"
+          >
+            <Bell size={14} className="group-hover:animate-bounce" /> <span className="hidden sm:inline">Broadcast</span> Deadline
+          </button>
+          
           <button 
              onClick={handlePublishSector}
              disabled={publishing || data.students.length === 0}
-             className="px-6 py-4 bg-emerald-600 hover:bg-emerald-500 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-xl shadow-emerald-600/20 transition-all flex items-center gap-2"
+             className="px-5 md:px-6 py-4 bg-emerald-600 hover:bg-emerald-500 text-white rounded-2xl font-black text-[9px] md:text-[10px] uppercase tracking-widest shadow-xl shadow-emerald-600/20 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
           >
-            {publishing ? <Loader2 size={16} className="animate-spin" /> : <Globe size={16} />}
-            Publish Sector Results
+            {publishing ? <Loader2 size={14} className="animate-spin" /> : <Globe size={14} />}
+            <span className="hidden sm:inline">Publish</span> Sector
           </button>
+          
           <button 
             onClick={handleCompile}
             disabled={compiling || data.students.length === 0}
-            className="flex-1 xl:flex-none px-8 py-4 bg-red-600 hover:bg-red-500 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-xl shadow-red-600/20 transition-all flex items-center justify-center gap-2 group disabled:opacity-50"
+            className="flex-1 lg:flex-none px-6 md:px-8 py-4 bg-red-600 hover:bg-red-500 text-white rounded-2xl font-black text-[9px] md:text-[10px] uppercase tracking-widest shadow-xl shadow-red-600/20 transition-all flex items-center justify-center gap-2 group disabled:opacity-50"
           >
-            {compiling ? <Loader2 size={16} className="animate-spin" /> : <Zap size={16} className="group-hover:animate-pulse" />}
-            Compile Final Results
+            {compiling ? <Loader2 size={14} className="animate-spin" /> : <Zap size={14} className="group-hover:animate-pulse" />}
+            Compile Final
           </button>
         </div>
       </div>
 
       {/* Control Panel */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-8 p-10 bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-[3rem] shadow-xl">
-        <div className="space-y-4">
-          <label className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] ml-2">Current Semester</label>
-          <select 
-            value={semester} 
-            onChange={(e) => setSemester(e.target.value)}
-            className="w-full bg-gray-50 dark:bg-gray-800/50 border border-transparent hover:border-red-200 focus:bg-white dark:focus:bg-gray-800 rounded-[28px] py-6 px-10 text-sm font-black dark:text-white outline-none focus:ring-4 ring-red-500/10 transition-all shadow-inner"
-          >
-            {[1,2,3,4,5,6,7,8].map(s => <option key={s} value={s.toString()}>Semester {s}</option>)}
-          </select>
+      <div className="grid grid-cols-1 md:grid-cols-3 xl:grid-cols-4 gap-6 p-6 lg:p-10 bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-[2.5rem] lg:rounded-[3rem] shadow-sm">
+        <div className="space-y-3">
+          <label className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] ml-2">Academic Cycle</label>
+          <div className="relative group">
+            <GraduationCap size={16} className="absolute left-6 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-red-500 transition-colors" />
+            <select 
+              value={semester} 
+              onChange={(e) => setSemester(e.target.value)}
+              className="w-full bg-gray-50 dark:bg-gray-800/50 border-none focus:ring-2 focus:ring-red-500/20 rounded-2xl py-5 pl-14 pr-8 text-[11px] font-black uppercase tracking-widest dark:text-white outline-none appearance-none cursor-pointer group-hover:bg-gray-100 dark:group-hover:bg-gray-800 transition-all"
+            >
+              {[1,2,3,4,5,6,7,8].map(s => <option key={s} value={s.toString()}>Semester {s}</option>)}
+            </select>
+            <ChevronRight size={14} className="absolute right-6 top-1/2 -translate-y-1/2 text-gray-400 rotate-90" />
+          </div>
         </div>
 
-        <div className="space-y-4">
-          <label className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] ml-2">Department</label>
-          <select 
-            value={department} 
-            onChange={(e) => setDepartment(e.target.value)}
-            className="w-full bg-gray-50 dark:bg-gray-800/50 border border-transparent hover:border-red-200 focus:bg-white dark:focus:bg-gray-800 rounded-[28px] py-6 px-10 text-sm font-black dark:text-white outline-none focus:ring-4 ring-red-500/10 transition-all shadow-inner"
-          >
-            <option value="All">All Departments</option>
-            {departments.map(d => (
-              <option key={d._id} value={d.name}>{d.name}</option>
-            ))}
-          </select>
+        <div className="space-y-3">
+          <label className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] ml-2">Department Node</label>
+          <div className="relative group">
+            <Building size={16} className="absolute left-6 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-red-500 transition-colors" />
+            <select 
+              value={department} 
+              onChange={(e) => setDepartment(e.target.value)}
+              className="w-full bg-gray-50 dark:bg-gray-800/50 border-none focus:ring-2 focus:ring-red-500/20 rounded-2xl py-5 pl-14 pr-8 text-[11px] font-black uppercase tracking-widest dark:text-white outline-none appearance-none cursor-pointer group-hover:bg-gray-100 dark:group-hover:bg-gray-800 transition-all"
+            >
+              <option value="All">All Departments</option>
+              {departments.map(d => (
+                <option key={d._id} value={d.name}>{d.name}</option>
+              ))}
+            </select>
+            <ChevronRight size={14} className="absolute right-6 top-1/2 -translate-y-1/2 text-gray-400 rotate-90" />
+          </div>
         </div>
 
-        <div className="space-y-4">
-          <label className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] ml-2">Identity Search</label>
-          <div className="relative">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={14} />
+        <div className="md:col-span-full xl:col-span-2 space-y-3">
+          <label className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] ml-2">Identity Filter</label>
+          <div className="relative group">
+            <Search className="absolute left-6 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-red-500 transition-colors" size={16} />
             <input 
               type="text" 
-              placeholder="Query Name or Roll Number..."
+              placeholder="Query Name or Roll Number for detailed sync..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full bg-gray-50 dark:bg-gray-800/50 border border-transparent focus:bg-white dark:focus:bg-gray-800 rounded-2xl py-4 pl-12 pr-4 text-xs font-black dark:text-white outline-none focus:ring-2 ring-red-500/50 transition-all shadow-inner"
+              className="w-full bg-gray-50 dark:bg-gray-800/50 border-none focus:ring-2 focus:ring-red-500/20 rounded-2xl py-5 pl-14 pr-8 text-[11px] font-black uppercase tracking-widest dark:text-white outline-none group-hover:bg-gray-100 dark:group-hover:bg-gray-800 transition-all shadow-inner"
             />
           </div>
         </div>
@@ -507,7 +521,7 @@ const AdminResultHub = ({ user }) => {
             <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
               {loading ? (
                 <tr>
-                  <td colSpan={data.courses.length + 2} className="p-20 text-center">
+                  <td colSpan={data.courses.length + 3} className="p-20 text-center">
                     <Loader2 className="w-10 h-10 animate-spin text-red-600 mx-auto mb-4" />
                     <p className="text-xs font-black uppercase tracking-widest text-gray-400">Synchronizing Local Records...</p>
                   </td>
@@ -524,9 +538,12 @@ const AdminResultHub = ({ user }) => {
                         <div className="w-10 h-10 rounded-xl bg-gray-100 dark:bg-gray-800 flex items-center justify-center font-black text-xs text-gray-400">
                            {student.name[0]}
                         </div>
-                        <div>
-                          <p className="text-xs font-black dark:text-white group-hover:text-red-600 transition-colors capitalize">{student.name}</p>
-                          <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest mt-0.5">{student.rollNumber}</p>
+                        <div className="flex flex-col">
+                          <span className="text-xs font-black uppercase tracking-tighter text-slate-900 dark:text-white">{student.name}</span>
+                          <div className="flex items-center gap-2 mt-0.5">
+                            <span className="text-[9px] font-black text-indigo-500 uppercase">{student.rollNumber}</span>
+                            <span className="text-[9px] font-black px-1.5 py-0.5 bg-slate-800 text-slate-400 rounded-md">SEC {student.section || 'A'}</span>
+                          </div>
                         </div>
                       </div>
                     </td>
@@ -606,7 +623,7 @@ const AdminResultHub = ({ user }) => {
                 );
               }) : (
                 <tr>
-                   <td colSpan={data.courses.length + 2} className="p-32 text-center opacity-30 text-[10px] font-black uppercase tracking-widest italic">
+                   <td colSpan={data.courses.length + 3} className="p-32 text-center opacity-30 text-[10px] font-black uppercase tracking-widest italic">
                       Zero Transmission Detected for Selected Sector
                    </td>
                 </tr>

@@ -6,7 +6,7 @@ import FaceRegistration from '../../modules/mfa/components/FaceRegistration';
 const FaceRegistrationPage = () => {
     const { user } = useSelector((state) => state.auth);
     const location = useLocation();
-    const isForced = location.state?.forced || (user?.role === 'student' && !user?.faceRegistered);
+    const isForced = location.state?.forced || ((user?.role === 'student' || user?.role === 'admin' || user?.role === 'teacher') && !user?.faceRegistered);
 
     return (
         <div className="flex-grow p-4 md:p-10 flex flex-col items-center">

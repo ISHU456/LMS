@@ -12,6 +12,8 @@ import AdminGlobalBroadcasts from '../../components/admin/AdminGlobalBroadcasts'
 import AdminResultHub from '../../components/admin/AdminResultHub';
 import AdminBatchFinalization from '../../components/admin/AdminBatchFinalization';
 import AdminAiManagement from '../../components/admin/AdminAiManagement';
+import AdminAccessRequests from '../../components/admin/AdminAccessRequests';
+import AdminPendingTeachers from '../../components/admin/AdminPendingTeachers';
 import AttendanceManager from '../../components/teacher/AttendanceManager';
 import MonthlyRegister from '../../components/teacher/MonthlyRegister';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -23,7 +25,7 @@ const AdminDashboard = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [sidebarWidth, setSidebarWidth] = useState(() => parseInt(localStorage.getItem('adminSidebarWidth')) || 280);
   const [isResizing, setIsResizing] = useState(false);
-  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(window.innerWidth >= 1024);
   const [stats, setStats] = useState({
     users: 0,
     departments: 0,
@@ -41,6 +43,15 @@ const AdminDashboard = () => {
 
   useEffect(() => {
     setIsMounted(true);
+    const handleResize = () => {
+      if (window.innerWidth >= 1024) {
+        setIsSidebarOpen(true);
+      } else {
+        setIsSidebarOpen(false);
+      }
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
   }, []);
 
   const fetchStats = useCallback(async () => {
@@ -97,10 +108,12 @@ const AdminDashboard = () => {
     { id: 'faculty-attendance', icon: CalendarDays, label: 'Faculty Presence' },
     { id: 'student-attendance', icon: UserCheck, label: 'Student Attendance' },
     { id: 'monthly-register', icon: Calendar, label: 'Monthly Register' },
+    { id: 'pending-faculty', icon: Shield, label: 'Pending Faculty' },
     { id: 'courses', icon: Book, label: 'Academic Lattice' },
     { id: 'global-alerts', icon: Bell, label: 'Global Broadcasts' },
     { id: 'results-hub', icon: TrendingUp, label: 'Results & Transcripts' },
     { id: 'batch-finalization', icon: CheckCircle, label: 'Batch Finalization' },
+    { id: 'access-governance', icon: Shield, label: 'Access Governance' },
     { id: 'ai-management', icon: BrainCircuit, label: 'Neural Governance Hub' },
     { id: 'system', icon: Settings, label: 'System Settings' },
   ];
@@ -119,8 +132,8 @@ const AdminDashboard = () => {
       
       {/* Premium Sidebar */}
       <aside 
-        className={`fixed lg:relative z-40 h-full bg-white dark:bg-[#080c14] border-r border-slate-200 dark:border-slate-800/60 shadow-2xl lg:shadow-none transition-all duration-300 ease-in-out flex flex-col ${isSidebarOpen ? '' : '-translateX-full lg:translate-x-0'}`}
-        style={{ width: isSidebarOpen ? sidebarWidth : 0, minWidth: isSidebarOpen ? (window.innerWidth < 1024 ? '100vw' : 200) : 0 }}
+        className={`fixed lg:relative z-[60] h-full bg-white dark:bg-[#080c14] border-r border-slate-200 dark:border-slate-800/60 shadow-2xl lg:shadow-none transition-all duration-300 ease-in-out flex flex-col ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}
+        style={{ width: window.innerWidth < 1024 ? '280px' : (isSidebarOpen ? sidebarWidth : 0) }}
       >
         <div className="p-6 flex flex-col h-full">
            <div className="flex items-center gap-3 mb-10 px-2 overflow-hidden">
@@ -178,9 +191,9 @@ const AdminDashboard = () => {
       <div className="flex-1 flex flex-col h-full min-w-0">
         
         {/* Top Header */}
-        <header className="h-20 shrink-0 bg-white/80 dark:bg-[#030712]/80 backdrop-blur-3xl border-b border-slate-200 dark:border-slate-800/60 flex items-center justify-between px-6 lg:px-10 sticky top-0 z-30 transition-colors duration-500">
-           <div className="flex items-center gap-6">
-              <button onClick={() => setIsSidebarOpen(true)} className={`lg:hidden p-3 bg-slate-100 dark:bg-white/5 rounded-xl text-slate-600 dark:text-slate-400 ${isSidebarOpen ? 'hidden' : ''}`}><LayoutGrid size={20}/></button>
+        <header className="h-16 lg:h-20 shrink-0 bg-white/80 dark:bg-[#030712]/80 backdrop-blur-3xl border-b border-slate-200 dark:border-slate-800/60 flex items-center justify-between px-4 lg:px-10 sticky top-0 z-30 transition-colors duration-500">
+           <div className="flex items-center gap-4 lg:gap-6">
+              <button onClick={() => setIsSidebarOpen(true)} className="lg:hidden p-2 bg-slate-100 dark:bg-white/5 rounded-xl text-slate-600 dark:text-slate-400"><LayoutGrid size={18}/></button>
               <div>
                 <h1 className="text-2xl font-black text-slate-900 dark:text-white uppercase tracking-tighter italic">
                   {menuItems.find(i=>i.id===activeTab)?.label}
@@ -209,10 +222,10 @@ const AdminDashboard = () => {
         </header>
         
         {/* Dynamic Content Core */}
-        <main className="flex-1 overflow-y-auto p-6 lg:p-10 custom-scrollbar">
+        <main className="flex-1 overflow-y-auto p-4 lg:p-10 custom-scrollbar">
            <AnimatePresence mode="wait">
            {activeTab === 'overview' ? (
-             <motion.div key="overview" initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} transition={{ duration: 0.5, ease: "easeOut" }} className="space-y-10 max-w-[1600px] mx-auto">
+             <motion.div key="overview" initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} transition={{ duration: 0.5, ease: "easeOut" }} className="space-y-6 lg:space-y-10 max-w-[1600px] mx-auto">
                
                {/* Dashboard Stats Deck */}
                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-6">
@@ -427,6 +440,14 @@ const AdminDashboard = () => {
           <motion.div key="ai" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
             <AdminAiManagement user={user} />
           </motion.div>
+        ) : activeTab === 'access-governance' ? (
+          <motion.div key="access" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
+            <AdminAccessRequests user={user} />
+          </motion.div>
+        ) : activeTab === 'pending-faculty' ? (
+          <motion.div key="pending-fac" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
+            <AdminPendingTeachers user={user} />
+          </motion.div>
         ) : activeTab === 'student-attendance' ? (
           <motion.div key="student-att" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
             <AttendanceManager user={user} onPersistChange={() => {}} />
@@ -450,11 +471,11 @@ const AdminDashboard = () => {
 
       {/* Background Overlay for Mobile Sidebar */}
       <AnimatePresence>
-        {window.innerWidth < 1024 && isSidebarOpen && (
+        {isSidebarOpen && window.innerWidth < 1024 && (
           <motion.div 
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
             onClick={() => setIsSidebarOpen(false)}
-            className="fixed inset-0 bg-slate-950/40 backdrop-blur-sm z-30"
+            className="fixed inset-0 bg-slate-950/40 backdrop-blur-sm z-50"
           />
         )}
       </AnimatePresence>

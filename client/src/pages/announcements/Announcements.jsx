@@ -10,6 +10,7 @@ import axios from 'axios';
 
 import CreatePost from '../../components/announcements/CreatePost';
 import AnnouncementFeed from '../../components/announcements/AnnouncementFeed';
+import GlobalEducationNews from '../../components/announcements/GlobalEducationNews';
 
 const Announcements = () => {
   const { user } = useSelector((state) => state.auth);
@@ -169,6 +170,9 @@ const Announcements = () => {
                   )}
                 </div>
               </div>
+
+              {/* Global Education Pulse */}
+              <GlobalEducationNews />
 
               {/* Verification / Security Badge */}
               <div className="bg-gradient-to-br from-gray-900 to-gray-800 dark:from-gray-800 dark:to-black rounded-[2rem] p-8 text-white relative overflow-hidden group">

@@ -23,6 +23,7 @@ import {
 import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts';
 
 import QuizCenter from '../../components/student/QuizCenter';
+import QuizArena from '../../components/student/QuizArena';
 import { useGamification } from '../../hooks/useGamification';
 import {
   ASSIGNMENTS_SEED,
@@ -45,6 +46,7 @@ const StudentDashboard = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedSem, setSelectedSem] = useState(() => Number(localStorage.getItem('student_selected_sem')) || user?.semester || 1);
   const [leaderboardSem, setLeaderboardSem] = useState(() => localStorage.getItem('student_leaderboard_sem') || user?.semester || 'All');
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   useEffect(() => {
     localStorage.setItem('student_active_tab', activeTab);
@@ -154,12 +156,32 @@ const StudentDashboard = () => {
 
   const fetchLeaderboard = async () => {
     try {
-      const res = await axios.get('http://localhost:5001/api/auth/leaderboard');
+      const config = { headers: { Authorization: `Bearer ${user.token}` } };
+      const res = await axios.get('http://localhost:5001/api/gamification/leaderboard', config);
       setGlobalLeaderboard(res.data);
     } catch (err) {
       console.error("Failed to fetch leaderboard");
     }
   };
+
+  const [gamifiedStats, setGamifiedStats] = useState({ earned: [], all: [], stats: { coins: 0, streak: 0, learningTime: 0 } });
+  const [activeQuizId, setActiveQuizId] = useState(null);
+  const [availableQuizzes, setAvailableQuizzes] = useState([]);
+
+  useEffect(() => {
+    const fetchGamification = async () => {
+      try {
+        const config = { headers: { Authorization: `Bearer ${user.token}` } };
+        const resStats = await axios.get('http://localhost:5001/api/gamification/achievements', config);
+        setGamifiedStats(resStats.data);
+        const resQuizzes = await axios.get('http://localhost:5001/api/gamification/quizzes', config);
+        setAvailableQuizzes(resQuizzes.data);
+      } catch (e) {
+        console.error(e);
+      }
+    };
+    if (user?.token) fetchGamification();
+  }, [user?.token, activeTab]);
 
   const fetchClassroomAttendance = async () => {
     try {
@@ -326,8 +348,8 @@ const StudentDashboard = () => {
     () => [
       { id: 'overview', icon: Home, label: 'Overview' },
       { id: 'progress', icon: Target, label: 'Progress' },
-      { id: 'quizzes', icon: Brain, label: 'Quizzes' },
-      { id: 'attendance', icon: CalendarDays, label: 'Attendance Register' },
+      { id: 'quizzes', icon: Brain, label: 'Quiz Arena' },
+      { id: 'achievements', icon: Trophy, label: 'Achievements' },
       { id: 'leaderboard', icon: Trophy, label: 'Leaderboard' },
     ],
     []
@@ -404,8 +426,27 @@ const StudentDashboard = () => {
   }
 
   return (
-    <div className="flex min-h-[calc(100vh-73px)] flex-col lg:flex-row bg-gray-50 dark:bg-[#0f172a]">
-      <aside className="w-full lg:w-72 shrink-0 glass border-b lg:border-r border-gray-200 dark:border-gray-800 p-4 space-y-4 overflow-y-auto max-h-[40vh] lg:max-h-none">
+    <div className="flex min-h-[calc(100vh-73px)] flex-col lg:flex-row bg-gray-50 dark:bg-[#0f172a] overflow-x-hidden relative">
+      <AnimatePresence>
+        {isSidebarOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setIsSidebarOpen(false)}
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] lg:hidden"
+          />
+        )}
+      </AnimatePresence>
+
+      <aside className={`fixed lg:relative inset-y-0 left-0 w-72 shrink-0 glass border-r border-gray-200 dark:border-gray-800 p-4 space-y-4 z-[101] transform transition-transform duration-300 lg:translate-x-0 ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'} lg:block bg-white dark:bg-[#0f172a]`}>
+        <div className="flex items-center justify-between lg:hidden mb-4">
+           <span className="text-sm font-black uppercase tracking-widest text-primary-600">Quick Access</span>
+           <button onClick={() => setIsSidebarOpen(false)} className="p-2 rounded-xl bg-gray-100 dark:bg-gray-800 text-gray-500">
+              <CheckCircle2 size={20} className="rotate-45" />
+           </button>
+        </div>
+        {/* Mini-Profile */}
         <div className="p-4 rounded-3xl border border-gray-100 dark:border-gray-800 bg-white/40 dark:bg-gray-900/30">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3 min-w-0">
@@ -439,12 +480,15 @@ const StudentDashboard = () => {
           </div>
         </div>
 
-        <nav className="space-y-2">
+        <nav className="flex flex-col gap-2">
           {menuItems.map((item) => (
             <button
               key={item.id}
-              onClick={() => setActiveTab(item.id)}
-              className={`w-full flex items-center gap-3 px-4 py-3 rounded-2xl transition-all font-medium ${
+              onClick={() => {
+                setActiveTab(item.id);
+                setIsSidebarOpen(false);
+              }}
+              className={`w-full flex items-center gap-3 px-4 py-3 rounded-2xl transition-all ${
                 activeTab === item.id
                   ? 'bg-gradient-to-r from-primary-600 to-indigo-600 text-white shadow-lg shadow-primary-500/20'
                   : 'text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800'
@@ -471,7 +515,7 @@ const StudentDashboard = () => {
         </div>
       </aside>
 
-      <main className="flex-1 p-4 md:p-8 overflow-y-auto">
+      <main className="flex-1 p-3 md:p-8 overflow-y-auto">
         <header className="mb-8">
           <motion.div
             initial={{ opacity: 0, y: 10 }}
@@ -479,8 +523,15 @@ const StudentDashboard = () => {
             className="p-6 rounded-3xl border border-gray-100 dark:border-gray-800 bg-white/40 dark:bg-gray-900/30 backdrop-blur-xl"
             style={{ background: 'linear-gradient(135deg, rgba(67,97,238,0.18), rgba(114,9,183,0.10))' }}
           >
-            <div className="flex items-start justify-between gap-4 flex-wrap">
-              <div className="min-w-[260px]">
+            <div className="flex flex-col md:flex-row items-center justify-between gap-4 mb-6">
+              <button 
+                onClick={() => setIsSidebarOpen(true)}
+                className="lg:hidden self-start flex items-center gap-2 px-4 py-2 rounded-xl bg-primary-600 text-white font-black text-[10px] uppercase tracking-widest shadow-lg shadow-primary-500/20"
+              >
+                <LayoutDashboard size={14} />
+                Open Sidebar
+              </button>
+              <div className="w-full md:min-w-[260px]">
                 <h1 className="text-3xl font-extrabold text-gray-900 dark:text-white capitalize">
                   {menuItems.find((i) => i.id === activeTab)?.label}
                 </h1>
@@ -535,8 +586,8 @@ const StudentDashboard = () => {
                 )}
               </div>
 
-              <div className="flex items-center gap-3">
-                <div className="px-4 py-2 rounded-2xl border border-gray-100 dark:border-gray-800 bg-white/40 dark:bg-gray-900/30">
+              <div className="w-full grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
+                <div className="p-4 rounded-2xl border border-gray-100 dark:border-gray-800 bg-white/40 dark:bg-gray-900/30">
                   <div className="text-[10px] font-black uppercase tracking-widest text-gray-500 dark:text-gray-400">Badges</div>
                   <div className="text-2xl font-extrabold text-gray-900 dark:text-white mt-1">{(gamification?.badges || []).length}</div>
                   {earnedBadgeMeta.length ? (
@@ -557,18 +608,19 @@ const StudentDashboard = () => {
                     </div>
                   )}
                 </div>
-                <div className="px-4 py-2 rounded-2xl border border-gray-100 dark:border-gray-800 bg-white/40 dark:bg-gray-900/30">
+                <div className="p-4 rounded-2xl border border-gray-100 dark:border-gray-800 bg-white/40 dark:bg-gray-900/30">
                   <div className="text-[10px] font-black uppercase tracking-widest text-gray-500 dark:text-gray-400">Pending</div>
                   <div className="text-2xl font-extrabold text-gray-900 dark:text-white mt-1">{pendingTasksCount}</div>
+                  <div className="mt-3 text-[10px] font-black uppercase tracking-widest text-primary-600 dark:text-primary-400">Tasks assigned</div>
                 </div>
-                <div className="flex-1 min-w-[300px] px-8 py-6 rounded-[2.5rem] border border-gray-100 dark:border-gray-800 bg-white/40 dark:bg-gray-900/30 backdrop-blur-3xl relative overflow-hidden group">
+                <div className="sm:col-span-2 xl:col-span-1 p-6 rounded-[2.5rem] border border-gray-100 dark:border-gray-800 bg-white/40 dark:bg-gray-900/30 backdrop-blur-3xl relative overflow-hidden group">
                   {/* Decorative Background Flame */}
                   <div className="absolute top-[-20%] right-[-10%] opacity-5 scale-150 rotate-12 group-hover:rotate-0 transition-transform duration-1000">
                     <Flame size={200} className="text-orange-500 fill-current" />
                   </div>
                   
-                  <div className="relative z-10 flex items-center justify-between gap-8">
-                    <div>
+                  <div className="relative z-10 flex flex-col sm:flex-row items-center justify-between gap-6 sm:gap-8">
+                    <div className="w-full sm:w-auto">
                         <div className="flex items-center gap-3 mb-2">
                            <div className="p-2 bg-orange-500/20 rounded-xl text-orange-500 animate-pulse">
                               <Flame size={20} className="fill-current" />
@@ -576,29 +628,29 @@ const StudentDashboard = () => {
                            <h3 className="text-xs font-black uppercase tracking-[0.2em] text-orange-500/80">Streak Momentum</h3>
                         </div>
                         <div className="flex items-baseline gap-2">
-                           <span className="text-5xl font-black text-gray-900 dark:text-white tracking-tighter">{streakDays}</span>
-                           <span className="text-xl font-black text-gray-400 uppercase">Days</span>
+                           <span className="text-4xl sm:text-5xl font-black text-gray-900 dark:text-white tracking-tighter">{streakDays}</span>
+                           <span className="text-lg sm:text-xl font-black text-gray-400 uppercase">Days</span>
                         </div>
                         <p className="text-[10px] font-black uppercase tracking-widest text-gray-500 mt-2">
                            {streakDays >= 7 ? 'Legendary Consistency!' : `${7 - (streakDays % 7)} days to next major badge`}
                         </p>
                     </div>
 
-                    <div className="flex-1 max-w-[350px]">
-                        <div className="flex justify-between mb-4">
+                    <div className="w-full sm:flex-1 max-w-[350px]">
+                        <div className="flex justify-between mb-4 gap-1">
                            {last7Keys.map((k, i) => {
                               const attended = new Set(gamification?.attendanceDates || []).has(k);
                               return (
-                                 <div key={k} className="flex flex-col items-center gap-2">
-                                    <div className={`w-8 h-8 rounded-xl flex items-center justify-center border-2 transition-all duration-500 ${attended ? 'bg-orange-500 border-orange-400 shadow-lg shadow-orange-500/40 text-white' : 'bg-gray-100 dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-400 opacity-40'}`}>
-                                       {attended ? <CheckCircle2 size={14} /> : <div className="w-1 h-1 rounded-full bg-current" />}
+                                 <div key={k} className="flex flex-col items-center gap-1.5 flex-1">
+                                    <div className={`w-full aspect-square rounded-lg flex items-center justify-center border-2 transition-all duration-500 max-w-[32px] ${attended ? 'bg-orange-500 border-orange-400 shadow-lg shadow-orange-500/40 text-white' : 'bg-gray-100 dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-400 opacity-40'}`}>
+                                       {attended ? <CheckCircle2 size={12} /> : <div className="w-1 h-1 rounded-full bg-current" />}
                                     </div>
-                                    <span className="text-[8px] font-black uppercase tracking-tighter text-gray-500">Day {i+1}</span>
+                                    <span className="text-[7px] font-black uppercase tracking-tighter text-gray-500 h-2">D{i+1}</span>
                                  </div>
                               );
                            })}
                         </div>
-                        <div className="h-2.5 bg-gray-200/50 dark:bg-gray-800 rounded-full overflow-hidden border border-gray-100 dark:border-gray-700/50">
+                        <div className="h-2 bg-gray-200/50 dark:bg-gray-800 rounded-full overflow-hidden border border-gray-100 dark:border-gray-700/50">
                            <motion.div
                              initial={{ width: 0 }}
                              animate={{ width: `${Math.min(100, ((streakDays % 7) || (streakDays > 0 ? 7 : 0)) / 7 * 100)}%` }}
@@ -606,10 +658,10 @@ const StudentDashboard = () => {
                            />
                         </div>
                     </div>
-                  </div>
                 </div>
               </div>
             </div>
+          </div>
 
             <div className="mt-4 flex flex-wrap gap-3 items-center justify-between">
               <div className="flex items-center gap-3 text-sm font-bold text-gray-700 dark:text-gray-200">
@@ -837,6 +889,15 @@ const StudentDashboard = () => {
                         </div>
                       );
                     })}
+                    {courseProgressCards.length === 0 && (
+                      <div className="py-20 text-center border-2 border-dashed border-gray-100 dark:border-gray-800 rounded-[2.5rem]">
+                        <BookOpen className="mx-auto text-gray-300 dark:text-gray-700 mb-6" size={48} />
+                        <h3 className="text-sm font-black uppercase tracking-[0.2em] text-gray-500 dark:text-gray-400">No Academic Modules Detected</h3>
+                        <p className="text-[10px] font-black uppercase tracking-widest text-gray-400 dark:text-gray-500 mt-3 max-w-md mx-auto leading-relaxed">
+                          Your current sector allocation <span className="text-primary-500">[{user?.department || 'UNASSIGNED'}]</span> or semester <span className="text-primary-500">[{user?.semester || 'UNASSIGNED'}]</span> has no active curriculum mapped at this lattice point.
+                        </p>
+                      </div>
+                    )}
                   </div>
                 </div>
 
@@ -1212,141 +1273,170 @@ const StudentDashboard = () => {
             </motion.div>
           )}
 
-          {activeTab === 'leaderboard' && (
-            <motion.div key="leaderboard" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }}>
-              <div className="glass p-6 rounded-3xl border border-gray-100 dark:border-gray-800">
-                <div className="flex items-start justify-between gap-4 flex-wrap">
+          {activeTab === 'quizzes' && (
+            <motion.div key="quizzes" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-8 pb-20">
+               <div className="flex items-center justify-between">
                   <div>
-                    <div className="flex items-center gap-3 mb-1">
-                       <h2 className="text-sm font-extrabold text-gray-900 dark:text-white">Leaderboard Arena</h2>
-                       <span className="px-3 py-1 rounded-full bg-gray-100 dark:bg-gray-800 text-[9px] font-black uppercase text-gray-400 border border-gray-200 dark:border-gray-700">
-                         {leaderboardSem === 'All' ? `${leaderboardData.totalStudents} Global Students` : `${leaderboardData.list.length} Sector Students`}
-                       </span>
-                    </div>
-                    <div className="text-[10px] font-black uppercase tracking-widest text-gray-500 dark:text-gray-400">
-                      Filter rankings by academic sector to track your status
-                    </div>
-                    <div className="mt-4 flex flex-wrap gap-2">
-                       {['All', 1, 2, 3, 4, 5, 6, 7, 8].map(sem => (
-                         <button
-                           key={sem}
-                           onClick={() => { setLeaderboardSem(sem); setCurrentPage(1); }}
-                           className={`px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-tighter transition-all ${
-                             leaderboardSem === sem 
-                               ? 'bg-primary-600 text-white shadow-md' 
-                               : 'bg-gray-100 dark:bg-gray-800 text-gray-400 hover:text-gray-900 dark:hover:text-white border border-gray-200 dark:border-gray-700'
-                           }`}
-                         >
-                           {sem === 'All' ? 'Global' : `SEM ${sem}`}
-                         </button>
-                       ))}
-                    </div>
+                    <h2 className="text-3xl font-black text-gray-900 dark:text-white uppercase tracking-tighter italic">Quiz Arena Hub</h2>
+                    <p className="text-[10px] text-primary-600 font-bold uppercase tracking-widest mt-1">Earn Neural Credits & Experience Nodes</p>
                   </div>
-                  <div className="px-4 py-3 rounded-2xl border border-gray-100 dark:border-gray-800 bg-white/35 dark:bg-gray-900/25">
-                    <div className="text-[10px] font-black uppercase tracking-widest text-gray-500 dark:text-gray-400">
-                      {leaderboardSem === 'All' ? 'Global Status' : `Semester ${leaderboardSem} Standing`}
-                    </div>
-                    <div className="text-3xl font-extrabold text-gray-900 dark:text-white mt-1">#{leaderboardData.rank}</div>
-                  </div>
-                </div>
-
-                 <div className="mt-6 space-y-3">
-                  {paginatedLeaderboard.map((p, idx) => {
-                    const isMe = p._id === user?._id;
-                    const xpRank = leaderboardData.xpRankInFiltered[p._id];
-                    const isTop3 = xpRank <= 3;
-                    const badgeStyles = [
-                      'bg-yellow-500/20 text-yellow-600 border border-yellow-400/30', // Gold
-                      'bg-slate-400/20 text-slate-500 border border-slate-400/30', // Silver
-                      'bg-orange-800/20 text-orange-800 border border-orange-800/20' // Brown (Bronze)
-                    ][xpRank - 1] || 'bg-gray-100 dark:bg-gray-800/50 text-gray-500 dark:text-gray-400 border border-gray-200 dark:border-gray-700';
-
-                    return (
-                      <div
-                        key={`${p._id}_${idx}`}
-                        className={`flex items-center justify-between gap-4 p-4 rounded-3xl border transition-all ${
-                          isMe ? 'bg-gradient-to-r from-primary-600/15 to-indigo-600/10 border-primary-500/30 shadow-lg' : 'bg-white/35 dark:bg-gray-900/25 border-gray-100 dark:border-gray-800'
-                        }`}
-                      >
-                        <div className="flex items-center gap-4">
-                          <div className={`w-10 h-10 rounded-2xl flex items-center justify-center font-black ${badgeStyles}`}>
-                            {isTop3 ? <Trophy size={18} /> : xpRank}
+               </div>
+               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {availableQuizzes.map(q => (
+                    <div key={q._id} className="group relative bg-white dark:bg-gray-900 p-8 rounded-[2.5rem] border border-gray-100 dark:border-gray-800 shadow-sm hover:shadow-2xl transition-all overflow-hidden">
+                       <div className="absolute top-0 right-0 w-24 h-24 bg-primary-600/5 rounded-bl-[4rem] group-hover:scale-110 transition-transform" />
+                       <div className="w-14 h-14 rounded-2xl bg-primary-600/10 text-primary-600 flex items-center justify-center mb-6 shadow-inner"><Brain size={28}/></div>
+                       <h3 className="text-xl font-black text-gray-900 dark:text-white uppercase tracking-tight mb-2 leading-none">{q.title}</h3>
+                       <p className="text-[11px] font-medium text-gray-500 dark:text-gray-400 mb-8 line-clamp-2 uppercase tracking-wide">{q.description || 'Test your cognitive logic across institutional parameters.'}</p>
+                       <div className="flex items-center justify-between pt-6 border-t border-gray-50 dark:border-gray-800">
+                          <div className="flex items-center gap-4">
+                             <div className="flex items-center gap-2"><Target size={14} className="text-gray-400"/><span className="text-[10px] font-black text-gray-500">{q.totalPoints} PTS</span></div>
+                             <div className="flex items-center gap-2"><Clock size={14} className="text-gray-400"/><span className="text-[10px] font-black text-gray-500">{q.timeLimit} MIN</span></div>
                           </div>
-                          <div>
-                            <div className="text-sm font-extrabold text-gray-900 dark:text-white flex items-center gap-2">
-                              {p.name} {isMe && <span className="text-[8px] bg-primary-600 text-white px-2 py-0.5 rounded-full uppercase tracking-tighter">YOU</span>}
-                            </div>
-                            <div className="flex items-center gap-2 mt-1">
-                               <div className="text-[10px] font-black uppercase tracking-widest text-primary-600 dark:text-primary-400">
-                                 {leaderboardSem === 'All' ? 'Global Status' : `Sector Standing`} Rank #{xpRank}
+                          <button onClick={() => setActiveQuizId(q._id)} className="w-10 h-10 rounded-xl bg-gray-900 text-white flex items-center justify-center hover:bg-primary-600 transition-all shadow-lg active:scale-90"><ChevronRight size={20}/></button>
+                       </div>
+                    </div>
+                  ))}
+               </div>
+            </motion.div>
+          )}
+
+          {activeTab === 'achievements' && (
+            <motion.div key="achievements" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-10 pb-20">
+               <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                  <div className="bg-gradient-to-br from-primary-600 to-indigo-800 rounded-[3rem] p-10 text-white shadow-2xl relative overflow-hidden group">
+                     <div className="relative z-10">
+                        <div className="text-[10px] font-black uppercase tracking-[0.3em] opacity-60 mb-2">Neural Bank</div>
+                        <div className="text-6xl font-black flex items-baseline gap-3">
+                           {gamifiedStats.stats.coins} <span className="text-xl opacity-60">COINS</span>
+                        </div>
+                        <div className="mt-8 flex items-center gap-2 px-4 py-2 bg-white/10 rounded-xl border border-white/10 w-fit drop-shadow-xl backdrop-blur-md">
+                           <Flame size={16} className="text-orange-400" />
+                           <span className="text-[10px] font-black uppercase tracking-widest">{gamifiedStats.stats.streak} DAY STREAK ACTIVE</span>
+                        </div>
+                     </div>
+                     <div className="absolute top-[-10%] right-[-10%] opacity-10 group-hover:rotate-12 transition-transform duration-1000"><Zap size={240} className="fill-current" /></div>
+                  </div>
+
+                  <div className="md:col-span-2 grid grid-cols-2 gap-6">
+                     <div className="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-[3rem] p-8 flex flex-col justify-center">
+                        <div className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Total Learning Time</div>
+                        <div className="text-4xl font-black text-gray-900 dark:text-white tabular-nums">{gamifiedStats.stats.learningTime} <span className="text-sm font-bold text-gray-500">MINS</span></div>
+                        <div className="mt-4 h-1.5 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
+                           <div className="h-full bg-primary-600 w-[65%]" />
+                        </div>
+                     </div>
+                     <div className="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-[3rem] p-8 flex flex-col justify-center">
+                        <div className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Badges Unlocked</div>
+                        <div className="text-4xl font-black text-gray-900 dark:text-white tabular-nums">{gamifiedStats.earned.length} <span className="text-sm font-bold text-gray-500">/{gamifiedStats.all.length}</span></div>
+                        <div className="mt-4 flex gap-2">
+                           <div className="w-2 h-2 rounded-full bg-emerald-500" />
+                           <div className="w-2 h-2 rounded-full bg-emerald-500" />
+                           <div className="w-2 h-2 rounded-full bg-gray-200 dark:bg-gray-800" />
+                        </div>
+                     </div>
+                  </div>
+               </div>
+
+               <div className="bg-white dark:bg-gray-900 rounded-[3.5rem] p-12 border border-gray-100 dark:border-gray-800 shadow-xl">
+                  <h3 className="text-sm font-black text-gray-900 dark:text-white uppercase tracking-[0.3em] mb-12 flex items-center gap-4">
+                     Institutional Badge Catalog <div className="h-px flex-1 bg-gray-100 dark:bg-gray-800" />
+                  </h3>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-10">
+                     {gamifiedStats.all.map(badge => {
+                        const isEarned = gamifiedStats.earned.some(b => b.badge._id === badge._id);
+                        return (
+                          <div key={badge._id} className="flex flex-col items-center group">
+                             <div className={`w-28 h-28 rounded-[2rem] p-1 transition-all duration-500 ${isEarned ? 'bg-gradient-to-tr from-primary-600 via-indigo-500 to-indigo-400 rotate-0 shadow-[0_20px_40px_rgba(79,70,229,0.3)]' : 'bg-gray-100 dark:bg-gray-800 border-dashed border-2 border-gray-300 dark:border-gray-700'}`}>
+                                <div className="w-full h-full bg-white dark:bg-[#0b0f1a] rounded-[1.8rem] flex items-center justify-center relative overflow-hidden group-hover:scale-95 transition-transform">
+                                   {isEarned && <div className="absolute inset-0 bg-indigo-600/5 animate-pulse" />}
+                                   {badge.icon.startsWith('http') ? <img src={badge.icon} alt={badge.name} className="w-16 h-16 object-contain relative z-10" /> : <div className="text-4xl">{badge.icon}</div>}
+                                </div>
+                             </div>
+                             <h4 className={`text-[11px] font-black uppercase tracking-tighter mt-6 text-center leading-tight ${isEarned ? 'text-gray-900 dark:text-white' : 'text-gray-400'}`}>{badge.name}</h4>
+                             <p className="text-[8px] font-black text-gray-500 uppercase tracking-widest mt-1.5 opacity-0 group-hover:opacity-100 transition-all text-center px-2">{badge.description}</p>
+                          </div>
+                        );
+                     })}
+                  </div>
+               </div>
+            </motion.div>
+          )}
+
+          {activeTab === 'leaderboard' && (
+            <motion.div key="leaderboard" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-10">
+               <div className="flex flex-col md:flex-row items-center justify-between gap-6">
+                  <div className="flex items-center gap-4 px-2 py-2 bg-white/50 dark:bg-gray-900/50 backdrop-blur-xl border border-gray-100 dark:border-gray-800 rounded-3xl">
+                     {['Daily', 'Weekly', 'Global'].map(t => (
+                       <button key={t} className={`px-6 py-2.5 rounded-2xl text-[9px] font-black uppercase tracking-widest transition-all ${t === 'Global' ? 'bg-primary-600 text-white shadow-lg' : 'text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800'}`}>{t}</button>
+                     ))}
+                  </div>
+                  <div className="flex items-center gap-3">
+                     <span className="text-[10px] font-black uppercase tracking-widest text-gray-500">Ranking Sector</span>
+                     <select className="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 px-5 py-2.5 rounded-2xl text-[10px] font-black uppercase outline-none focus:border-indigo-500 transition-all">
+                        <option>Batch 2024-28</option>
+                        <option>Entire Faculty</option>
+                     </select>
+                  </div>
+               </div>
+
+               <div className="bg-white dark:bg-gray-900 rounded-[3rem] border border-gray-100 dark:border-gray-800 overflow-hidden shadow-2xl">
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left">
+                      <thead>
+                        <tr className="bg-gray-50 dark:bg-gray-950/50 border-b border-gray-100 dark:border-gray-800">
+                          <th className="px-10 py-6 text-[10px] font-black uppercase tracking-[0.2em] text-gray-400">Position</th>
+                          <th className="px-10 py-6 text-[10px] font-black uppercase tracking-[0.2em] text-gray-400">Collaborator</th>
+                          <th className="px-10 py-6 text-[10px] font-black uppercase tracking-[0.2em] text-gray-400 text-right">Momentum Score</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {globalLeaderboard.map((student, i) => (
+                          <tr key={student._id} className={`group hover:bg-indigo-50/30 dark:hover:bg-indigo-900/5 transition-all ${student._id === user._id ? 'bg-primary-600/10 border-l-4 border-primary-600' : ''}`}>
+                            <td className="px-10 py-6">
+                               <div className="flex items-center gap-4">
+                                  <span className={`text-xl font-black italic tracking-tighter ${i < 3 ? 'text-primary-600' : 'text-gray-400'}`}>#{i + 1}</span>
+                                  {i < 3 && <div className={`w-6 h-6 rounded-lg ${i===0?'bg-yellow-400':i===1?'bg-gray-300':'bg-orange-400'} flex items-center justify-center text-white`}><Trophy size={14}/></div>}
                                </div>
-                               {leaderboardSem !== 'All' && (
-                                 <>
-                                   <div className="w-1 h-1 rounded-full bg-gray-300 dark:bg-gray-700" />
-                                   <div className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Global #{leaderboardData.globalRankMap[p._id]}</div>
-                                 </>
-                               )}
-                            </div>
-                            <div className="text-[9px] font-bold uppercase tracking-widest text-gray-400 mt-1 opacity-60">
-                              {p.department} Sector
-                            </div>
-                          </div>
-                        </div>
-                        <div className="text-right">
-                          <div className="text-2xl font-extrabold text-gray-900 dark:text-white tabular-nums tracking-tighter">{p.xp}</div>
-                          <div className="text-[9px] font-black uppercase tracking-[0.2em] text-gray-500 mt-1">TOTAL XP</div>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-
-                {totalPages > 1 && (
-                  <div className="mt-8 flex items-center justify-between p-4 rounded-[2rem] bg-gray-50 dark:bg-gray-900/40 border border-gray-100 dark:border-gray-800">
-                    <div className="text-[10px] font-black uppercase tracking-widest text-gray-400">
-                      Showing {(currentPage - 1) * itemsPerPage + 1}-
-                      {Math.min(currentPage * itemsPerPage, leaderboardData.list.length)} of {leaderboardData.list.length}
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <button
-                        disabled={currentPage === 1}
-                        onClick={() => setCurrentPage(prev => prev - 1)}
-                        className="px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all disabled:opacity-30 disabled:cursor-not-allowed bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 border border-gray-200 dark:border-gray-700 hover:bg-gray-100"
-                      >
-                        Previous
-                      </button>
-                      <div className="flex items-center gap-1">
-                        {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                          const pageNum = i + 1; // Simplistic pagination
-                          return (
-                            <button
-                              key={pageNum}
-                              onClick={() => setCurrentPage(pageNum)}
-                              className={`w-8 h-8 rounded-xl text-[10px] font-black transition-all ${
-                                currentPage === pageNum
-                                  ? 'bg-primary-600 text-white shadow-lg'
-                                  : 'bg-white dark:bg-gray-800 text-gray-400 border border-gray-200 dark:border-gray-700 hover:bg-gray-100'
-                              }`}
-                            >
-                              {pageNum}
-                            </button>
-                          );
-                        })}
-                      </div>
-                      <button
-                        disabled={currentPage === totalPages}
-                        onClick={() => setCurrentPage(prev => prev + 1)}
-                        className="px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all disabled:opacity-30 disabled:cursor-not-allowed bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 border border-gray-200 dark:border-gray-700 hover:bg-gray-100"
-                      >
-                        Next
-                      </button>
-                    </div>
+                            </td>
+                            <td className="px-10 py-6">
+                              <div className="flex items-center gap-4">
+                                 <div className="w-10 h-10 rounded-xl bg-gray-100 dark:bg-gray-800 flex items-center justify-center font-black overflow-hidden drop-shadow-xl border-2 border-white dark:border-gray-700">
+                                    {student.profilePic ? <img src={student.profilePic} alt="" className="w-full h-full object-cover" /> : <Users size={20} className="text-gray-400" />}
+                                 </div>
+                                 <div>
+                                    <p className="text-sm font-black text-gray-900 dark:text-white uppercase tracking-tight leading-none mb-1">{student.name}</p>
+                                    <p className="text-[9px] font-black text-gray-500 uppercase tracking-widest">{student.department || 'DEPT-X'}</p>
+                                 </div>
+                              </div>
+                            </td>
+                            <td className="px-10 py-6 text-right">
+                               <div className="inline-flex items-center gap-3 px-4 py-1.5 bg-gray-50 dark:bg-gray-950/50 rounded-xl border border-gray-100 dark:border-gray-800 transition-all group-hover:border-indigo-200">
+                                  <span className="text-lg font-black text-gray-900 dark:text-white tabular-nums tracking-tighter">{student.coins || student.xp || 0}</span>
+                                  <Sparkles size={14} className="text-yellow-500 fill-current" />
+                               </div>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
                   </div>
-                )}
-              </div>
+               </div>
             </motion.div>
           )}
         </AnimatePresence>
+
+        {activeQuizId && (
+          <QuizArena 
+            quizId={activeQuizId} 
+            onClose={() => {
+              setActiveQuizId(null);
+              // Trigger refresh of gamification stats
+              const config = { headers: { Authorization: `Bearer ${user.token}` } };
+              axios.get('http://localhost:5001/api/gamification/achievements', config).then(r => setGamifiedStats(r.data));
+            }} 
+          />
+        )}
       </main>
     </div>
   );

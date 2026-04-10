@@ -16,6 +16,7 @@ import DashboardOverview from '../../components/teacher/DashboardOverview';
 import AttendanceManager from '../../components/teacher/AttendanceManager';
 import CourseAccessManager from '../../components/teacher/CourseAccessManager';
 import MonthlyRegister from '../../components/teacher/MonthlyRegister';
+import QuizGenerator from '../../components/teacher/QuizGenerator';
 
 const DAYS   = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
 const TYPES  = [
@@ -141,7 +142,7 @@ const SessionCard = ({ s, onEdit, onDelete, onLive }) => {
 const FacultyDashboard = () => {
   const { user }  = useSelector(s => s.auth);
   const navigate  = useNavigate();
-  const [activeTab, setActiveTab] = useState(() => localStorage.getItem('faculty_active_tab') || 'overview');
+  const [activeTab, setActiveTab] = useState(() => localStorage.getItem('faculty_active_tab') || 'register');
   useEffect(() => { localStorage.setItem('faculty_active_tab', activeTab); }, [activeTab]);
   const [schedule, setSchedule]   = useState([]);
   const [myCourses, setMyCourses] = useState([]);
@@ -162,6 +163,7 @@ const FacultyDashboard = () => {
   const [globalSelectedCourse, setGlobalSelectedCourse] = useState(null); 
   const [lastCourseId, setLastCourseId] = useState(localStorage.getItem('faculty_last_course_id') || null);
   const [isLoading, setIsLoading] = useState(false);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   useEffect(() => {
     const t = setInterval(() => setTime(new Date()), 1000);
@@ -208,6 +210,7 @@ const FacultyDashboard = () => {
     { id:'courses', label:'My Course Hub', icon: BookOpen },
     { id:'grading', label:'Grading', icon: ClipboardCheck },
     { id:'results', label:'Exam Grades', icon: BarChart2 },
+    { id:'quizzes', label:'Quiz Hub', icon: Radio },
     { id:'announcements', label:'Notices', icon: Megaphone },
   ];
 
@@ -219,28 +222,65 @@ const FacultyDashboard = () => {
     setActiveTab(id);
   };
 
+  const [quizzes, setQuizzes] = useState([]);
+  const [quizGenOpen, setQuizGenOpen] = useState(false);
+
+  useEffect(() => {
+    if (activeTab === 'quizzes') {
+      const config = { headers: { Authorization: `Bearer ${user.token}` } };
+      axios.get('http://localhost:5001/api/gamification/quizzes', config).then(r => setQuizzes(r.data)).catch(e => console.error(e));
+    }
+  }, [activeTab, user]);
+
   return (
-    <div className="flex h-screen flex-col bg-[#f8faff] dark:bg-[#0b0f1a] overflow-hidden">
-      <div className="flex flex-1 flex-col lg:flex-row overflow-hidden">
-        <aside className="w-full lg:w-64 bg-white dark:bg-[#111827] border-r border-gray-100 dark:border-gray-800 flex flex-col pt-4">
-          <div className="px-6 mb-8 flex items-center gap-3">
-             <div className="w-10 h-10 rounded-xl bg-indigo-600 flex items-center justify-center text-white font-black">FA</div>
-             <div><p className="text-sm font-black text-gray-900 dark:text-white uppercase leading-none">{user.name}</p><p className="text-[9px] font-black text-indigo-500 uppercase mt-1">Faculty Portal</p></div>
+    <div className="flex h-screen flex-col bg-[#f8faff] dark:bg-[#0b0f1a] overflow-hidden relative">
+      <div className="flex flex-1 overflow-hidden relative">
+        <AnimatePresence>
+          {isSidebarOpen && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setIsSidebarOpen(false)}
+              className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] lg:hidden"
+            />
+          )}
+        </AnimatePresence>
+
+        <aside className={`fixed lg:relative inset-y-0 left-0 w-64 bg-white dark:bg-[#111827] border-r border-gray-100 dark:border-gray-800 flex flex-col pt-4 z-[101] transform transition-transform duration-300 lg:translate-x-0 ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}>
+          <div className="px-6 mb-8 flex items-center justify-between lg:justify-start gap-3">
+             <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-indigo-600 flex items-center justify-center text-white font-black">FA</div>
+                <div><p className="text-sm font-black text-gray-900 dark:text-white uppercase leading-none">{user.name}</p><p className="text-[9px] font-black text-indigo-500 uppercase mt-1">Faculty Portal</p></div>
+             </div>
+             <button onClick={() => setIsSidebarOpen(false)} className="lg:hidden p-2 rounded-xl bg-gray-100 dark:bg-gray-800 text-gray-500">
+                <X size={20} />
+             </button>
           </div>
           <nav className="flex-1 px-3 space-y-1 overflow-y-auto">
             {navItems.map(item => (
-              <button key={item.id} onClick={() => handleLinkNavigation(item.id)} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${activeTab===item.id?'bg-indigo-600 text-white shadow-lg':'text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800'}`}>
+              <button key={item.id} onClick={() => { handleLinkNavigation(item.id); setIsSidebarOpen(false); }} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${activeTab===item.id?'bg-indigo-600 text-white shadow-lg':'text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800'}`}>
                 <item.icon size={18}/><span className="text-[10px] font-black uppercase tracking-wider">{item.label}</span>
               </button>
             ))}
           </nav>
         </aside>
 
-        <main className="flex-1 p-8 overflow-y-auto custom-scrollbar">
+        <main className="flex-1 p-4 lg:p-8 overflow-y-auto custom-scrollbar">
+          <div className="flex lg:hidden items-center justify-between mb-6">
+             <button 
+               onClick={() => setIsSidebarOpen(true)}
+               className="flex items-center gap-2 px-4 py-2 rounded-xl bg-indigo-600 text-white font-black text-[10px] uppercase tracking-widest shadow-lg shadow-indigo-600/20"
+             >
+               <Activity size={14} />
+               Menu
+             </button>
+             <div className="text-[10px] font-black uppercase text-indigo-500">Pulse Node 001</div>
+          </div>
           <motion.div 
             initial={{ opacity:0, y:-20 }} 
             animate={{ opacity:1, y:0 }} 
-            className="relative overflow-hidden rounded-[3rem] p-12 mb-12 shadow-2xl group cursor-default min-h-[340px] flex flex-col justify-end border border-white/10 dark:border-white/5"
+            className="relative overflow-hidden rounded-[2.5rem] lg:rounded-[3rem] p-6 lg:p-12 mb-8 lg:mb-12 shadow-2xl group cursor-default min-h-[280px] lg:min-h-[340px] flex flex-col justify-end border border-white/10 dark:border-white/5"
           >
             {/* Background Image Layer with Darkening Filter */}
             <div 
@@ -262,10 +302,10 @@ const FacultyDashboard = () => {
                  <div className="w-16 h-[2px] bg-indigo-500 shadow-[0_0_15px_rgba(99,102,241,0.5)]" />
                  <span className="text-[11px] font-black text-indigo-400 uppercase tracking-[0.6em] italic drop-shadow-md">Faculty Governance Matrix</span>
               </div>
-              <h1 className="text-7xl font-black text-white uppercase tracking-tighter leading-none mb-4 drop-shadow-[0_10px_10px_rgba(0,0,0,0.5)]">
+              <h1 className="text-4xl lg:text-7xl font-black text-white uppercase tracking-tighter leading-none mb-4 drop-shadow-[0_10px_10px_rgba(0,0,0,0.5)]">
                 Welcome, <span className="text-indigo-400">Professor</span>
               </h1>
-              <p className="text-gray-300/80 text-[10px] font-black uppercase tracking-[0.3em] mb-6 max-w-xl leading-relaxed italic border-l-2 border-indigo-500/30 pl-4">
+              <p className="text-gray-300/80 text-[9px] lg:text-[10px] font-black uppercase tracking-[0.3em] mb-6 max-w-xl leading-relaxed italic border-l-2 border-indigo-500/30 pl-4">
                 Orchestrating institutional excellence through high-performance academic governance and identity node management.
               </p>
               
@@ -282,8 +322,8 @@ const FacultyDashboard = () => {
             </div>
             
             {/* Procedural Visual Element */}
-            <div className="absolute top-12 right-12 z-20 p-8 bg-black/40 backdrop-blur-3xl rounded-[3rem] border border-white/10 shadow-2xl group-hover:bg-indigo-600/20 transition-all duration-500">
-               <Layers size={54} className="text-indigo-400 animate-pulse drop-shadow-[0_0_10px_rgba(129,140,248,0.5)]" />
+            <div className="absolute top-6 lg:top-12 right-6 lg:right-12 z-20 p-4 lg:p-8 bg-black/40 backdrop-blur-3xl rounded-3xl lg:rounded-[3rem] border border-white/10 shadow-2xl group-hover:bg-indigo-600/20 transition-all duration-500">
+               <Layers size={32} className="lg:w-[54px] lg:h-[54px] text-indigo-400 animate-pulse drop-shadow-[0_0_10px_rgba(129,140,248,0.5)]" />
             </div>
           </motion.div>
 
@@ -313,12 +353,50 @@ const FacultyDashboard = () => {
                     )}
                   </div>
                 </motion.div>
-             )}
+              )}
+              {activeTab === 'quizzes' && (
+                <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
+                  <div className="flex items-center justify-between mb-6">
+                    <div>
+                      <h2 className="text-xl font-black text-gray-900 dark:text-white uppercase italic">Active Neural Quiz Nodes</h2>
+                      <p className="text-[10px] text-indigo-500 font-bold uppercase tracking-widest mt-1">Gamification & Achievement Interface</p>
+                    </div>
+                    <button onClick={() => setQuizGenOpen(true)} className="px-6 py-2.5 bg-indigo-600 text-white rounded-xl text-[10px] font-black uppercase tracking-widest shadow-lg hover:bg-indigo-500 transition-all flex items-center gap-2">Deploy New Quiz <Plus size={14}/></button>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {quizzes.map(q => (
+                      <div key={q._id} className="bg-white dark:bg-gray-900 p-6 rounded-3xl border border-gray-100 dark:border-gray-800 shadow-sm hover:shadow-md transition-all">
+                        <div className="flex items-center gap-4 mb-4">
+                           <div className="w-10 h-10 rounded-xl bg-indigo-600/10 text-indigo-600 flex items-center justify-center"><Brain size={18}/></div>
+                           <div>
+                              <h3 className="text-sm font-black text-gray-900 dark:text-white uppercase tracking-tight">{q.title}</h3>
+                              <span className="text-[9px] font-black text-gray-500 uppercase tracking-widest">{q.category}</span>
+                           </div>
+                        </div>
+                        <div className="flex items-center gap-6 mt-6">
+                           <div className="flex items-center gap-2">
+                              <Target size={14} className="text-gray-400" />
+                              <span className="text-[10px] font-black text-gray-500 uppercase">{q.totalPoints} Pts</span>
+                           </div>
+                           <div className="flex items-center gap-2">
+                              <Clock size={14} className="text-gray-400" />
+                              <span className="text-[10px] font-black text-gray-500 uppercase">{q.timeLimit} Min</span>
+                           </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </motion.div>
+              )}
           </AnimatePresence>
         </main>
       </div>
       <AnimatePresence>
         {modalOpen && <ScheduleModal form={modalForm} setForm={setModalForm} onSave={handleSave} onClose={() => setModalOpen(false)} isEdit={isEdit} courses={myCourses} />}
+        {quizGenOpen && <QuizGenerator onClose={() => setQuizGenOpen(false)} onSave={() => {
+          const config = { headers: { Authorization: `Bearer ${user.token}` } };
+          axios.get('http://localhost:5001/api/gamification/quizzes', config).then(r => setQuizzes(r.data));
+        }} />}
       </AnimatePresence>
     </div>
   );

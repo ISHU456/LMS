@@ -29,6 +29,7 @@ const userSchema = new mongoose.Schema(
     year: { type: Number },
     semester: { type: Number },
     rollNumber: { type: String },
+    section: { type: String, enum: ['A', 'B'], default: 'A' },
     
     // Parent/Guardian Info (for Students)
     parentInfo: {
@@ -46,6 +47,8 @@ const userSchema = new mongoose.Schema(
     securityAnswer: { type: String, required: true },
     isEmailVerified: { type: Boolean, default: false },
     isActive: { type: Boolean, default: true },
+    isAuthorized: { type: Boolean, default: true }, // For teachers
+    registrationToken: { type: String }, // Provided to teachers upon registration
     deactivationRequested: { type: Boolean, default: false },
     currentCourse: { type: String, default: null },
     lastActive: { type: Date, default: Date.now },
@@ -62,6 +65,16 @@ const userSchema = new mongoose.Schema(
     cgpa: { type: Number }, // For students
     percentage: { type: Number }, // For students
     faceRegistered: { type: Boolean, default: false },
+
+    // Gamification & Rewards
+    coins: { type: Number, default: 0 },
+    streak: { type: Number, default: 0 },
+    lastStreakedAt: { type: Date },
+    totalLearningTime: { type: Number, default: 0 }, // In minutes
+    earnedBadges: [{ 
+      badge: { type: mongoose.Schema.Types.ObjectId, ref: 'Badge' },
+      earnedAt: { type: Date, default: Date.now }
+    }],
   },
   {
     timestamps: true,

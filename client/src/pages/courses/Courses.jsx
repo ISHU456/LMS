@@ -13,7 +13,8 @@ import axios from 'axios';
 
 const Courses = () => {
   const { user } = useSelector(state => state.auth);
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [sidebarOpen, setSidebarOpen] = useState(window.innerWidth >= 1024);
+  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
   const [activeSem, setActiveSem] = useState(() => localStorage.getItem('courses_active_sem') || 'All');
 
   useEffect(() => {
@@ -189,17 +190,32 @@ const Courses = () => {
     <>
     <div className="flex h-[calc(100vh-80px)] w-full bg-[#fafbfc] dark:bg-[#060811] overflow-hidden">
       
-      <aside className={`h-full bg-white dark:bg-[#0b0f19] border-r border-gray-100 dark:border-gray-800 flex flex-col shrink-0 z-50 overflow-hidden shadow-2xl transition-all duration-300 ${sidebarOpen ? 'w-72' : 'w-20'}`}>
+      <AnimatePresence>
+        {isMobileSidebarOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setIsMobileSidebarOpen(false)}
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] lg:hidden"
+          />
+        )}
+      </AnimatePresence>
+
+      <aside className={`fixed lg:relative inset-y-0 left-0 bg-white dark:bg-[#0b0f19] border-r border-gray-100 dark:border-gray-800 flex flex-col shrink-0 z-[101] overflow-hidden shadow-2xl transition-all duration-300 ${sidebarOpen ? 'w-72' : 'w-20'} ${isMobileSidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}>
         <div className={`p-6 border-b border-gray-50 dark:border-gray-800/50 sticky top-0 bg-white dark:bg-[#0b0f19] z-20 ${sidebarOpen ? 'p-8 flex justify-between items-center' : 'p-4 flex justify-center'}`}>
-          <div className="flex items-center gap-4 mb-2">
+          <div className="flex items-center gap-4">
             <Link to="/dashboard" className="w-10 h-10 flex items-center justify-center bg-gray-50 dark:bg-gray-800/80 rounded-2xl text-gray-400 hover:text-primary-600 transition-all border border-transparent hover:border-gray-200 dark:hover:border-gray-700 shrink-0">
               <ArrowRight size={18} className="rotate-180" />
             </Link>
-            <div className={`flex flex-col transition-opacity duration-200 ${sidebarOpen ? 'opacity-100 hidden sm:flex' : 'opacity-0 hidden'}`}>
+            <div className={`flex flex-col transition-opacity duration-200 ${sidebarOpen ? 'opacity-100 flex' : 'opacity-0 hidden'}`}>
               <span className="text-[8px] font-black text-primary-600 dark:text-primary-400 uppercase tracking-widest">Global Matrix</span>
-              <span className="text-xs font-black text-gray-800 dark:text-white uppercase tracking-tighter">Directory</span>
+              <span className="text-xs font-black text-gray-800 dark:text-white uppercase tracking-tighter">Curriculum</span>
             </div>
           </div>
+          <button onClick={() => { setSidebarOpen(false); setIsMobileSidebarOpen(false); }} className="lg:hidden p-2 bg-gray-50 dark:bg-gray-800 text-gray-500 rounded-xl">
+            <X size={18} />
+          </button>
           {sidebarOpen && (
             <button
               onClick={() => setSidebarOpen(false)}
@@ -225,7 +241,10 @@ const Courses = () => {
              {semesters.map((sem) => (
                  <button 
                   key={sem.id} 
-                  onClick={() => setActiveSem(sem.id)} 
+                  onClick={() => {
+                    setActiveSem(sem.id);
+                    if (window.innerWidth < 1024) setIsMobileSidebarOpen(false);
+                  }} 
                   className={`w-full flex items-center gap-4 relative rounded-2xl transition-all duration-300 group ${activeSem === sem.id ? sem.active + ' shadow-lg' : 'bg-transparent text-gray-500 hover:text-gray-900 dark:hover:text-white'} ${sidebarOpen ? 'px-4 py-2' : 'h-12 justify-center'} ${isSemLocked(sem.id) ? 'opacity-60 grayscale' : ''}`}
                 >
                   <div className={`flex items-center relative z-10 ${sidebarOpen ? 'w-full justify-between' : 'justify-center w-full'}`}>
@@ -243,27 +262,48 @@ const Courses = () => {
 
       <main className="flex-1 overflow-y-auto custom-scrollbar bg-slate-50/50 dark:bg-[#060811] flex flex-col transition-all">
          
-      <header className="sticky top-0 z-20 px-8 py-5 bg-white/80 dark:bg-[#060811]/80 backdrop-blur-xl border-b border-gray-100 dark:border-gray-800 flex flex-col md:flex-row items-center justify-between gap-4">
-         <div className="flex flex-col">
-            <h2 className="text-xl font-black text-gray-900 dark:text-white uppercase tracking-tighter leading-none">
-               {selectedDept?.name || 'All Departments'}
-            </h2>
+      <header className="sticky top-0 z-20 px-4 lg:px-8 py-5 bg-white/80 dark:bg-[#060811]/80 backdrop-blur-xl border-b border-gray-100 dark:border-gray-800 flex items-center justify-between gap-4">
+         <div className="flex items-center gap-3">
+            <button onClick={() => setIsMobileSidebarOpen(true)} className="lg:hidden p-2.5 bg-primary-600 text-white rounded-xl shadow-lg shadow-primary-500/20">
+               <Layers size={18} />
+            </button>
+            <div className="flex flex-col">
+               <span className="text-[8px] font-black text-primary-600 uppercase tracking-widest hidden lg:block">Architecture Flow</span>
+               <h2 className="text-sm lg:text-xl font-black text-gray-900 dark:text-white uppercase tracking-tighter leading-none truncate max-w-[150px] lg:max-w-none">
+                  {selectedDept?.name || 'Curriculum'}
+               </h2>
+            </div>
          </div>
 
          <div className="flex items-center gap-3 w-full md:w-auto">
             <div className="relative group md:w-72">
                <Search size={14} className="absolute left-5 top-1/2 -translate-y-1/2 text-gray-400" />
-               <input type="text" value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search curriculum..." className="w-full bg-gray-50 dark:bg-gray-800/50 pl-12 pr-4 py-3 rounded-xl outline-none text-[10px] font-black uppercase tracking-widest transition-all" />
+               <input type="text" value={search} onChange={e=>setSearch(e.target.value)} placeholder="SEARCH..." className="w-full bg-gray-50 dark:bg-gray-800/50 pl-12 pr-4 py-3 rounded-xl outline-none text-[10px] font-black uppercase tracking-widest transition-all" />
             </div>
             {isHOD && (
-               <button onClick={handleOpenModal} className="px-5 py-3 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-xl font-black text-[9px] uppercase tracking-widest shadow-xl">
-                  <Plus size={14} /> Subject
+               <button onClick={handleOpenModal} className="px-5 py-3 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-xl font-black text-[9px] uppercase tracking-widest shadow-xl shrink-0">
+                  <Plus size={14} /> <span className="hidden sm:inline">SUBJECT</span>
                </button>
             )}
          </div>
       </header>
+      
+      <div className="lg:hidden sticky top-[72px] z-[35] flex overflow-x-auto py-4 px-4 bg-white/95 dark:bg-[#060811]/95 backdrop-blur-3xl border-b border-gray-100 dark:border-gray-800 custom-scrollbar gap-3 no-scrollbar shadow-lg shadow-black/5">
+        {semesters.map((sem) => (
+          <button 
+            key={sem.id} 
+            onClick={() => setActiveSem(sem.id)} 
+            className={`flex items-center gap-2.5 whitespace-nowrap px-4 py-2.5 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all ${activeSem === sem.id ? sem.active : 'bg-gray-100/50 dark:bg-gray-800/50 text-gray-500 shadow-inner'}`}
+          >
+            <div className={`w-7 h-7 rounded-xl flex items-center justify-center transition-colors ${activeSem === sem.id ? 'bg-white/20' : sem.color}`}>
+              {isSemLocked(sem.id) ? <Lock size={14} /> : <sem.icon size={14} />}
+            </div>
+            {sem.label.replace('Semester ', 'SEM ')}
+          </button>
+        ))}
+      </div>
 
-          <div className="p-8 pb-32">
+          <div className="p-4 lg:p-8 pb-32">
             {isSemCompleted(activeSem) && (
               <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} className="mb-8 p-6 rounded-[2.5rem] bg-emerald-500/10 border border-emerald-500/20 backdrop-blur-xl flex items-center justify-between">
                 <div className="flex items-center gap-4">
@@ -308,7 +348,7 @@ const Courses = () => {
                                   READ ONLY
                                 </div>
                               )}
-                              <div className={`h-full glass rounded-[3rem] border border-transparent dark:border-gray-800 ${shouldBeDull ? 'bg-gray-100/50 dark:bg-gray-900/50' : 'bg-white dark:bg-[#0d101a]'} p-8 transition-all duration-300 hover:shadow-2xl hover:border-primary-500/30 hover:-translate-y-1.5 flex flex-col relative overflow-hidden`}>
+                               <div className={`h-full glass rounded-[2.5rem] lg:rounded-[3rem] border border-transparent dark:border-gray-800 ${shouldBeDull ? 'bg-gray-100/50 dark:bg-gray-900/50' : 'bg-white dark:bg-[#0d101a]'} p-6 lg:p-8 transition-all duration-300 hover:shadow-2xl hover:border-primary-500/30 hover:-translate-y-1.5 flex flex-col relative overflow-hidden`}>
                                  
                                  <div className="absolute top-6 right-6 flex flex-col items-end gap-2">
                                     <div className="flex items-center gap-2 px-3 py-1 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 rounded-full border border-emerald-100 dark:border-emerald-800/50 shadow-sm">
@@ -321,30 +361,30 @@ const Courses = () => {
                                     </div>
                                  </div>
 
-                                 <div className="flex items-center gap-4 mb-8">
-                                    <div className={`w-14 h-14 rounded-2xl flex items-center justify-center shadow-lg ${course.type === 'lab' ? 'bg-amber-500 text-white' : 'bg-primary-600 text-white'}`}>
-                                       <Icon size={28} />
+                                 <div className="flex items-center gap-4 mb-6 lg:mb-8">
+                                    <div className={`w-12 h-12 lg:w-14 lg:h-14 rounded-2xl flex items-center justify-center shadow-lg ${course.type === 'lab' ? 'bg-amber-500 text-white' : 'bg-primary-600 text-white'}`}>
+                                       <Icon size={24} className="lg:size-[28px]" />
                                     </div>
                                     <div className="flex flex-col">
-                                       <span className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">{course.code}</span>
-                                       <span className="text-xs font-black dark:text-white uppercase tracking-tighter">LEVEL {course.credits} UNIT</span>
+                                       <span className="text-[9px] lg:text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">{course.code}</span>
+                                       <span className="text-[10px] lg:text-xs font-black dark:text-white uppercase tracking-tighter">LEVEL {course.credits} UNIT</span>
                                     </div>
                                  </div>
 
                                  <div className="flex-1">
-                                    <h3 className="text-xl font-black text-gray-900 dark:text-white leading-tight uppercase tracking-tighter mb-4 group-hover:text-primary-600">
+                                    <h3 className="text-lg lg:text-xl font-black text-gray-900 dark:text-white leading-tight uppercase tracking-tighter mb-4 group-hover:text-primary-600 transition-colors">
                                        {course.name}
                                     </h3>
                                  </div>
 
                                  <div className="pt-6 border-t border-gray-100 dark:border-gray-800 flex items-center justify-between">
                                     <div className="flex items-center gap-3">
-                                       <div className="w-10 h-10 rounded-2xl bg-indigo-500 flex items-center justify-center text-white text-[10px] font-black">
+                                       <div className="w-8 h-8 lg:w-10 lg:h-10 rounded-[1rem] bg-indigo-500 flex items-center justify-center text-white text-[9px] font-black">
                                           {facultyName.split(' ').map(n=>n[0]).join('')}
                                        </div>
                                        <div>
-                                          <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest leading-none">Lead Strategist</p>
-                                          <p className="text-xs font-black dark:text-white uppercase transition-colors">{facultyName}</p>
+                                          <p className="text-[7px] lg:text-[8px] font-black text-gray-400 uppercase tracking-widest leading-none">Lead Strategist</p>
+                                          <p className="text-[10px] lg:text-xs font-black dark:text-white uppercase transition-colors">{facultyName}</p>
                                        </div>
                                     </div>
                                     <div className="w-10 h-10 rounded-2xl bg-gray-50 dark:bg-gray-800 text-gray-400 group-hover:bg-primary-600 group-hover:text-white transition-all flex items-center justify-center shadow-inner">
@@ -364,9 +404,9 @@ const Courses = () => {
     
     <AnimatePresence>
       {showModal && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-8 backdrop-blur-xl bg-black/60">
-          <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="bg-white dark:bg-[#0b0f19] w-full max-w-2xl rounded-[3rem] p-12 shadow-2xl overflow-hidden border border-gray-100 dark:border-gray-800">
-               <h2 className="text-3xl font-black dark:text-white uppercase tracking-tighter mb-10">Establish New Module</h2>
+        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 lg:p-8 backdrop-blur-xl bg-black/60">
+          <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="bg-white dark:bg-[#0b0f19] w-full max-w-2xl rounded-3xl lg:rounded-[3rem] p-6 lg:p-12 shadow-2xl overflow-hidden border border-gray-100 dark:border-gray-800">
+               <h2 className="text-xl lg:text-3xl font-black dark:text-white uppercase tracking-tighter mb-6 lg:mb-10">Establish New Module</h2>
                <form onSubmit={handleSubmit} className="space-y-6">
                  <div className="grid grid-cols-2 gap-6">
                     <input required type="text" placeholder="Unit Title..." value={formData.name} onChange={(e) => setFormData({...formData, name: e.target.value})} className="w-full bg-gray-50 dark:bg-gray-800/50 rounded-2xl px-6 py-4 text-sm font-bold outline-none" />

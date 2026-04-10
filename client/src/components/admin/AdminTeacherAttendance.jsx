@@ -60,23 +60,23 @@ const AdminTeacherAttendance = ({ user }) => {
 
     return (
         <div className="space-y-6">
-            <div className="bg-white dark:bg-gray-900 p-8 rounded-[36px] border border-gray-100 dark:border-gray-800 shadow-sm flex flex-wrap items-center justify-between gap-6">
-                <div>
-                   <h2 className="text-xl font-black text-gray-900 dark:text-white uppercase tracking-tighter mb-1">Faculty Attendance Register</h2>
-                   <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Master logs for all teaching personnel.</p>
+            <div className="bg-white dark:bg-gray-900 p-5 lg:p-8 rounded-[2rem] lg:rounded-[36px] border border-gray-100 dark:border-gray-800 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-6">
+                <div className="text-center sm:text-left">
+                   <h2 className="text-lg lg:text-xl font-black text-gray-900 dark:text-white uppercase tracking-tighter mb-1">Faculty Attendance</h2>
+                   <p className="text-[9px] lg:text-[10px] font-black text-gray-400 uppercase tracking-widest">Master logs for all teaching personnel.</p>
                 </div>
 
-                <div className="flex items-center gap-3 bg-gray-50 dark:bg-gray-800 p-2 rounded-2xl shadow-inner">
+                <div className="flex items-center gap-2 lg:gap-3 bg-gray-50 dark:bg-gray-800 p-1.5 lg:p-2 rounded-2xl shadow-inner w-full sm:w-auto justify-center">
                     <button onClick={() => { 
                         const d = new Date(date); d.setDate(d.getDate() - 1); setDate(d.toISOString().split('T')[0]); 
-                    }} className="p-3 hover:bg-white dark:hover:bg-gray-700 rounded-xl transition-all shadow-sm"><ChevronLeft size={16}/></button>
-                    <div className="flex items-center gap-3 px-6 py-2 bg-white dark:bg-gray-700 rounded-xl shadow-md border border-gray-100 dark:border-gray-600">
-                        <Calendar className="text-red-600" size={16}/>
-                        <span className="text-xs font-black uppercase tracking-widest text-gray-900 dark:text-white">{new Date(date).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })}</span>
+                    }} className="p-2.5 lg:p-3 hover:bg-white dark:hover:bg-gray-700 rounded-xl transition-all shadow-sm"><ChevronLeft size={16}/></button>
+                    <div className="flex items-center gap-2 lg:gap-3 px-4 lg:px-6 py-2 bg-white dark:bg-gray-700 rounded-xl shadow-md border border-gray-100 dark:border-gray-600 flex-1 sm:flex-none justify-center">
+                        <Calendar className="text-red-600" size={14}/>
+                        <span className="text-[10px] lg:text-xs font-black uppercase tracking-widest text-gray-900 dark:text-white whitespace-nowrap">{new Date(date).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })}</span>
                     </div>
                     <button onClick={() => { 
                         const d = new Date(date); d.setDate(d.getDate() + 1); setDate(d.toISOString().split('T')[0]); 
-                    }} className="p-3 hover:bg-white dark:hover:bg-gray-700 rounded-xl transition-all shadow-sm"><ChevronRight size={16}/></button>
+                    }} className="p-2.5 lg:p-3 hover:bg-white dark:hover:bg-gray-700 rounded-xl transition-all shadow-sm"><ChevronRight size={16}/></button>
                 </div>
             </div>
 

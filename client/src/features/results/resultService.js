@@ -2,11 +2,11 @@ import axios from 'axios';
 
 const API_URL = 'http://localhost:5001/api/results/';
 
-// Get students for mark entry
+// Get students for mark entry (Enforced Alphabetical Ranking)
 const getStudentsForEntry = async (params, token) => {
   const config = {
     headers: { Authorization: `Bearer ${token}` },
-    params
+    params // Includes courseId, semester, academicYear, and now SECTION
   };
   const response = await axios.get(`${API_URL}students`, config);
   return response.data;

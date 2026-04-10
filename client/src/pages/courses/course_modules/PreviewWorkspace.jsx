@@ -161,7 +161,7 @@ const PreviewWorkspace = ({
     <>
       <div 
         onMouseDown={startResizing} 
-        className={`hidden lg:flex cursor-col-resize items-center justify-center relative z-[100] group border-l border-r border-transparent ${isDragging ? 'w-6 bg-primary-100 dark:bg-primary-900/20 shadow-none transition-none' : 'w-2 bg-gray-100/50 dark:bg-gray-800/30 hover:bg-primary-500/10 transition-all duration-300'}`}
+        className={`hidden lg:flex cursor-col-resize items-center justify-center relative z-[100] group border-l border-r border-transparent ${isDragging ? 'w-6 bg-primary-100 dark:bg-primary-900/20 shadow-none transition-none' : 'w-2 bg-gray-100/50 dark:bg-gray-800/30 hover:bg-primary-500/10 transition-all duration-300'} ${activeSection === 'timetable' || selectedAssignment || previewItem ? 'flex' : 'hidden'}`}
       >
          <div className={`p-1.5 bg-primary-600 text-white rounded-full pointer-events-none shadow-lg ${isDragging ? 'opacity-100 scale-125 rotate-90 transition-none' : 'opacity-10 group-hover:opacity-100 scale-75 group-hover:scale-100 transition-all duration-300'}`}>
            <GripVertical size={12}/>
@@ -170,8 +170,8 @@ const PreviewWorkspace = ({
 
       <div 
         ref={rightColumnRef}
-        style={{ width: `${100 - leftWidth}%` }} 
-        className={`hidden lg:flex rounded-2xl bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 shadow-2xl overflow-hidden flex-col relative z-20 ${isDragging ? 'duration-0' : 'duration-300 transition-all'}`}
+        style={{ width: window.innerWidth >= 1024 ? `${100 - leftWidth}%` : '100%' }} 
+        className={`flex rounded-2xl bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 shadow-2xl overflow-hidden flex-col relative z-20 ${isDragging ? 'duration-0' : 'duration-300 transition-all'} ${window.innerWidth < 1024 && !(previewItem || activeSection === 'timetable' || selectedAssignment) ? 'hidden' : 'flex'}`}
       >
          {isDragging && <div className="absolute inset-0 bg-transparent z-30"></div>}
          {(previewItem || activeSection === 'timetable' || selectedAssignment) ? (
@@ -203,13 +203,16 @@ const PreviewWorkspace = ({
                      {(activeSection !== 'timetable' || selectedAssignment) && (
                         <button 
                           onClick={()=>{
+                              if (document.fullscreenElement) {
+                                  document.exitFullscreen?.();
+                              }
                               setPreviewItem(null); 
                               setSelectedAssignment(null);
-                              setLeftWidth(100);
+                              if (window.innerWidth >= 1024) setLeftWidth(100);
                           }} 
                           className="px-4 py-2 bg-gray-200 dark:bg-white/5 hover:bg-rose-500 hover:text-white border border-gray-300 dark:border-white/10 rounded-lg text-[8px] font-black uppercase tracking-widest transition-all flex items-center gap-2"
                         >
-                          <X size={12} /> <span className="hidden sm:block">ABORT SESSION</span>
+                          <X size={12} /> <span className="block">CLOSE</span>
                         </button>
                      )}
                   </div>

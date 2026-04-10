@@ -12,7 +12,8 @@ import {
   getLeaderboard,
   getStudentProfileByTeacher,
   getAttendanceHistory,
-  getAnnualAttendanceReport
+  getAnnualAttendanceReport,
+  getNextRollNumber
 } from '../controllers/authController.js';
 import { protect } from '../middlewares/authMiddleware.js';
 
@@ -32,5 +33,6 @@ router.get('/course-activity/:courseId', getCourseActivity);
 router.get('/student-profile/:studentId', protect, getStudentProfileByTeacher);
 router.get('/attendance/history', protect, getAttendanceHistory);
 router.get('/attendance/annual-report', protect, getAnnualAttendanceReport);
+router.get('/next-roll-number', getNextRollNumber);
 
 export default router;

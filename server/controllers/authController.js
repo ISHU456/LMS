@@ -41,6 +41,12 @@ export const registerUser = async (req, res) => {
     }
 
     const initialCredits = (role === 'teacher' || role === 'hod' || role === 'admin') ? 50 : 10;
+    // For teacher approval workflow
+    const isTeacher = role === 'teacher';
+    const finalIsActive = role === 'student' ? false : (isTeacher ? false : true);
+    const finalIsAuthorized = isTeacher ? false : true;
+    const finalRegToken = isTeacher ? Math.floor(100000 + Math.random() * 900000).toString() : undefined;
+
     const userEmailVerified = (role === 'teacher' || role === 'hod' || role === 'admin');
 
     const user = await User.create({
@@ -48,10 +54,21 @@ export const registerUser = async (req, res) => {
       enrollmentNumber, batch, department, year, semester, rollNumber,
       employeeId, securityQuestion, securityAnswer, profilePic: finalProfilePic,
       credits: initialCredits,
-      isEmailVerified: userEmailVerified
+      isEmailVerified: userEmailVerified,
+      isActive: finalIsActive,
+      isAuthorized: finalIsAuthorized,
+      registrationToken: finalRegToken
     });
 
     if (user) {
+      if (isTeacher && !finalIsAuthorized) {
+        return res.status(201).json({
+           isPendingAuth: true,
+           registrationToken: finalRegToken,
+           message: 'Registration successful. Pending admin authorization.'
+        });
+      }
+
       res.status(201).json({
         _id: user._id, name: user.name, email: user.email, role: user.role,
         department: user.department, assignedSemesters: user.assignedSemesters,
@@ -75,7 +92,12 @@ export const loginUser = async (req, res) => {
     const user = await User.findOne({ email: email.toLowerCase().trim() });
 
     if (user && (await user.matchPassword(password))) {
-      if (!user.isActive) return res.status(403).json({ message: 'Account deactivated.' });
+      if (!user.isActive || !user.isAuthorized) {
+        const msg = !user.isAuthorized && user.role === 'teacher' 
+          ? `Authorization pending. Your Token Number is: ${user.registrationToken}`
+          : (user.role === 'student' ? 'Account pending administrative approval.' : 'Account deactivated. Contact system admin.');
+        return res.status(403).json({ message: msg });
+      }
       
       if (user.faceRegistered) {
         const tempTokenRaw = crypto.randomBytes(32).toString('hex');
@@ -459,4 +481,36 @@ export const getAnnualAttendanceReport = async (req, res) => {
   } catch (e) {
       res.status(500).json({ message: e.message });
   }
+};
+
+// @desc    Get next incremental roll number
+// @route   GET /api/auth/next-roll-number?dept=X&batch=Y
+// @access  Public
+export const getNextRollNumber = async (req, res) => {
+    try {
+        const { dept, batch } = req.query;
+        if (!dept) return res.status(400).json({ message: "Sector required." });
+
+        const year = new Date().getFullYear().toString().slice(-2);
+        const prefix = `${year}${dept.toUpperCase()}`;
+
+        // Find users with roll number starting with this prefix
+        const students = await User.find({
+            role: 'student',
+            rollNumber: { $regex: new RegExp(`^${prefix}`) }
+        }).select('rollNumber').sort({ rollNumber: -1 }).limit(1);
+
+        let sequence = 1;
+        if (students.length > 0 && students[0].rollNumber) {
+            const lastRoll = students[0].rollNumber;
+            const lastPart = lastRoll.replace(prefix, '');
+            const lastNum = parseInt(lastPart);
+            if (!isNaN(lastNum)) sequence = lastNum + 1;
+        }
+
+        const nextRoll = `${prefix}${sequence.toString().padStart(3, '0')}`;
+        res.json({ rollNumber: nextRoll });
+    } catch (e) {
+        res.status(500).json({ message: e.message });
+    }
 };

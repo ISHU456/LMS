@@ -3,21 +3,23 @@ import {
   getStudentsForEntry, 
   saveMarks, 
   submitMarks, 
-  approveMarks,
   publishMarks,
-  rejectMarks,
   getMyResults,
   getAnalytics,
   generateFinalResult,
   getFinalResults,
   lockResults,
-  unlockResults,
   toggleResultLock,
   getSemesterSummary,
   getTranscript,
   publishFinalResults,
   uploadTranscript
 } from '../controllers/resultController.js';
+import { 
+  approveCourseResults as approveMarks, 
+  rejectCourseResults as rejectMarks,
+  unlockCourseResults as unlockResults
+} from '../controllers/adminController.js';
 import { protect, authorize } from '../middlewares/authMiddleware.js';
 
 const router = express.Router();

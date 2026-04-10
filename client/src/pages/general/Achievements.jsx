@@ -168,6 +168,7 @@ const Achievements = () => {
             <p className="text-sm font-black text-gray-400 uppercase tracking-widest">Total Experience</p>
           </div>
         </div>
+        
 
         {/* --- BADGE SHOWCASE --- */}
         <div className="mb-16">
@@ -219,62 +220,7 @@ const Achievements = () => {
           </div>
         </div>
 
-        {/* --- CODING ARENA MERGER --- */}
-        <div className="mb-16">
-          <div className="relative rounded-[3.5rem] overflow-hidden bg-[#030712] border border-gray-800 p-12 shadow-2xl group">
-             <div className="absolute top-0 right-0 p-12 opacity-5 scale-150 rotate-12 group-hover:scale-110 transition-transform duration-1000">
-                <Terminal size={300} />
-             </div>
-             
-             <div className="relative z-10 flex flex-col lg:flex-row items-center justify-between gap-12">
-                <div className="max-w-xl">
-                   <div className="inline-flex items-center gap-3 px-5 py-2.5 rounded-full bg-primary-600/10 border border-primary-500/20 text-primary-500 text-xs font-black uppercase tracking-[0.2em] mb-8">
-                      <Terminal size={14} />
-                      Competitive Zone
-                   </div>
-                   <h2 className="text-4xl lg:text-5xl font-black text-white uppercase tracking-tighter mb-6 leading-none">
-                      Weekly Coding <br/><span className="text-primary-500">Matrix Arena</span>
-                   </h2>
-                   <p className="text-gray-400 font-medium text-lg leading-relaxed mb-10">
-                      Step into the arena to test your algorithmic speed. Participate in weekly rounds to earn **Coding Points**, rare badges, and increase your global developer rank.
-                   </p>
-                   
-                   <div className="grid grid-cols-2 gap-8 mb-12">
-                       <div>
-                          <p className="text-3xl font-black text-white">100+</p>
-                          <p className="text-[10px] font-black uppercase tracking-widest text-gray-500">Avg Points / Round</p>
-                       </div>
-                       <div>
-                          <p className="text-3xl font-black text-white">42.8k</p>
-                          <p className="text-[10px] font-black uppercase tracking-widest text-gray-500">Live Global Rank</p>
-                       </div>
-                   </div>
 
-                   <Link 
-                     to="/coding-arena"
-                     className="inline-flex items-center gap-4 px-10 py-5 bg-primary-600 text-white font-black uppercase tracking-widest text-sm rounded-[2rem] hover:bg-primary-500 transition-all shadow-xl shadow-primary-500/20 group"
-                   >
-                     Enter The Arena 
-                     <ArrowRight size={18} className="group-hover:translate-x-2 transition-transform" />
-                   </Link>
-                </div>
-
-                <div className="flex-1 grid grid-cols-2 gap-4">
-                   {[
-                      { icon: <Code size={24}/>, label: 'Logic Puzzles' },
-                      { icon: <Cpu size={24}/>, label: 'System Design' },
-                      { icon: <Laptop size={24}/>, label: 'Global Rank' },
-                      { icon: <Award size={24}/>, label: 'Tech Badges' },
-                   ].map((item, i) => (
-                      <div key={i} className="bg-white/5 border border-white/5 p-8 rounded-[2rem] flex flex-col items-center justify-center gap-4 hover:bg-white/10 transition-colors">
-                         <div className="text-primary-500">{item.icon}</div>
-                         <span className="text-[10px] font-black uppercase tracking-widest text-gray-400">{item.label}</span>
-                      </div>
-                   ))}
-                </div>
-             </div>
-          </div>
-        </div>
 
         {/* --- HOW TO EARN XP --- */}
         <div className="bg-gradient-to-br from-primary-600 to-indigo-700 rounded-[3rem] p-12 text-white shadow-2xl shadow-primary-500/20 relative overflow-hidden">

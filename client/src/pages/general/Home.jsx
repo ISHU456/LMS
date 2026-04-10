@@ -285,7 +285,7 @@ const Home = () => {
       </section>
 
       {/* --- MODERN REFINED CSS --- */}
-      <style jsx>{`
+      <style>{`
         .glass {
           backdrop-filter: blur(10px);
           -webkit-backdrop-filter: blur(10px);

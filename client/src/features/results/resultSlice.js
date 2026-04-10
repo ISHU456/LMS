@@ -126,7 +126,13 @@ export const resultSlice = createSlice({
       .addCase(getStudentsForEntry.fulfilled, (state, action) => {
         state.isLoading = false;
         state.isSuccess = true;
-        state.results = action.payload;
+        const rawData = Array.isArray(action.payload) ? action.payload : (action.payload.students || []);
+        state.results = rawData.map(s => ({
+          ...s,
+          resultId: s.existingResult?._id || null,
+          isLocked: s.existingResult?.isLocked || false,
+          status: s.existingResult?.status || 'draft'
+        }));
       })
       .addCase(getStudentsForEntry.rejected, (state, action) => {
         state.isLoading = false;
@@ -145,8 +151,9 @@ export const resultSlice = createSlice({
         state.isLoading = false;
         state.isSuccess = true;
         const updatedSaved = action.payload.results || [];
+        if (!Array.isArray(state.results)) return;
         state.results = state.results.map(student => {
-          const match = updatedSaved.find(r => r.student.toString() === student._id.toString());
+          const match = updatedSaved.find(r => r.student && (r.student.toString() === student._id.toString()));
           if (match) {
             return {
               ...student,

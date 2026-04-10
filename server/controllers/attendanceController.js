@@ -82,7 +82,7 @@ const updateAttendancePercentages = async (courseId) => {
 export const getCourseAttendance = async (req, res) => {
   try {
     const { courseId } = req.params;
-    const { startDate, endDate, semester } = req.query;
+    const { startDate, endDate, semester, section } = req.query;
 
     const query = { course: courseId };
     if (startDate && endDate) {
@@ -98,8 +98,15 @@ export const getCourseAttendance = async (req, res) => {
     }
 
     const attendanceRecords = await Attendance.find(query)
-      .populate('student', 'name rollNumber profilePic enrollmentNumber')
+      .populate({
+        path: 'student',
+        match: section && section !== 'all' ? { section: section } : {},
+        select: 'name rollNumber profilePic enrollmentNumber section'
+      })
       .sort({ date: -1 });
+
+    // Filter out records where student doesn't match the section filter
+    const filteredRecords = attendanceRecords.filter(r => r.student !== null);
 
     // NEW: If we are looking at a specific date, also fetch DailyAttendance for these students
     let dailyRecords = [];
@@ -111,12 +118,17 @@ export const getCourseAttendance = async (req, res) => {
       const dayEnd = new Date(s);
       dayEnd.setHours(23, 59, 59, 999);
       
+      const studentFilter = { role: 'student' };
+      if (section && section !== 'all') studentFilter.section = section;
+      const studentIds = await User.find(studentFilter).distinct('_id');
+
       dailyRecords = await DailyAttendance.find({
+        student: { $in: studentIds },
         date: { $gte: dayStart, $lte: dayEnd }
       });
     }
 
-    res.status(200).json({ attendanceRecords, dailyRecords });
+    res.status(200).json({ attendanceRecords: filteredRecords, dailyRecords });
   } catch (error) {
     res.status(500).json({ message: 'Server error', error: error.message });
   }
@@ -255,12 +267,26 @@ export const getClassroomAttendance = async (req, res) => {
 
     const { month, year } = req.query;
     
-    // 1. Find all students in this same class
-    const students = await User.find({ 
+    // 1. Find all students in this same class (Enforced Alpha-Bravo Ranking)
+    const studentFilter = { 
       role: 'student', 
-      semester: Number(semester),
-      department: department 
-    }).select('name enrollmentNumber profilePic _id').sort({ name: 1 });
+      semester: Number(semester)
+    };
+
+    if (department) {
+      studentFilter.$or = [
+        { department: department },
+        { department: { $regex: new RegExp(`^${department}$`, 'i') } }
+      ];
+    }
+
+    if (req.query.section && req.query.section !== 'all') {
+      studentFilter.section = req.query.section;
+    }
+
+    const students = await User.find(studentFilter)
+      .select('name enrollmentNumber profilePic section _id')
+      .sort({ name: 1 });
 
     const studentIds = students.map(s => s._id);
 
@@ -294,12 +320,25 @@ export const getClassFaceData = async (req, res) => {
     const course = await Course.findById(courseId);
     if (!course) return res.status(404).json({ message: 'Course not found' });
 
-    // Find all students in this same class context
-    const students = await User.find({ 
+    // Find all students (Enforced Alpha-Bravo Ranking)
+    const studentFilter = { 
       role: 'student', 
-      semester: Number(semester || course.semester),
-      department: course.department
-    }).select('_id name rollNumber');
+      semester: Number(semester || course.semester)
+    };
+
+    if (course.department) {
+      studentFilter.$or = [
+        { department: course.department.name }, 
+        { department: course.department.code },
+        { department: { $regex: new RegExp(`^${course.department.code}$|^${course.department.name}$`, 'i') } }
+      ];
+    }
+
+    if (req.query.section && req.query.section !== 'all') {
+      studentFilter.section = req.query.section;
+    }
+
+    const students = await User.find(studentFilter).select('_id name rollNumber section').sort({ name: 1 });
 
     const studentIds = students.map(s => s._id);
 

@@ -95,16 +95,17 @@ const resultSchema = new mongoose.Schema(
 
 // Calculate total marks and grade before saving
 resultSchema.pre('save', function (next) {
-  const { mst1, mst2, mst3, endSem, internalPractical, externalPractical, vivaScore } = this.marks;
+  const m = this.marks || {};
+  const { mst1, mst2, mst3, endSem, internalPractical, externalPractical, vivaScore } = m;
   
   if (this.courseType === 'THEORY') {
-    const msts = [this.marks.mst1 || 0, this.marks.mst2 || 0, this.marks.mst3 || 0];
+    const msts = [Number(mst1) || 0, Number(mst2) || 0, Number(mst3) || 0];
     const bestTwoSum = msts.sort((a, b) => b - a).slice(0, 2).reduce((sum, val) => sum + val, 0);
-    this.totalMarks = Math.round((bestTwoSum + (this.marks.endSem || 0)) * 100) / 100;
+    this.totalMarks = Math.round((bestTwoSum + (Number(endSem) || 0)) * 100) / 100;
   } else if (this.courseType === 'PRACTICAL') {
-    this.totalMarks = (this.marks.internalPractical || 0) + (this.marks.externalPractical || 0);
+    this.totalMarks = (Number(internalPractical) || 0) + (Number(externalPractical) || 0);
   } else if (this.courseType === 'VIVA') {
-    this.totalMarks = (this.marks.vivaScore || 0) * 10;
+    this.totalMarks = (Number(vivaScore) || 0) * 10;
   }
 
   // Grading Logic (Standardized for 100-point total)

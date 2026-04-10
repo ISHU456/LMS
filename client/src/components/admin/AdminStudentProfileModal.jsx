@@ -13,6 +13,9 @@ const AdminStudentProfileModal = ({ studentId, user, onClose }) => {
     const [excludedCourses, setExcludedCourses] = useState([]);
     const [department, setDepartment] = useState('');
     const [semester, setSemester] = useState(1);
+    const [section, setSection] = useState('A');
+    const [rollNumber, setRollNumber] = useState('');
+    const [isActive, setIsActive] = useState(true);
     const [isLoading, setIsLoading] = useState(true);
     const [isSaving, setIsSaving] = useState(false);
 
@@ -35,6 +38,9 @@ const AdminStudentProfileModal = ({ studentId, user, onClose }) => {
                 setDetails(res.data.student);
                 setDepartment(res.data.student.department || '');
                 setSemester(res.data.student.semester || 1);
+                setSection(res.data.student.section || 'A');
+                setRollNumber(res.data.student.rollNumber || '');
+                setIsActive(res.data.student.isActive !== false);
                 
                 // Determine which courses this student is currently excluded from
                 const excluded = res.data.allCourses.filter(c => 
@@ -64,6 +70,9 @@ const AdminStudentProfileModal = ({ studentId, user, onClose }) => {
             await axios.put(`http://localhost:5001/api/admin/students/${studentId}/enrollment`, {
                 semester,
                 department,
+                section,
+                rollNumber,
+                isActive: true, // Force active on save/approval
                 excludedCourseIds: excludedCourses,
                 cgpa,
                 percentage,
@@ -108,7 +117,7 @@ const AdminStudentProfileModal = ({ studentId, user, onClose }) => {
                         </div>
                         <div>
                             <h2 className="text-2xl font-black text-gray-900 dark:text-white uppercase tracking-tighter">{details.name}</h2>
-                            <p className="text-xs font-black text-gray-400 uppercase tracking-widest italic">{details.email} • {details.rollNumber || 'NO-ROLL'}</p>
+                            <p className="text-xs font-black text-gray-400 uppercase tracking-widest italic">{details.email} • {details.rollNumber || 'NO-ROLL'} • SEC {section}</p>
                         </div>
                     </div>
                     <button onClick={onClose} className="p-4 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-2xl transition-all"><X/></button>
@@ -116,7 +125,6 @@ const AdminStudentProfileModal = ({ studentId, user, onClose }) => {
 
                 <div className="flex-1 overflow-y-auto p-10 space-y-12 text-sm">
                     {(user.role === 'admin' || user.role === 'hod') ? (
-                        /* ENROLLMENT CONFIG - Editable for Admin/HOD */
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
                             <section>
                                 <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-blue-500 mb-6 flex items-center gap-2 italic">
@@ -134,9 +142,9 @@ const AdminStudentProfileModal = ({ studentId, user, onClose }) => {
 
                             <section>
                                 <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-blue-500 mb-6 flex items-center gap-2 italic">
-                                    <Award size={14} /> Active Semester
+                                    <Award size={14} /> Active Semester & Section
                                 </h3>
-                                <div className="grid grid-cols-4 gap-2">
+                                <div className="grid grid-cols-4 gap-2 mb-4">
                                 {[1,2,3,4,5,6,7,8].map(sem => (
                                     <button key={sem} onClick={() => setSemester(sem)}
                                         className={`w-12 h-12 rounded-xl border-2 flex flex-col items-center justify-center transition-all ${semester === sem ? 'bg-blue-600 border-blue-600 text-white shadow-lg' : 'bg-gray-50 border-transparent dark:bg-gray-800 text-gray-400 hover:border-gray-200'}`}>
@@ -145,6 +153,14 @@ const AdminStudentProfileModal = ({ studentId, user, onClose }) => {
                                     </button>
                                 ))}
                                 </div>
+                                <div className="grid grid-cols-2 gap-2 mt-4">
+                                    {['A', 'B'].map(sec => (
+                                        <button key={sec} onClick={() => setSection(sec)}
+                                            className={`p-4 rounded-xl border-2 flex items-center justify-center transition-all text-[10px] font-black ${section === sec ? 'bg-emerald-600 border-emerald-600 text-white shadow-md' : 'bg-gray-50 dark:bg-gray-800 border-transparent text-gray-400 hover:border-gray-200'}`}>
+                                            SECTION {sec}
+                                        </button>
+                                    ))}
+                                </div>
                             </section>
 
                             <section className="space-y-4">
@@ -152,6 +168,13 @@ const AdminStudentProfileModal = ({ studentId, user, onClose }) => {
                                     <GraduationCap size={14} /> Academic Trajectory
                                 </h3>
                                 <div className="grid grid-cols-2 gap-4">
+                                    <div className="col-span-2">
+                                        <label className="text-[8px] font-bold text-gray-400 uppercase tracking-widest block mb-1">Official Roll Number</label>
+                                        <input 
+                                            type="text" placeholder="Enter Roll Number (e.g. 24CSE001)" value={rollNumber} onChange={(e) => setRollNumber(e.target.value.toUpperCase())}
+                                            className="w-full bg-gray-50 dark:bg-gray-800 border-none rounded-xl p-3 text-sm font-black focus:ring-2 focus:ring-blue-500 outline-none dark:text-white"
+                                        />
+                                    </div>
                                     <div>
                                         <label className="text-[8px] font-bold text-gray-400 uppercase tracking-widest block mb-1">CGPA</label>
                                         <input 
@@ -170,13 +193,12 @@ const AdminStudentProfileModal = ({ studentId, user, onClose }) => {
                             </section>
                         </div>
                     ) : (
-                        /* READ-ONLY VIEW for Teachers */
                         <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
                             {[
                                 { label: 'Department', value: department, icon: Building, color: 'blue' },
-                                { label: 'Active Semester', value: `Sem ${semester}`, icon: Award, color: 'purple' },
+                                { label: 'Active Semester', value: `Sem ${semester} (${section})`, icon: Award, color: 'purple' },
                                 { label: 'Overall CGPA', value: cgpa || 'N/A', icon: Target, color: 'amber' },
-                                { label: 'Aggregate %', value: `${percentage}%` || 'N/A', icon: TrendingUp, color: 'emerald' }
+                                { label: 'Aggregate %', value: percentage ? `${percentage}%` : 'N/A', icon: TrendingUp, color: 'emerald' }
                             ].map((stat, i) => (
                                 <div key={i} className="p-6 bg-gray-50 dark:bg-gray-800/50 rounded-3xl border border-gray-100 dark:border-gray-700">
                                     <p className="text-[9px] font-black text-gray-400 uppercase tracking-[0.2em] mb-3 flex items-center gap-2">
@@ -188,7 +210,6 @@ const AdminStudentProfileModal = ({ studentId, user, onClose }) => {
                         </div>
                     )}
 
-                    {/* Performance Matrix */}
                     <section>
                          <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-blue-500 mb-6 flex items-center gap-2 italic">
                             <Plus size={14} /> Performance Matrix (Graded Results)
@@ -237,7 +258,6 @@ const AdminStudentProfileModal = ({ studentId, user, onClose }) => {
                         />
                     </section>
 
-                    {/* COURSE ACCESS MGMT */}
                     <section>
                         <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-blue-500 mb-6 flex items-center gap-2 italic">
                             <Shield size={14} /> Access Restrictions
@@ -268,13 +288,67 @@ const AdminStudentProfileModal = ({ studentId, user, onClose }) => {
                         </div>
                     </section>
 
-                    {/* ATTENDANCE CALENDAR & REPORT (NEW) */}
                     <section className="space-y-6">
                         <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-red-500 mb-6 flex items-center gap-2 italic">
                             <Calendar size={14} /> Attendance Pulse & Annual Metrics
                         </h3>
-                        {/* Show attendance insight (Generic for all roles) */}
                         <AdminAttendanceInsight userId={studentId} type="student" user={user} />
+                    </section>
+
+                    {/* Institutional Certification Hub */}
+                    <section className="mt-16 pt-12 border-t-2 border-gray-100 dark:border-gray-800">
+                        <div className="flex flex-col gap-1 mb-8">
+                            <h3 className="text-[14px] font-black uppercase tracking-[0.3em] text-indigo-600 dark:text-indigo-400 flex items-center gap-3">
+                                <Award size={22} className="animate-pulse" /> Institutional Certification Hub
+                            </h3>
+                            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest italic ml-[34px]">
+                                Global Governance Node Terminal: Departmental Sector
+                            </p>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+                            <motion.button 
+                                whileHover={{ scale: 1.02, translateY: -3 }}
+                                whileTap={{ scale: 0.98 }}
+                                className="flex flex-col items-center justify-center p-6 rounded-[32px] bg-white dark:bg-gray-800/40 border-2 border-dashed border-blue-200 dark:border-gray-700 hover:border-blue-500 hover:bg-blue-50/30 dark:hover:bg-blue-900/10 transition-all group overflow-hidden relative">
+                                <div className="absolute -top-6 -right-6 opacity-5 group-hover:opacity-10 transition-opacity">
+                                    <Target size={120} />
+                                </div>
+                                <div className="w-12 h-12 rounded-2xl bg-blue-50 dark:bg-blue-900/20 flex items-center justify-center mb-3 group-hover:bg-blue-100 dark:group-hover:bg-blue-900/40 transition-colors">
+                                    <Calendar className="text-blue-500" size={24} />
+                                </div>
+                                <span className="text-[10px] font-black uppercase tracking-widest text-gray-900 dark:text-white mb-0.5">Notify Instructor</span>
+                                <span className="text-[7.5px] font-bold text-gray-400 uppercase tracking-widest text-center">Alert faculty of profile updates</span>
+                            </motion.button>
+
+                            <motion.button 
+                                whileHover={{ scale: 1.02, translateY: -3 }}
+                                whileTap={{ scale: 0.98 }}
+                                className="flex flex-col items-center justify-center p-6 rounded-[32px] bg-emerald-500/5 dark:bg-emerald-500/10 border-2 border-emerald-500/20 hover:border-emerald-500 hover:bg-emerald-500/20 transition-all group overflow-hidden relative">
+                                <div className="absolute -top-6 -right-6 opacity-5 group-hover:opacity-10 transition-opacity">
+                                    <CheckCircle2 size={120} />
+                                </div>
+                                <div className="w-12 h-12 rounded-2xl bg-emerald-50 dark:bg-emerald-900/20 flex items-center justify-center mb-3 group-hover:bg-emerald-100 dark:group-hover:bg-emerald-900/40 transition-colors">
+                                    <Shield className="text-emerald-500" size={24} />
+                                </div>
+                                <span className="text-[10px] font-black uppercase tracking-widest text-emerald-600 mb-0.5">Approve Protocol</span>
+                                <span className="text-[7.5px] font-bold text-emerald-500/60 uppercase tracking-widest text-center">Validate institutional compliance</span>
+                            </motion.button>
+
+                            <motion.button 
+                                whileHover={{ scale: 1.02, translateY: -3 }}
+                                whileTap={{ scale: 0.98 }}
+                                className="flex flex-col items-center justify-center p-6 rounded-[32px] bg-rose-500/5 dark:bg-rose-500/10 border-2 border-rose-500/20 hover:border-rose-500 hover:bg-rose-500/20 transition-all group overflow-hidden relative">
+                                <div className="absolute -top-6 -right-6 opacity-5 group-hover:opacity-10 transition-opacity">
+                                    <AlertCircle size={120} />
+                                </div>
+                                <div className="w-12 h-12 rounded-2xl bg-rose-50 dark:bg-rose-900/20 flex items-center justify-center mb-3 group-hover:bg-rose-100 dark:group-hover:bg-rose-900/40 transition-colors">
+                                    <X className="text-rose-500" size={24} />
+                                </div>
+                                <span className="text-[10px] font-black uppercase tracking-widest text-rose-600 mb-0.5">Reject Submission</span>
+                                <span className="text-[7.5px] font-bold text-rose-500/60 uppercase tracking-widest text-center">Flag discrepancies & notify</span>
+                            </motion.button>
+                        </div>
                     </section>
                 </div>
 
@@ -282,8 +356,9 @@ const AdminStudentProfileModal = ({ studentId, user, onClose }) => {
                     <button onClick={onClose} className="px-6 py-4 font-black uppercase tracking-widest text-gray-400 hover:text-gray-600 transition-colors">Dismiss Profile</button>
                     {(user.role === 'admin' || user.role === 'hod') && (
                         <button onClick={handleSave} disabled={isSaving}
-                            className="px-10 py-4 bg-blue-600 text-white rounded-2xl font-black uppercase tracking-widest hover:bg-blue-700 shadow-xl shadow-blue-500/20 flex items-center gap-2 disabled:bg-gray-400">
-                            <Save size={18}/> {isSaving ? 'Synchronizing...' : 'Save Enrollment'}
+                            className={`px-10 py-4 ${details.isActive === false ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-blue-600 hover:bg-blue-700'} text-white rounded-2xl font-black uppercase tracking-widest shadow-xl flex items-center gap-2 disabled:bg-gray-400`}>
+                            {details.isActive === false ? <CheckCircle2 size={18}/> : <Save size={18}/>}
+                            {isSaving ? 'Processing...' : (details.isActive === false ? 'Approve & Activate' : 'Save Enrollment')}
                         </button>
                     )}
                 </div>

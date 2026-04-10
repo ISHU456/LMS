@@ -37,8 +37,10 @@ const AIMode = () => {
   const [requestSent, setRequestSent] = useState(user?.aiCreditsRequested || false);
   const [sessionId, setSessionId] = useState(`session_${Date.now()}`);
   
+  const [isListening, setIsListening] = useState(false);
   const scrollRef = useRef(null);
   const fileInputRef = useRef(null);
+  const recognitionRef = useRef(null);
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -112,9 +114,15 @@ const AIMode = () => {
 
   const handleFileUpload = async (e) => {
     const file = e.target.files[0];
-    if (!file || !user || isLoading || credits < 2) return;
+    if (!file || !user || isLoading) return;
 
-    const userMsg = { id: Date.now(), text: `[Protocol: Analyze file "${file.name}"]`, sender: 'user', timestamp: new Date() };
+    if (credits < 2) {
+      alert("Neural Bank Depleted: File analysis requires at least 2 Neural Credits.");
+      e.target.value = '';
+      return;
+    }
+
+    const userMsg = { id: Date.now(), text: `[Identity Scan: Protocol Analyze "${file.name}"]`, sender: 'user', timestamp: new Date() };
     setMessages(prev => [...prev, userMsg]);
     setIsLoading(true);
 
@@ -141,11 +149,44 @@ const AIMode = () => {
       
       playNotificationSound();
     } catch (err) {
-      alert(err.response?.data?.response || "File analysis protocol failed.");
+      console.error(err);
+      alert(err.response?.data?.response || "Neural scan failed. Check connection or file compatibility.");
     } finally {
       setIsLoading(false);
-      e.target.value = ''; // Reset input
+      if (e.target) e.target.value = '';
     }
+  };
+
+  const toggleVoiceRecognition = () => {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      alert("Neural voice synthesis is not supported on this device/browser.");
+      return;
+    }
+
+    if (isListening) {
+      if (recognitionRef.current) recognitionRef.current.stop();
+      setIsListening(false);
+      return;
+    }
+
+    const recognition = new SpeechRecognition();
+    recognition.continuous = false;
+    recognition.interimResults = false;
+    recognition.lang = 'en-US';
+
+    recognition.onstart = () => setIsListening(true);
+    recognition.onend = () => setIsListening(false);
+    recognition.onerror = () => setIsListening(false);
+    
+    recognition.onresult = (event) => {
+      const transcript = event.results[0][0].transcript;
+      setInput(prev => prev + (prev.length > 0 ? ' ' : '') + transcript);
+      setIsListening(false);
+    };
+
+    recognitionRef.current = recognition;
+    recognition.start();
   };
 
   const requestCredits = async () => {
@@ -365,31 +406,23 @@ const AIMode = () => {
                   key={msg.id}
                   className={`flex w-full ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}
                 >
-                  <div className={`flex gap-8 w-full ${msg.sender === 'user' ? 'max-w-[85%] flex-row-reverse' : 'max-w-full flex-row'}`}>
-                    <div className={`w-12 h-12 rounded-2xl shrink-0 flex items-center justify-center border transition-all duration-500 mt-2 ${
-                      msg.sender === 'user' 
-                        ? 'bg-orange-600 border-orange-500 shadow-[0_0_30px_rgba(234,88,12,0.4)]' 
-                        : 'bg-indigo-600 border-indigo-500 shadow-[0_0_30px_rgba(79,70,229,0.4)] text-white'
-                    }`}>
-                      {msg.sender === 'user' ? <User size={24} /> : <Cpu size={24} />}
-                    </div>
+                  <div className={`flex w-full ${msg.sender === 'user' ? 'gap-8 max-w-[85%] flex-row-reverse' : 'max-w-full'}`}>
+                    {msg.sender === 'user' && (
+                      <div className="w-12 h-12 rounded-2xl shrink-0 flex items-center justify-center border border-orange-500 bg-orange-600 shadow-[0_0_30px_rgba(234,88,12,0.4)] mt-2">
+                        <User size={24} />
+                      </div>
+                    )}
                     <div className="flex-1 min-w-0">
-                      <div className={`relative px-10 py-8 rounded-[3rem] text-base leading-relaxed transition-all duration-300 ${
+                      <div className={`relative px-10 py-8 rounded-2xl text-base leading-relaxed transition-all duration-300 ${
                         msg.sender === 'user' 
-                          ? 'bg-white dark:bg-gray-800 text-gray-900 dark:text-white rounded-tr-none shadow-2xl border border-white/10' 
-                          : 'bg-white/5 border border-white/10 backdrop-blur-3xl text-gray-100 rounded-tl-none font-medium hover:bg-white/[0.08] shadow-inner'
+                          ? 'bg-white dark:bg-gray-800 text-gray-900 dark:text-white shadow-2xl border border-white/10' 
+                          : 'bg-white/5 border border-white/10 backdrop-blur-3xl text-gray-100 font-medium hover:bg-white/[0.08] shadow-inner'
                       }`}>
                          {msg.sender === 'bot' ? (
                           <div className="prose prose-md prose-invert max-w-none prose-headings:text-orange-500 prose-headings:font-black prose-headings:uppercase prose-headings:tracking-tighter prose-strong:text-indigo-400 prose-code:text-orange-400 prose-pre:bg-black/40 prose-pre:rounded-[2rem] prose-pre:p-8 prose-pre:border prose-pre:border-white/5">
                              <ReactMarkdown remarkPlugins={[remarkGfm]}>{msg.text}</ReactMarkdown>
                           </div>
                         ) : <p className="font-extrabold text-lg tracking-tight">{msg.text}</p>}
-                        
-                        {msg.sender === 'bot' && (
-                          <div className="absolute top-6 right-8 opacity-[0.05] pointer-events-none">
-                            <BrainCircuit size={64} />
-                          </div>
-                        )}
                       </div>
                       <p className={`text-[10px] font-black text-white/10 uppercase tracking-[0.4em] mt-4 ${msg.sender === 'user' ? 'text-right' : 'text-left'}`}>
                         {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} • Sync Priority High
@@ -401,9 +434,6 @@ const AIMode = () => {
               
               {isLoading && (
                 <div className="flex items-center gap-6">
-                  <div className="w-12 h-12 rounded-2xl bg-indigo-600/10 border border-indigo-500/30 flex items-center justify-center text-indigo-400">
-                    <Loader2 size={24} className="animate-spin text-orange-500" />
-                  </div>
                   <div className="flex gap-2">
                     <motion.div animate={{ scale: [1, 1.3, 1], opacity: [0.3, 1, 0.3] }} transition={{ repeat: Infinity, duration: 1 }} className="w-2 h-2 rounded-full bg-orange-500" />
                     <motion.div animate={{ scale: [1, 1.3, 1], opacity: [0.3, 1, 0.3] }} transition={{ repeat: Infinity, duration: 1, delay: 0.2 }} className="w-2 h-2 rounded-full bg-indigo-500 shadow-[0_0_10px_#6366f1]" />
@@ -457,7 +487,7 @@ const AIMode = () => {
                     ref={fileInputRef} 
                     className="hidden" 
                     onChange={handleFileUpload} 
-                    accept=".pdf,.txt,.docx" 
+                    accept=".pdf,.txt,.docx,.doc,.png,.jpg,.jpeg" 
                   />
                   <button 
                     type="button" 
@@ -475,8 +505,12 @@ const AIMode = () => {
                      className="flex-1 py-2.5 px-2 bg-transparent border-none outline-none font-bold text-base text-gray-900 placeholder:text-gray-500 placeholder:uppercase placeholder:text-[10px] placeholder:tracking-widest transition-all"
                    />
                    <div className="flex items-center gap-1.5 pr-1.5">
-                       <button type="button" className="p-2 text-gray-800 hover:text-orange-600 transition-colors hidden sm:block">
-                         <Mic size={20} />
+                       <button 
+                         type="button" 
+                         onClick={toggleVoiceRecognition}
+                         className={`p-2 transition-all hidden sm:block ${isListening ? 'text-rose-500 animate-pulse scale-110' : 'text-gray-800 hover:text-orange-600'}`}
+                       >
+                         {isListening ? <Mic size={20} className="fill-current" /> : <Mic size={20} />}
                        </button>
                        <motion.button
                          whileHover={{ scale: 1.05 }}
@@ -499,7 +533,7 @@ const AIMode = () => {
         </main>
 
 
-        <style jsx>{`
+        <style>{`
           .no-scrollbar::-webkit-scrollbar { display: none; }
           .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
           .glass { backdrop-filter: blur(20px); }

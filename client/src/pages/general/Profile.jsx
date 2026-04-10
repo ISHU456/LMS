@@ -165,7 +165,7 @@ const Profile = () => {
                 </div>
                 <h1 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white tracking-tight">{user.name}</h1>
                 <p className="text-sm text-gray-500 dark:text-gray-400 font-medium">
-                  {user.role.toUpperCase()} • ID: {user.enrollmentNumber || user.employeeId || 'N/A'}
+                  {user?.role?.toUpperCase() || 'USER'} • ID: {user?.enrollmentNumber || user?.employeeId || 'N/A'}
                 </p>
               </div>
               
@@ -392,7 +392,7 @@ const Profile = () => {
         </div>
       </div>
 
-      <style jsx>{`
+      <style>{`
         .glass {
           background: rgba(255, 255, 255, 0.75);
           backdrop-filter: blur(12px);

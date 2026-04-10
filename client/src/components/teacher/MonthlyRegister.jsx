@@ -22,6 +22,7 @@ const MonthlyRegister = ({ user, initialSemester, initialCourse, onPersistChange
   const [isLoading, setIsLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [viewingStudentId, setViewingStudentId] = useState(null); 
+  const [section, setSection] = useState('all');
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(25);
 
@@ -45,19 +46,35 @@ const MonthlyRegister = ({ user, initialSemester, initialCourse, onPersistChange
     fetchCourses();
   }, [user.token, initialCourse, initialSemester]);
 
+  // Auto-select course when semester changes
+  useEffect(() => {
+    if (courses.length > 0) {
+      const filtered = courses.filter(c => c.semester === semester);
+      if (filtered.length > 0) {
+        // Only reset if current selectedCourse is not in the new semester
+        if (!selectedCourse || selectedCourse.semester !== semester) {
+          setSelectedCourse(filtered[0]);
+          onPersistChange?.(semester, filtered[0]);
+        }
+      } else if (selectedCourse && selectedCourse.semester !== semester) {
+        setSelectedCourse(null);
+      }
+    }
+  }, [semester, courses]);
+
   useEffect(() => {
     if (!selectedCourse) return;
     const fetchData = async () => {
       setIsLoading(true);
       try {
         const config = { headers: { Authorization: `Bearer ${user.token}` } };
-        const studentsRes = await axios.get(`http://localhost:5001/api/courses/${selectedCourse.code}/students?semester=${semester}`, config);
+        const studentsRes = await axios.get(`http://localhost:5001/api/courses/${selectedCourse.code}/students?semester=${semester}&section=${section}`, config);
         setStudents(studentsRes.data);
         const year = selectedDate.getFullYear();
         const month = selectedDate.getMonth();
         const startDate = new Date(year, month, 1).toISOString();
         const endDate = new Date(year, month + 1, 0, 23, 59, 59).toISOString();
-        const attendanceRes = await axios.get(`http://localhost:5001/api/attendance/course/${selectedCourse._id}?startDate=${startDate}&endDate=${endDate}&semester=${semester}`, config);
+        const attendanceRes = await axios.get(`http://localhost:5001/api/attendance/course/${selectedCourse._id}?startDate=${startDate}&endDate=${endDate}&semester=${semester}&section=${section}`, config);
         setAttendanceRecords(attendanceRes.data.attendanceRecords || attendanceRes.data);
         if (studentsRes.data.length > 0) {
             const studentIds = studentsRes.data.map(s => s._id).join(',');
@@ -68,7 +85,7 @@ const MonthlyRegister = ({ user, initialSemester, initialCourse, onPersistChange
       finally { setIsLoading(false); }
     };
     fetchData();
-  }, [selectedCourse, selectedDate, semester, user.token]);
+  }, [selectedCourse, selectedDate, semester, section, user.token]);
 
   const daysInMonth = useMemo(() => {
     const date = new Date(selectedDate.getFullYear(), selectedDate.getMonth() + 1, 0);
@@ -146,49 +163,64 @@ const MonthlyRegister = ({ user, initialSemester, initialCourse, onPersistChange
   return (
     <div className="space-y-6">
       <div className="bg-white dark:bg-gray-900 rounded-3xl p-6 shadow-sm border border-gray-100 dark:border-gray-800">
-        <div className="flex flex-wrap items-center justify-between gap-6 leading-none shrink-0 overflow-hidden">
-            <div className="flex items-center gap-4">
-                <div className="w-12 h-12 rounded-2xl bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 flex items-center justify-center"><Calendar size={24}/></div>
-                <div>
-                   <h2 className="text-xl font-black text-gray-900 dark:text-white uppercase tracking-tighter">Attendance Register</h2>
-                   <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mt-1">Administrative Record System</p>
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+            <div className="flex items-center gap-4 shrink-0">
+                <div className="w-10 h-10 lg:w-12 lg:h-12 rounded-2xl bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 flex items-center justify-center shadow-inner shrink-0">
+                    <Calendar size={20} className="lg:hidden"/><Calendar size={24} className="hidden lg:block"/>
+                </div>
+                <div className="min-w-0 flex-1">
+                   <h2 className="text-lg lg:text-xl font-black text-gray-900 dark:text-white uppercase tracking-tighter">Attendance Register</h2>
+                   <p className="text-[8px] lg:text-[9px] font-black text-gray-400 uppercase tracking-[0.2em] mt-0.5 lg:mt-1 italic">Administrative Record System</p>
                 </div>
             </div>
 
-            <div className="flex flex-wrap items-center gap-3">
-               <select value={semester} onChange={(e) => { const val = Number(e.target.value); setSemester(val); onPersistChange(val, selectedCourse); }}
-                className="bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl px-4 py-2.5 text-[10px] font-black uppercase tracking-wider focus:ring-2 focus:ring-indigo-500 outline-none w-24 cursor-pointer text-gray-900 dark:text-white appearance-none">
-                 {[1,2,3,4,5,6,7,8].map(s => <option key={s} value={s} className="dark:bg-gray-800">Sem {s}</option>)}
-               </select>
+            <div className="flex-1 overflow-x-auto custom-scrollbar-hidden pb-1 xl:pb-0">
+               <div className="flex items-center gap-3 min-w-max xl:min-w-0">
+                  <div className="flex items-center gap-3">
+                    <select value={semester} onChange={(e) => { const val = Number(e.target.value); setSemester(val); onPersistChange(val, selectedCourse); }}
+                      className="bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl lg:rounded-2xl px-4 py-3 text-[10px] font-black uppercase tracking-wider focus:ring-2 focus:ring-indigo-500 outline-none cursor-pointer text-gray-900 dark:text-white appearance-none shadow-sm capitalize min-w-[100px]">
+                      {[1,2,3,4,5,6,7,8].map(s => <option key={s} value={s} className="dark:bg-gray-800">Sem {s}</option>)}
+                    </select>
 
-               <select value={selectedCourse?.code || ''} onChange={(e) => { const course = courses.find(c => c.code === e.target.value); setSelectedCourse(course); onPersistChange(semester, course); }}
-                className="bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl px-4 py-2.5 text-[10px] font-black uppercase tracking-wider focus:ring-2 focus:ring-indigo-500 outline-none cursor-pointer text-gray-900 dark:text-white appearance-none max-w-[200px]">
-                 {courses.filter(c => c.semester === semester).map(c => <option key={c._id} value={c.code} className="dark:bg-gray-800">{c.code} · {c.name}</option>)}
-               </select>
+                    <select value={section} onChange={(e) => setSection(e.target.value)}
+                      className="bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl lg:rounded-2xl px-4 py-3 text-[10px] font-black uppercase tracking-wider focus:ring-2 focus:ring-indigo-500 outline-none cursor-pointer text-gray-900 dark:text-white appearance-none shadow-sm min-w-[120px]">
+                      <option value="all">Every Section</option>
+                      <option value="A">Section A</option>
+                      <option value="B">Section B</option>
+                    </select>
+                  </div>
 
-               <div className="flex items-center bg-gray-50 dark:bg-gray-800 rounded-2xl p-1 border border-gray-200 dark:border-gray-700">
-                  <button onClick={() => setSelectedDate(new Date(selectedDate.getFullYear(), selectedDate.getMonth() - 1, 1))} className="p-2 hover:bg-white dark:hover:bg-gray-700 rounded-xl transition-all text-gray-400 dark:text-gray-100"><ChevronLeft size={16}/></button>
-                  <div className="px-4 text-[10px] font-black uppercase tracking-widest min-w-[140px] text-center text-gray-900 dark:text-white">{months[selectedDate.getMonth()]} {selectedDate.getFullYear()}</div>
-                  <button onClick={() => setSelectedDate(new Date(selectedDate.getFullYear(), selectedDate.getMonth() + 1, 1))} className="p-2 hover:bg-white dark:hover:bg-gray-700 rounded-xl transition-all text-gray-400 dark:text-gray-100"><ChevronRight size={16}/></button>
+                  <select value={selectedCourse?.code || ''} onChange={(e) => { const course = courses.find(c => c.code === e.target.value); setSelectedCourse(course); onPersistChange(semester, course); }}
+                    className="bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl lg:rounded-2xl px-4 py-3 text-[10px] font-black uppercase tracking-tighter focus:ring-2 focus:ring-indigo-500 outline-none cursor-pointer text-gray-900 dark:text-white appearance-none shadow-sm xl:min-w-[200px] truncate">
+                    {courses.filter(c => c.semester === semester).map(c => <option key={c._id} value={c.code} className="dark:bg-gray-800">{c.code} | {c.name}</option>)}
+                  </select>
+
+                  <div className="flex items-center justify-between md:justify-center bg-gray-50 dark:bg-gray-800 rounded-xl lg:rounded-2xl p-1.5 border border-gray-200 dark:border-gray-700 shadow-sm shrink-0">
+                    <button onClick={() => setSelectedDate(new Date(selectedDate.getFullYear(), selectedDate.getMonth() - 1, 1))} className="p-2.5 hover:bg-white dark:hover:bg-gray-700 rounded-xl transition-all text-gray-400 dark:text-gray-100 active:scale-90"><ChevronLeft size={16}/></button>
+                    <div className="px-4 text-[9px] font-black uppercase tracking-widest min-w-[120px] text-center text-gray-900 dark:text-white italic whitespace-nowrap">{months[selectedDate.getMonth()]} {selectedDate.getFullYear()}</div>
+                    <button onClick={() => setSelectedDate(new Date(selectedDate.getFullYear(), selectedDate.getMonth() + 1, 1))} className="p-2.5 hover:bg-white dark:hover:bg-gray-700 rounded-xl transition-all text-gray-400 dark:text-gray-100 active:scale-90"><ChevronRight size={16}/></button>
+                  </div>
+
+                  {isAuthorized && (
+                    <button onClick={exportPDF} disabled={students.length === 0} className="px-6 py-3.5 rounded-xl lg:rounded-2xl bg-indigo-600 hover:bg-indigo-500 text-white text-[10px] font-black uppercase tracking-[0.2em] transition-all shadow-xl shadow-indigo-600/20 disabled:opacity-50 active:scale-95 flex items-center justify-center gap-3 shrink-0">
+                      <Download size={16}/> Protocol Export
+                    </button>
+                  )}
                </div>
-
-               {isAuthorized && (
-                 <div className="flex items-center gap-2">
-                   <button onClick={exportPDF} disabled={students.length === 0} className="flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-rose-600 hover:bg-rose-700 text-white text-[10px] font-black uppercase tracking-widest transition-all disabled:opacity-50"><FileText size={14}/> PDF</button>
-                 </div>
-               )}
             </div>
         </div>
 
-        <div className="mt-6 flex items-center gap-4 border-t border-gray-50 dark:border-gray-800 pt-6 shrink-0 overflow-hidden">
+        <div className="mt-6 flex flex-col md:flex-row md:items-center gap-4 border-t border-gray-50 dark:border-gray-800 pt-6 shrink-0">
             <div className="relative flex-1 max-w-sm">
-                <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={16}/>
-                <input type="text" placeholder="Search student..." className="w-full pl-11 pr-4 py-3 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl text-xs font-bold focus:ring-2 focus:ring-indigo-500 outline-none text-gray-900 dark:text-white" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)}/>
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={14} />
+                <input type="text" placeholder="Search student..." className="w-full pl-10 pr-4 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-[10px] font-bold focus:ring-2 focus:ring-indigo-500 outline-none text-gray-900 dark:text-white" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)}/>
             </div>
-            <div className="flex items-center gap-6 overflow-hidden">
-                <div className="flex items-center gap-2 font-black uppercase text-[8px] text-gray-400"><div className="w-2 h-2 rounded-full bg-emerald-500"/> Present</div>
-                <div className="flex items-center gap-2 font-black uppercase text-[8px] text-gray-400"><div className="w-2 h-2 rounded-full bg-rose-500"/> Absent</div>
-                <div className="flex items-center gap-2 font-black uppercase text-[8px] text-gray-400"><div className="w-2 h-2 rounded-full bg-indigo-600"/> Face Verified</div>
+            <div className="flex-1 overflow-x-auto custom-scrollbar-hidden pb-1 md:pb-0">
+                <div className="flex items-center gap-4 lg:gap-6 min-w-max">
+                    <div className="flex items-center gap-2 font-black uppercase text-[7px] lg:text-[8px] text-gray-400"><div className="w-1.5 h-1.5 rounded-full bg-emerald-500"/> Present</div>
+                    <div className="flex items-center gap-2 font-black uppercase text-[7px] lg:text-[8px] text-gray-400"><div className="w-1.5 h-1.5 rounded-full bg-rose-500"/> Absent</div>
+                    <div className="flex items-center gap-2 font-black uppercase text-[7px] lg:text-[8px] text-gray-400"><div className="w-1.5 h-1.5 rounded-full bg-indigo-600"/> Face Verified</div>
+                </div>
             </div>
         </div>
       </div>
@@ -198,11 +230,11 @@ const MonthlyRegister = ({ user, initialSemester, initialCourse, onPersistChange
 
         <div className="overflow-x-auto custom-scrollbar h-full">
           <table className="w-full border-collapse">
-            <thead className="sticky top-0 z-10 bg-gray-50 dark:bg-gray-800 border-b border-gray-100 dark:border-gray-700">
+            <thead className="sticky top-0 z-10 bg-gray-50/90 dark:bg-gray-800/90 backdrop-blur-md border-b border-gray-100 dark:border-gray-700">
               <tr>
-                <th className="px-6 py-4 text-left min-w-[120px] sticky left-0 z-20 bg-gray-50 dark:bg-gray-800 border-r border-gray-100 dark:border-gray-700 text-[10px] font-black uppercase tracking-widest text-gray-400">Roll No</th>
-                <th className="px-6 py-4 text-left min-w-[200px] sticky left-[120px] z-20 bg-gray-50 dark:bg-gray-800 border-r border-gray-100 dark:border-gray-700 text-[10px] font-black uppercase tracking-widest text-gray-400">Identity</th>
-                {daysInMonth.map(day => (<th key={day} className="px-2 py-4 min-w-[40px] border-r border-gray-100 dark:border-gray-700 text-[10px] font-black uppercase text-gray-500 tabular-nums">{day}</th>))}
+                <th className="px-4 lg:px-6 py-4 text-left min-w-[100px] lg:min-w-[120px] sticky left-0 z-20 bg-gray-50/90 dark:bg-gray-800/90 backdrop-blur-md border-r border-gray-100 dark:border-gray-700 text-[9px] lg:text-[10px] font-black uppercase tracking-widest text-gray-400">Roll No</th>
+                <th className="px-4 lg:px-6 py-4 text-left min-w-[160px] lg:min-w-[200px] sticky left-[100px] lg:left-[120px] z-20 bg-gray-50/90 dark:bg-gray-800/90 backdrop-blur-md border-r border-gray-100 dark:border-gray-700 text-[9px] lg:text-[10px] font-black uppercase tracking-widest text-gray-400">Identity</th>
+                {daysInMonth.map(day => (<th key={day} className="px-2 py-4 min-w-[35px] lg:min-w-[40px] border-r border-gray-100 dark:border-gray-700 text-[9px] lg:text-[10px] font-black uppercase text-gray-500 tabular-nums">{day}</th>))}
               </tr>
             </thead>
             <tbody>
@@ -210,8 +242,8 @@ const MonthlyRegister = ({ user, initialSemester, initialCourse, onPersistChange
                 const gridData = attendanceGrid[student._id] || {};
                 return (
                   <tr key={student._id} className="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-all border-b border-gray-100 dark:border-gray-800">
-                    <td className="px-6 py-3 sticky left-0 z-10 bg-white dark:bg-gray-900 border-r border-gray-100 dark:border-gray-700 font-black text-[11px] text-gray-400">{student.rollNumber}</td>
-                    <td className="px-6 py-3 sticky left-[120px] z-10 bg-white dark:bg-gray-900 border-r border-gray-100 dark:border-gray-700 font-black text-xs uppercase cursor-pointer italic" onClick={() => setViewingStudentId(student._id)}>{student.name}</td>
+                    <td className="px-4 lg:px-6 py-3 sticky left-0 z-10 bg-white/90 dark:bg-gray-900/90 backdrop-blur-md border-r border-gray-100 dark:border-gray-700 font-black text-[10px] lg:text-[11px] text-gray-400">{student.rollNumber}</td>
+                    <td className="px-4 lg:px-6 py-3 sticky left-[100px] lg:left-[120px] z-10 bg-white/90 dark:bg-gray-900/90 backdrop-blur-md border-r border-gray-100 dark:border-gray-700 font-black text-[11px] lg:text-xs uppercase cursor-pointer italic truncate max-w-[160px] lg:max-w-none" onClick={() => setViewingStudentId(student._id)}>{student.name}</td>
                     {daysInMonth.map(day => {
                        const status = gridData[day] || '';
                        return (

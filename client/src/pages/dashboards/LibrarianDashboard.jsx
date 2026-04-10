@@ -1,8 +1,10 @@
 import { useState } from 'react';
-import { BookOpen, BookCheck, Shield, MessageSquare, Home } from 'lucide-react';
+import { BookOpen, BookCheck, Shield, MessageSquare, Home, X } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 
 const LibrarianDashboard = () => {
   const [activeTab, setActiveTab] = useState('overview');
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   const menuItems = [
     { id: 'overview', icon: Home, label: 'Library Overview' },
@@ -12,19 +14,46 @@ const LibrarianDashboard = () => {
   ];
 
   return (
-    <div className="flex min-h-[calc(100vh-73px)] flex-col lg:flex-row bg-gray-50 dark:bg-[#0f172a]">
-      <aside className="w-full lg:w-64 glass border-b lg:border-r border-gray-200 dark:border-gray-800 p-4 space-y-2 overflow-y-auto max-h-[40vh] lg:max-h-none">
+    <div className="flex min-h-[calc(100vh-73px)] flex-col lg:flex-row bg-gray-50 dark:bg-[#0f172a] relative overflow-hidden">
+      <AnimatePresence>
+        {isSidebarOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setIsSidebarOpen(false)}
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] lg:hidden"
+          />
+        )}
+      </AnimatePresence>
+
+      <aside className={`fixed lg:relative inset-y-0 left-0 w-64 glass border-r border-gray-200 dark:border-gray-800 p-4 space-y-2 z-[101] transition-transform duration-300 lg:translate-x-0 ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'} bg-white dark:bg-[#0f172a]`}>
+        <div className="flex items-center justify-between lg:hidden mb-6">
+           <span className="text-xs font-black uppercase tracking-widest text-amber-600">Library Portal</span>
+           <button onClick={() => setIsSidebarOpen(false)} className="p-2 rounded-xl bg-gray-100 dark:bg-gray-800 text-gray-500">
+              <X size={20} />
+           </button>
+        </div>
         {menuItems.map(item => (
-           <button key={item.id} onClick={() => setActiveTab(item.id)} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all font-medium ${activeTab === item.id ? 'bg-amber-50 text-amber-600 dark:bg-amber-900/40 dark:text-amber-400' : 'text-gray-600 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800'}`}>
-              <item.icon size={20} /> {item.label}
+           <button key={item.id} onClick={() => { setActiveTab(item.id); setIsSidebarOpen(false); }} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all font-medium ${activeTab === item.id ? 'bg-amber-50 text-amber-600 dark:bg-amber-900/40 dark:text-amber-400' : 'text-gray-600 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800'}`}>
+              <item.icon size={20} /> <span className="text-sm font-bold uppercase tracking-tight">{item.label}</span>
            </button>
         ))}
       </aside>
       
       <main className="flex-1 p-4 md:p-8 overflow-y-auto">
-        <header className="mb-8">
-           <h1 className="text-3xl font-extrabold dark:text-white capitalize">{menuItems.find(i=>i.id===activeTab)?.label}</h1>
-           <p className="text-gray-500 dark:text-gray-400 mt-1">Logged in securely as <span className="uppercase font-bold text-amber-500">Librarian</span></p>
+        <header className="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
+           <div>
+              <h1 className="text-3xl font-extrabold dark:text-white capitalize">{menuItems.find(i=>i.id===activeTab)?.label}</h1>
+              <p className="text-gray-500 dark:text-gray-400 mt-1">Logged in securely as <span className="uppercase font-bold text-amber-500">Librarian</span></p>
+           </div>
+           <button 
+             onClick={() => setIsSidebarOpen(true)}
+             className="lg:hidden flex items-center gap-2 self-start px-4 py-2 rounded-xl bg-amber-600 text-white font-black text-[10px] uppercase tracking-widest shadow-lg shadow-amber-600/20"
+           >
+             <BookOpen size={14} />
+             Open Menu
+           </button>
         </header>
 
         {activeTab === 'overview' ? (

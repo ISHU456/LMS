@@ -47,8 +47,8 @@ const CourseDetail = () => {
   const isUserTeacher = user?.role === 'teacher' || user?.role === 'admin' || user?.role === 'hod';
   const isStudent = user?.role === 'student';
 
-  const [sidebarOpen, setSidebarOpen] = useState(true);
-  const [sidebarWidth, setSidebarWidth] = useState(280);
+  const [sidebarOpen, setSidebarOpen] = useState(window.innerWidth >= 1024);
+  const [sidebarWidth, setSidebarWidth] = useState(window.innerWidth < 1024 ? 280 : 280);
   const isSidebarResizing = useRef(false);
 
   const displayName = user?.name?.trim()
@@ -849,7 +849,18 @@ const CourseDetail = () => {
   );
 
   return (
-    <div className="flex h-full bg-[#f8fafc] dark:bg-[#030712] overflow-hidden font-sans">
+    <div className="flex h-screen bg-[#f8fafc] dark:bg-[#030712] overflow-hidden font-sans relative">
+      <AnimatePresence>
+        {sidebarOpen && window.innerWidth < 1024 && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setSidebarOpen(false)}
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100]"
+          />
+        )}
+      </AnimatePresence>
       <SidebarNav 
         sidebarOpen={sidebarOpen}
         setSidebarOpen={setSidebarOpen}
@@ -886,7 +897,7 @@ const CourseDetail = () => {
           navigate={navigate}
         />
 
-        <div className={`flex-1 flex flex-col min-h-0 overflow-hidden transition-all duration-500 ${activeSection === 'ai-assistant' ? 'p-0 pb-0' : 'p-4 md:p-8'}`}>
+        <div className={`flex-1 flex flex-col min-h-0 overflow-hidden transition-all duration-500 ${activeSection === 'ai-assistant' ? 'p-0 pb-0' : 'p-3 md:p-8'}`}>
           <AnimatePresence mode="wait">
             {activeSection === 'ai-assistant' ? (
               <motion.div
@@ -905,7 +916,7 @@ const CourseDetail = () => {
                 animate={{ opacity: 1 }}
                 className="flex-1 flex flex-col gap-6 h-full overflow-hidden"
               >
-                <div className="flex-1 flex flex-col lg:flex-row gap-6 h-full overflow-hidden relative">
+                <div className="flex-1 flex flex-col lg:flex-row gap-4 lg:gap-6 h-full overflow-hidden relative">
                   <AnimatePresence>
                     {activeSection === 'completion' && (
                       <motion.div 
@@ -955,8 +966,8 @@ const CourseDetail = () => {
                     <>
                       <div
                         ref={leftColumnRef}
-                        style={{ width: `${leftWidth}%`, minWidth: '400px' }}
-                        className={`flex flex-col gap-6 min-h-0 overflow-y-auto pr-2 custom-scrollbar transition-all w-full lg:w-auto ${isDragging ? 'duration-0 pointer-events-none' : 'duration-300'}`}
+                        style={{ width: window.innerWidth >= 1024 ? `${leftWidth}%` : '100%', minWidth: window.innerWidth >= 1024 ? '400px' : 'auto' }}
+                        className={`flex flex-col gap-6 min-h-0 overflow-y-auto pr-2 custom-scrollbar transition-all w-full lg:w-auto ${isDragging ? 'duration-0 pointer-events-none' : 'duration-300'} ${window.innerWidth < 1024 && (previewItem || selectedAssignment) ? 'hidden' : 'flex'}`}
                       >
                         {activeSection === 'timetable' && (
                           <div className="flex flex-col gap-4">

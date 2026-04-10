@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
-import { PanelLeft, ArrowLeft, Plus, GripVertical } from 'lucide-react';
+import { PanelLeft, ArrowLeft, Plus, GripVertical, X } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 
 const SidebarNav = ({ 
   sidebarOpen, 
@@ -21,8 +22,8 @@ const SidebarNav = ({
 }) => {
   return (
     <aside 
-      style={{ width: sidebarOpen ? sidebarWidth : 80 }}
-      className={`h-full bg-white dark:bg-[#0b0f19] border-r border-gray-100 dark:border-gray-800 flex flex-col shrink-0 z-50 relative shadow-2xl transition-all duration-300 ${!sidebarOpen && 'w-20'}`}
+      style={{ width: window.innerWidth < 1024 ? '280px' : (sidebarOpen ? sidebarWidth : 80) }}
+      className={`fixed lg:relative inset-y-0 left-0 bg-white dark:bg-[#0b0f19] border-r border-gray-100 dark:border-gray-800 flex flex-col shrink-0 z-[101] relative shadow-2xl transition-all duration-300 ${!sidebarOpen && 'w-20'} ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}
     >
       {/* Resize Handle (The Slider) */}
       {/* Resize Handle (The Slider) */}
@@ -42,6 +43,10 @@ const SidebarNav = ({
           <Link to="/courses" className="w-10 h-10 flex flex-col items-center justify-center bg-gray-50 dark:bg-gray-800/80 rounded-2xl text-gray-400 hover:text-primary-600 transition-all border border-transparent hover:border-gray-200 dark:hover:border-gray-700 shrink-0">
             <ArrowLeft size={18} />
           </Link>
+          
+          <button onClick={() => setSidebarOpen(false)} className="lg:hidden p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl text-gray-500">
+            <X size={20} />
+          </button>
           
           {sidebarOpen && (
             <Link to="/profile" className="flex items-center gap-3 transition-opacity duration-200 hover:opacity-80">
@@ -102,13 +107,13 @@ const SidebarNav = ({
             key={t.id} 
             onClick={() => {
               if (isUploaderHub) {
-                // Navigate back with state/id
                 window.location.href = `/course-inner/${courseId}?section=${t.id}`;
               } else {
                 setActiveSection(t.id);
+                if (window.innerWidth < 1024) setSidebarOpen(false);
               }
             }} 
-            className={`w-full flex items-center relative rounded-2xl transition-all duration-300 group ${activeSection === t.id ? t.active + ' shadow-lg' : 'bg-transparent text-gray-500 hover:bg-gray-50 dark:hover:bg-gray-800/30 hover:text-gray-900 dark:hover:text-white'} ${sidebarOpen ? 'px-4 py-2' : 'h-12 w-12 mx-auto justify-center'}`}
+            className={`w-full flex items-center relative rounded-2xl transition-all duration-300 group ${activeSection === t.id ? t.active + ' shadow-lg' : 'bg-transparent text-gray-500 hover:bg-gray-50 dark:hover:bg-gray-800/30 hover:text-gray-900 dark:hover:text-white'} ${sidebarOpen ? 'px-4 py-2' : 'h-12 w-12 mx-auto justify-center'} mb-1`}
           >
             <div className={`flex items-center relative z-10 ${sidebarOpen ? 'w-full justify-between' : 'justify-center w-full'}`}>
               <div className={`flex items-center ${sidebarOpen ? 'gap-3' : 'justify-center'}`}>

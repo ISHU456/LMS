@@ -117,30 +117,30 @@ export const getAdminDashboardStats = async (req, res) => {
 };
 
 // @desc    Get all users with filtering
-// @route   GET /api/admin/users?role=X&dept=Y
 export const getUsers = async (req, res) => {
   try {
-    const { role, dept, semester } = req.query;
+    const { role, dept, semester, section, isActive } = req.query;
     const filter = {};
+    
     if (role && role !== 'all') filter.role = role;
+    if (section && section !== 'all') filter.section = section;
+    if (isActive !== undefined && isActive !== 'all') filter.isActive = isActive === 'true';
+    
     if (dept && dept !== 'all' && dept !== 'undefined' && dept !== '') {
-        // Find if this is a code or name from the Department model (optional but robust)
-        // For now, use a broader regex or a multi-field match if we had the field.
-        // We will match against the department string in User model.
         filter.$or = [
             { department: { $regex: new RegExp(`^${dept}$`, 'i') } },
             { department: { $regex: new RegExp(dept, 'i') } }
         ];
     }
+    
     if (semester && semester !== 'all' && semester !== 'undefined' && semester !== '') {
-        // Only apply semester filter if role is student or all (not for teachers/hods who don't have it)
-        if (role === 'student' || role === 'all') {
-            const semNum = parseInt(semester);
-            if (!isNaN(semNum)) filter.semester = semNum;
+        const semNum = parseInt(semester);
+        if (!isNaN(semNum)) {
+            filter.semester = semNum;
         }
     }
     
-    const users = await User.find(filter).select('-password').sort({ name: 1 });
+    const users = await User.find(filter).select('-password').sort({ createdAt: -1 });
     res.json(users);
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -341,12 +341,15 @@ export const getStudentDetails = async (req, res) => {
 export const updateStudentEnrollment = async (req, res) => {
     try {
         const { studentId } = req.params;
-        const { department, semester, excludedCourseIds, cgpa, percentage, aboutMe } = req.body;
+        const { department, semester, section, rollNumber, excludedCourseIds, cgpa, percentage, aboutMe } = req.body;
 
         // 1. Update Student Profile
         const updateData = {};
         if (department) updateData.department = department;
         if (semester) updateData.semester = semester;
+        if (section) updateData.section = section;
+        if (rollNumber) updateData.rollNumber = rollNumber;
+        if (req.body.isActive !== undefined) updateData.isActive = req.body.isActive;
         if (cgpa !== undefined) updateData.cgpa = cgpa;
         if (percentage !== undefined) updateData.percentage = percentage;
         if (aboutMe !== undefined) updateData.aboutMe = aboutMe;
@@ -646,7 +649,7 @@ export const getEligibleStudentsForCourse = async (req, res) => {
                 { department: course.department.code },
                 { department: { $regex: new RegExp(`^${course.department.code}$|^${course.department.name}$`, 'i') } }
             ]
-        }).select('name rollNumber enrollmentNumber department semester');
+        }).select('name rollNumber enrollmentNumber department semester section').sort({ name: 1 });
 
         const data = eligibleStudents.map(s => ({
             ...s.toObject(),
@@ -802,5 +805,33 @@ export const notifyFaculty = async (req, res) => {
         res.json({ message: 'Instructor notified successfully.' });
     } catch (e) {
         res.status(500).json({ message: e.message });
+    }
+};
+
+export const getPendingTeachers = async (req, res) => {
+    try {
+        const teachers = await User.find({ role: 'teacher', isAuthorized: false }).select('-password');
+        res.json(teachers);
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+};
+
+export const authorizeTeacher = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const teacher = await User.findById(id);
+        
+        if (!teacher || teacher.role !== 'teacher') {
+            return res.status(404).json({ message: 'Teacher request not found' });
+        }
+        
+        teacher.isAuthorized = true;
+        teacher.isActive = true;
+        await teacher.save();
+        
+        res.json({ message: 'Faculty access securely authorized and granted.', teacher });
+    } catch (error) {
+        res.status(500).json({ message: error.message });
     }
 };

@@ -1,6 +1,21 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { MapPin, Save, Shield, Crosshair, Navigation, AlertCircle, Info, CheckCircle } from 'lucide-react';
+import { MapContainer, TileLayer, Marker, Circle, useMapEvents } from 'react-leaflet';
+import 'leaflet/dist/leaflet.css';
+import L from 'leaflet';
+
+// Fix Leaflet marker icon issue with Vite
+import markerIcon from 'leaflet/dist/images/marker-icon.png';
+import markerIcon2x from 'leaflet/dist/images/marker-icon-2x.png';
+import markerShadow from 'leaflet/dist/images/marker-shadow.png';
+
+delete L.Icon.Default.prototype._getIconUrl;
+L.Icon.Default.mergeOptions({
+    iconUrl: markerIcon,
+    iconRetinaUrl: markerIcon2x,
+    shadowUrl: markerShadow,
+});
 
 const GPSConfigPage = () => {
     const [config, setConfig] = useState({
@@ -13,6 +28,20 @@ const GPSConfigPage = () => {
     const [saving, setSaving] = useState(false);
     const [message, setMessage] = useState(null);
     const [error, setError] = useState(null);
+
+    // Map Helper Component
+    const MapClickHandler = () => {
+        useMapEvents({
+            click(e) {
+                setConfig(prev => ({
+                    ...prev,
+                    lat: e.latlng.lat,
+                    lng: e.latlng.lng
+                }));
+            },
+        });
+        return null;
+    };
 
     useEffect(() => {
         fetchConfig();
@@ -198,6 +227,42 @@ const GPSConfigPage = () => {
                                 </div>
                             )}
                         </form>
+
+                        {/* Interactive Geofence Map */}
+                        <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] p-4 shadow-xl border border-gray-100 dark:border-gray-800 h-[400px] overflow-hidden relative group">
+                             <div className="absolute top-4 left-4 z-[500] px-3 py-1.5 bg-white/90 dark:bg-slate-900/90 backdrop-blur-sm rounded-xl border border-gray-100 dark:border-gray-800 text-[9px] font-black uppercase tracking-widest text-primary-500 shadow-lg">
+                                 Interactive Geofence Calibration
+                             </div>
+                             {config.lat && config.lng ? (
+                                <MapContainer 
+                                    center={[config.lat, config.lng]} 
+                                    zoom={18} 
+                                    className="h-full w-full grayscale-[0.2] dark:grayscale-[0.5] dark:invert-[0.1]"
+                                >
+                                    <TileLayer
+                                        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                                    />
+                                    <MapClickHandler />
+                                    <Marker position={[config.lat, config.lng]} />
+                                    <Circle 
+                                        center={[config.lat, config.lng]} 
+                                        radius={Number(config.radius)}
+                                        pathOptions={{ 
+                                            fillColor: '#6366f1', 
+                                            fillOpacity: 0.1, 
+                                            color: '#6366f1',
+                                            weight: 2,
+                                            dashArray: '5, 10'
+                                        }}
+                                    />
+                                </MapContainer>
+                             ) : (
+                                <div className="h-full flex flex-col items-center justify-center text-gray-400 gap-4 bg-gray-50/50 dark:bg-slate-800/20">
+                                    <MapPin size={48} className="animate-bounce-slow" />
+                                    <p className="text-[10px] font-black uppercase tracking-[0.2em]">Awaiting Temporal Coordinates</p>
+                                </div>
+                             )}
+                        </div>
                     </div>
 
                     {/* Information Sidebar */}

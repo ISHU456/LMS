@@ -153,7 +153,7 @@ const DashboardOverview = ({ user }) => {
       )}
 
       {/* Main Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6">
         {[
           { label: 'Network Reach', value: totalStudents, trend: '+12%', icon: Users, accent: 'bg-indigo-50 text-indigo-600', color: '#4361ee' },
           { label: 'Avg Integrity', value: `${Math.round(avgAttendanceForAll)}%`, trend: '-0.4%', icon: CalendarDays, accent: 'bg-emerald-50 text-emerald-600', color: '#10b981' },
@@ -161,17 +161,17 @@ const DashboardOverview = ({ user }) => {
           { label: 'Synergy Score', value: '88%', trend: '+5.2%', icon: Sparkles, accent: 'bg-purple-50 text-purple-600', color: '#7209b7' }
         ].map((s, i) => (
           <motion.div key={i} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.1 }}
-            className="bg-white dark:bg-gray-900 p-6 rounded-[32px] border border-gray-100 dark:border-gray-800 shadow-sm relative overflow-hidden group">
-            <div className="flex items-center justify-between mb-6">
-              <div className={`p-3 rounded-2xl ${s.accent}`}><s.icon size={20}/></div>
-              <span className={`text-[9px] font-black uppercase px-2 py-1 rounded-full ${s.trend.startsWith('+') ? 'bg-emerald-50 text-emerald-500' : 'bg-rose-50 text-rose-500'}`}>
+            className="bg-white dark:bg-gray-900 p-5 lg:p-6 rounded-3xl lg:rounded-[32px] border border-gray-100 dark:border-gray-800 shadow-sm relative overflow-hidden group">
+            <div className="flex items-center justify-between mb-4 lg:mb-6">
+              <div className={`p-2.5 lg:p-3 rounded-2xl ${s.accent}`}><s.icon size={18}/></div>
+              <span className={`text-[8px] lg:text-[9px] font-black uppercase px-2 py-0.5 lg:py-1 rounded-full ${s.trend.startsWith('+') ? 'bg-emerald-50 text-emerald-500' : 'bg-rose-50 text-rose-500'}`}>
                 {s.trend}
               </span>
             </div>
-            <p className="text-4xl font-black text-gray-900 dark:text-white tracking-tighter tabular-nums">{s.value}</p>
-            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mt-1 italic">{s.label}</p>
+            <p className="text-3xl lg:text-4xl font-black text-gray-900 dark:text-white tracking-tighter tabular-nums">{s.value}</p>
+            <p className="text-[9px] lg:text-[10px] font-black text-gray-400 uppercase tracking-widest mt-1 italic">{s.label}</p>
             <div className="absolute -bottom-4 -right-4 opacity-5 group-hover:scale-110 group-hover:-rotate-12 transition-all duration-500 pointer-events-none">
-               <s.icon size={120} />
+               <s.icon size={80} />
             </div>
           </motion.div>
         ))}
@@ -186,31 +186,31 @@ const DashboardOverview = ({ user }) => {
             </h3>
             <span className="text-[9px] font-black text-emerald-500 px-2 py-0.5 bg-emerald-50 dark:bg-emerald-900/20 rounded-full">{stats.length} Active</span>
           </div>
-          <div className="space-y-3 h-[600px] overflow-y-auto pr-2 custom-scrollbar">
+          <div className="space-y-3 max-h-[400px] lg:h-[600px] overflow-y-auto pr-2 custom-scrollbar">
             {stats.map((s, i) => (
               <motion.div key={s.courseId} onClick={() => setActiveCourseIndex(i)}
                 whileHover={{ x: 4 }}
-                className={`w-full p-6 rounded-[32px] text-left transition-all border flex flex-col gap-4 group cursor-pointer ${activeCourseIndex === i ? 'bg-gray-900 dark:bg-white dark:text-gray-900 text-white shadow-2xl scale-105' : 'bg-white dark:bg-gray-900 border-gray-100 dark:border-gray-800 hover:border-emerald-300'}`}>
+                className={`w-full p-5 lg:p-6 rounded-2xl lg:rounded-[32px] text-left transition-all border flex flex-col gap-3 lg:gap-4 group cursor-pointer ${activeCourseIndex === i ? 'bg-gray-900 dark:bg-white dark:text-gray-900 text-white shadow-2xl scale-[1.02]' : 'bg-white dark:bg-gray-900 border-gray-100 dark:border-gray-800 hover:border-emerald-300'}`}>
                 <div className="flex justify-between items-start">
                    <div className="flex flex-col">
-                      <span className={`text-[9px] font-black px-2 py-0.5 rounded-lg border w-fit mb-2 ${activeCourseIndex === i ? 'bg-white/10 border-white/20 text-white dark:bg-gray-100 dark:text-gray-900' : 'bg-emerald-50 border-emerald-100 text-emerald-600'}`}>
+                      <span className={`text-[8px] lg:text-[9px] font-black px-2 py-0.5 rounded-lg border w-fit mb-1.5 lg:mb-2 ${activeCourseIndex === i ? 'bg-white/10 border-white/20 text-white dark:bg-gray-100 dark:text-gray-900' : 'bg-emerald-50 border-emerald-100 text-emerald-600'}`}>
                         {s.courseCode}
                       </span>
-                      <h4 className={`text-sm font-black uppercase tracking-tight leading-tight ${activeCourseIndex === i ? 'text-white dark:text-gray-900' : 'text-gray-900 dark:text-white'}`}>
+                      <h4 className={`text-xs lg:text-sm font-black uppercase tracking-tight leading-tight ${activeCourseIndex === i ? 'text-white dark:text-gray-900' : 'text-gray-900 dark:text-white'}`}>
                         {s.courseName}
                       </h4>
                    </div>
-                   <div className={`p-2 rounded-2xl transition-all ${activeCourseIndex === i ? 'bg-white/10 text-white dark:text-gray-300 shadow-inner' : 'bg-gray-50 text-emerald-500'}`}>
-                      <ShieldCheck size={18}/>
+                   <div className={`p-1.5 lg:p-2 rounded-xl transition-all ${activeCourseIndex === i ? 'bg-white/10 text-white dark:text-gray-300 shadow-inner' : 'bg-gray-50 text-emerald-500'}`}>
+                      <ShieldCheck size={16}/>
                    </div>
                 </div>
                 
-                <div className="flex items-center justify-between mt-2 pt-4 border-t border-dashed border-gray-100 dark:border-white/10">
+                <div className="flex items-center justify-between mt-1 pt-3 lg:pt-4 border-t border-dashed border-gray-100 dark:border-white/10">
                    <div className="flex items-center gap-2">
-                      <div className={`w-2 h-2 rounded-full animate-pulse ${activeCourseIndex === i ? 'bg-emerald-400' : 'bg-emerald-500'}`} />
-                      <span className={`text-[8px] font-black uppercase tracking-widest ${activeCourseIndex === i ? 'text-gray-400' : 'text-gray-400'}`}>Access: Full Admin</span>
+                      <div className={`w-1.5 h-1.5 lg:w-2 lg:h-2 rounded-full animate-pulse ${activeCourseIndex === i ? 'bg-emerald-400' : 'bg-emerald-500'}`} />
+                      <span className={`text-[7px] lg:text-[8px] font-black uppercase tracking-[0.2em] ${activeCourseIndex === i ? 'text-gray-400' : 'text-gray-400'}`}>Access: Full Admin</span>
                    </div>
-                   <span className={`text-[8px] font-black uppercase ${activeCourseIndex === i ? 'text-emerald-400' : 'text-gray-300'}`}>Semester {s.semester}</span>
+                   <span className={`text-[7px] lg:text-[8px] font-black uppercase ${activeCourseIndex === i ? 'text-emerald-400' : 'text-gray-300'}`}>Sem {s.semester}</span>
                 </div>
               </motion.div>
             ))}
@@ -244,7 +244,7 @@ const DashboardOverview = ({ user }) => {
                        <h3 className="text-[10px] font-black text-gray-900 dark:text-white uppercase tracking-widest flex items-center gap-2"><TrendingUp size={14} className="text-indigo-500"/> Attendance Flux</h3>
                        <span className="text-[8px] font-black text-indigo-500 bg-indigo-50 px-2 py-0.5 rounded-md uppercase">14-Day Cycle</span>
                     </div>
-                    <div className="h-[200px] w-full">
+                    <div className="h-[250px] w-full min-h-[250px]">
                        {isMounted && (
                          <ResponsiveContainer width="100%" height="100%">
                             <AreaChart data={[
@@ -271,7 +271,7 @@ const DashboardOverview = ({ user }) => {
                        <h3 className="text-[10px] font-black text-gray-900 dark:text-white uppercase tracking-widest flex items-center gap-2"><LayoutGrid size={14} className="text-emerald-500"/> Peer Comparison</h3>
                        <span className="text-[8px] font-black text-gray-400 uppercase tracking-widest">Global Avg: 82%</span>
                     </div>
-                    <div className="h-[200px] w-full">
+                    <div className="h-[250px] w-full min-h-[250px]">
                        {isMounted && (
                          <ResponsiveContainer width="100%" height="100%">
                             <BarChart data={stats.slice(0, 5).map(s => ({ name: s.courseCode, val: s.avgAttendance }))}>

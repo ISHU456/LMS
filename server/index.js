@@ -16,16 +16,18 @@ import attendanceRoutes from './routes/attendanceRoutes.js';
 import courseAccessRoutes from './routes/courseAccessRoutes.js';
 import adminRoutes from './routes/adminRoutes.js';
 import resultRoutes from './routes/resultRoutes.js';
-import codingContestRoutes from './routes/codingContestRoutes.js';
 import notificationRoutes from './routes/notificationRoutes.js';
 import mfaRoutes from './routes/mfaRoutes.js';
+import accessRequestRoutes from './routes/accessRequestRoutes.js';
+import gamificationRoutes from './routes/gamificationRoutes.js';
+import newsRoutes from './routes/newsRoutes.js';
+
 import Department from './models/Department.js';
 import Course from './models/Course.js';
 import SystemSettings from './models/SystemSettings.js';
 
 // Connect to Database
 connectDB().then(async () => {
-  // Auto-seed if database is empty
   try {
     const deptCount = await Department.countDocuments();
     if (deptCount === 0) {
@@ -98,6 +100,10 @@ app.use('/api/admin', adminRoutes);
 app.use('/api/results', resultRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/mfa', mfaRoutes);
+app.use('/api/access-requests', accessRequestRoutes);
+app.use('/api/gamification', gamificationRoutes);
+app.use('/api/news', newsRoutes);
+
 
 // PUBLIC SETTINGS
 app.get('/api/public/settings', async (req, res) => {
