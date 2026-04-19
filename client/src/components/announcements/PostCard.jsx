@@ -3,7 +3,7 @@ import {
   Heart, MessageSquare, Share2, MoreVertical, 
   Trash2, Pin, Info, ExternalLink, Paperclip, 
   Play, Maximize2, Download, CheckCircle2,
-  Clock, Calendar, MapPin, Twitter, Facebook, Linkedin, Link2
+  Clock, Calendar, MapPin, Twitter, Facebook, Linkedin, Link2, ShieldCheck
 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import axios from 'axios';
@@ -187,6 +187,19 @@ const PostCard = ({ announcement, user, onUpdate, onDelete }) => {
     setShowShareMenu(false);
   };
 
+  const handleReport = async () => {
+    const reason = window.prompt("Reason for reporting this post:");
+    if (reason === null) return; // Cancelled
+    
+    try {
+      const res = await axios.post(`${API_BASE}/announcements/${announcement._id}/report`, { reason }, { headers });
+      alert(res.data.message);
+      setIsMenuOpen(false);
+    } catch (err) {
+      alert(err.response?.data?.message || "Failed to report post");
+    }
+  };
+
   const renderMedia = () => {
     const { type, videoUrl, attachments, externalLink } = announcement;
     
@@ -286,41 +299,60 @@ const PostCard = ({ announcement, user, onUpdate, onDelete }) => {
   return (
     <motion.div 
       layout
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      className="bg-white dark:bg-gray-900/40 border border-gray-100 dark:border-gray-800 rounded-[2.5rem] p-6 shadow-xl shadow-gray-200/50 dark:shadow-none hover:shadow-2xl hover:shadow-primary-500/10 transition-all group"
+      initial={{ opacity: 0, scale: 0.98 }}
+      animate={{ opacity: 1, scale: 1 }}
+      className="bg-white dark:bg-[#0b0f1a] border border-slate-100 dark:border-white/5 rounded-[3rem] p-8 shadow-2xl shadow-slate-200/50 dark:shadow-none transition-all group relative"
     >
+      {/* Institutional Priority Glow */}
+      {(announcement.pinned || announcement.priority === 'critical') && (
+        <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/5 to-purple-500/5 rounded-[3rem] pointer-events-none" />
+      )}
+
       {/* Header */}
-      <div className="flex justify-between items-start mb-4">
-        <div className="flex gap-4">
+      <div className="flex justify-between items-start mb-6 relative z-10">
+        <div className="flex gap-5">
           <div className="relative">
-            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-primary-500 to-indigo-600 p-[2px]">
-              <div className="w-full h-full rounded-[0.85rem] bg-white dark:bg-gray-900 overflow-hidden flex items-center justify-center p-0.5">
-                {announcement.author?.profilePic ? (
-                  <img src={announcement.author.profilePic} alt={announcement.author?.name} className="w-full h-full object-cover rounded-[0.7rem]" />
-                ) : (
-                  <span className="text-lg font-black text-primary-600">{announcement.author?.name?.charAt(0) || 'A'}</span>
-                )}
+            <div className={`w-14 h-14 rounded-full p-[2px] ${announcement.author?.role === 'admin' ? 'bg-gradient-to-tr from-emerald-400 to-indigo-600' : 'bg-gradient-to-tr from-slate-200 to-slate-300 dark:from-slate-700 dark:to-slate-800'}`}>
+              <div className="w-full h-full rounded-full bg-white dark:bg-[#0b0f19] p-0.5">
+                <div className="w-full h-full rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden flex items-center justify-center">
+                   {announcement.author?.profilePic ? (
+                     <img src={announcement.author.profilePic} alt={announcement.author?.name} className="w-full h-full object-cover" />
+                   ) : (
+                     <span className="text-xl font-black text-slate-400">{announcement.author?.name?.charAt(0) || 'A'}</span>
+                   )}
+                </div>
               </div>
             </div>
             {announcement.author?.role === 'admin' && (
-              <div className="absolute -bottom-1 -right-1 bg-white dark:bg-gray-900 rounded-lg p-0.5">
-                <CheckCircle2 size={14} className="text-primary-500 fill-primary-500/10" />
+              <div className="absolute -bottom-1 -right-1 bg-indigo-600 rounded-full p-1 shadow-lg border-2 border-white dark:border-[#0b0f1a]">
+                <ShieldCheck size={10} className="text-white" />
+              </div>
+            )}
+            {announcement.author?.role === 'teacher' && (
+              <div className="absolute -bottom-1 -right-1 bg-emerald-500 rounded-full p-1 shadow-lg border-2 border-white dark:border-[#0b0f1a]">
+                <CheckCircle2 size={10} className="text-white" />
               </div>
             )}
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <h3 className="font-black text-gray-900 dark:text-white text-base leading-tight">
-                {announcement.author?.name || 'Academic Office'}
+              <h3 className="font-black text-slate-900 dark:text-white text-lg tracking-tight">
+                {announcement.author?.name || 'Academic Nexus'}
               </h3>
               {announcement.pinned && (
-                <Pin size={14} className="text-amber-500 fill-amber-500/10 transform rotate-45" />
+                <div className="flex items-center gap-1.5 px-2 py-0.5 bg-amber-500/10 border border-amber-500/20 rounded-md">
+                   <Pin size={10} className="text-amber-500 fill-amber-500/10 transform rotate-45" />
+                   <span className="text-[8px] font-black text-amber-600 uppercase tracking-widest">Pinned</span>
+                </div>
               )}
             </div>
-            <div className="flex items-center gap-2 mt-1">
-              <span className="text-[10px] font-black uppercase tracking-widest text-gray-500">
-                {announcement.author?.role || 'Staff'} • {safeFormatDate(announcement.createdAt)}
+            <div className="flex items-center gap-3 mt-1.5">
+              <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 dark:text-gray-500">
+                {announcement.author?.role || 'Contributor'}
+              </span>
+              <span className="w-1 h-1 rounded-full bg-slate-200 dark:bg-gray-700" />
+              <span className="text-[10px] font-bold text-slate-400 dark:text-gray-500">
+                {safeFormatDate(announcement.createdAt)}
               </span>
             </div>
           </div>
@@ -350,7 +382,10 @@ const PostCard = ({ announcement, user, onUpdate, onDelete }) => {
                     <Trash2 size={16} /> Delete Post
                   </button>
                 )}
-                <button className="w-full flex items-center gap-3 px-4 py-3 text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors font-bold">
+                <button 
+                  onClick={handleReport}
+                  className="w-full flex items-center gap-3 px-4 py-3 text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors font-bold"
+                >
                   <Info size={16} /> Report Post
                 </button>
               </motion.div>
@@ -391,17 +426,17 @@ const PostCard = ({ announcement, user, onUpdate, onDelete }) => {
       </div>
 
       {/* Interaction Buttons */}
-      <div className="flex items-center justify-between mt-6 pt-4 border-t border-gray-100 dark:border-gray-800">
-        <div className="flex items-center gap-4 relative">
+      <div className="flex items-center justify-between mt-8 pt-6 border-t border-slate-100 dark:border-white/5 relative z-10">
+        <div className="flex items-center gap-2 sm:gap-6">
           <div className="relative">
             <button 
               onMouseEnter={() => setShowReactionPicker(true)}
               onMouseLeave={() => setTimeout(() => setShowReactionPicker(false), 2000)}
               onClick={() => handleReact('like')}
-              className={`flex items-center gap-2 px-4 py-2 rounded-xl transition-all font-bold ${currentReaction ? 'bg-primary-50 dark:bg-primary-900/20 text-primary-600' : 'hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-500'}`}
+              className={`flex items-center gap-2 px-6 py-3 rounded-2xl transition-all font-black uppercase tracking-widest text-[10px] ${currentReaction ? 'bg-primary-50 dark:bg-primary-900/20 text-primary-600 shadow-lg shadow-primary-500/10' : 'hover:bg-slate-50 dark:hover:bg-white/5 text-slate-500'}`}
             >
-              {currentReaction ? reactionEmojis[currentReaction] : <Heart size={18} className={isLiked ? 'fill-red-500 text-red-500' : ''} />}
-              <span className="text-xs">
+              {currentReaction ? reactionEmojis[currentReaction] : <Heart size={20} className={isLiked ? 'fill-red-500 text-red-500' : ''} />}
+              <span>
                 {Object.values(reactions).reduce((a, b) => a + b, 0) || likesCount}
               </span>
             </button>
@@ -413,13 +448,13 @@ const PostCard = ({ announcement, user, onUpdate, onDelete }) => {
                   animate={{ opacity: 1, y: 0, scale: 1 }}
                   exit={{ opacity: 0, y: 10, scale: 0.9 }}
                   onMouseEnter={() => setShowReactionPicker(true)}
-                  className="absolute bottom-full left-0 mb-2 p-2 bg-white dark:bg-gray-800 rounded-2xl shadow-2xl border border-gray-100 dark:border-gray-700 flex gap-2 z-50"
+                  className="absolute bottom-full left-0 mb-4 p-3 bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl rounded-[2rem] shadow-2xl border border-white/20 flex gap-3 z-50"
                 >
                   {Object.entries(reactionEmojis).map(([type, emoji]) => (
                     <button 
                       key={type}
                       onClick={() => handleReact(type)}
-                      className={`text-2xl hover:scale-125 transition-transform p-1 rounded-lg ${currentReaction === type ? 'bg-primary-50 dark:bg-primary-900/30' : ''}`}
+                      className={`text-3xl hover:scale-150 transition-transform p-3 rounded-2xl hover:bg-slate-50 dark:hover:bg-white/10 ${currentReaction === type ? 'bg-primary-50 dark:bg-primary-900/30' : ''}`}
                     >
                       {emoji}
                     </button>
@@ -431,19 +466,19 @@ const PostCard = ({ announcement, user, onUpdate, onDelete }) => {
 
           <button 
             onClick={loadComments}
-            className="flex items-center gap-2 px-4 py-2 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 transition-all text-gray-500 font-bold"
+            className="flex items-center gap-2 px-6 py-3 rounded-2xl hover:bg-slate-50 dark:hover:bg-white/5 transition-all text-slate-500 font-black uppercase tracking-widest text-[10px]"
           >
-            <MessageSquare size={18} />
-            <span className="text-xs">{commentsCount}</span>
+            <MessageSquare size={20} />
+            <span>{commentsCount} <span className="hidden sm:inline">Comments</span></span>
           </button>
         </div>
 
         <div className="relative">
           <button 
             onClick={handleShare}
-            className={`p-2 rounded-xl transition-colors font-bold ${showShareMenu ? 'bg-primary-50 dark:bg-primary-900/30 text-primary-600' : 'hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-400'}`}
+            className={`p-3 rounded-2xl transition-all ${showShareMenu ? 'bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 shadow-lg shadow-indigo-500/10' : 'hover:bg-slate-50 dark:hover:bg-white/5 text-slate-400'}`}
           >
-            <Share2 size={18} />
+            <Share2 size={20} />
           </button>
           
           <AnimatePresence>

@@ -23,7 +23,7 @@ const SidebarNav = ({
   return (
     <aside 
       style={{ width: window.innerWidth < 1024 ? '280px' : (sidebarOpen ? sidebarWidth : 80) }}
-      className={`fixed lg:relative inset-y-0 left-0 bg-white dark:bg-[#0b0f19] border-r border-gray-100 dark:border-gray-800 flex flex-col shrink-0 z-[101] relative shadow-2xl transition-all duration-300 ${!sidebarOpen && 'w-20'} ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}
+      className={`fixed lg:relative inset-y-0 left-0 surface-elevation border-r border-gray-100 dark:border-gray-800 flex flex-col shrink-0 z-[101] relative shadow-2xl transition-all duration-300 ${!sidebarOpen && 'w-20'} ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}
     >
       {/* Resize Handle (The Slider) */}
       {/* Resize Handle (The Slider) */}
@@ -113,19 +113,20 @@ const SidebarNav = ({
                 if (window.innerWidth < 1024) setSidebarOpen(false);
               }
             }} 
-            className={`w-full flex items-center relative rounded-2xl transition-all duration-300 group ${activeSection === t.id ? t.active + ' shadow-lg' : 'bg-transparent text-gray-500 hover:bg-gray-50 dark:hover:bg-gray-800/30 hover:text-gray-900 dark:hover:text-white'} ${sidebarOpen ? 'px-4 py-2' : 'h-12 w-12 mx-auto justify-center'} mb-1`}
-          >
+            className={`w-full flex items-center relative rounded-2xl transition-all duration-300 group ${activeSection === t.id ? t.active + ' shadow-lg' : 'bg-transparent text-gray-500 hover:bg-gray-50 dark:hover:bg-gray-800/30 hover:text-gray-900 dark:hover:text-white'} ${sidebarOpen ? 'px-5 py-4' : 'h-14 w-14 mx-auto justify-center'} mb-1`}>
             <div className={`flex items-center relative z-10 ${sidebarOpen ? 'w-full justify-between' : 'justify-center w-full'}`}>
               <div className={`flex items-center ${sidebarOpen ? 'gap-3' : 'justify-center'}`}>
-                <div className={`w-8 h-8 shrink-0 rounded-xl flex items-center justify-center transition-colors ${activeSection === t.id ? 'bg-white/20 text-white' : t.color}`}>
-                  <t.icon size={16} />
+                <div className={`w-10 h-10 shrink-0 rounded-xl flex items-center justify-center transition-colors ${activeSection === t.id ? 'bg-white/20 text-white' : t.color}`}>
+                  <t.icon size={20} />
                 </div>
                 {sidebarOpen && (
-                  <span className="text-[9px] font-black uppercase tracking-widest leading-none whitespace-nowrap">{t.label}</span>
+                  <span className={`font-black uppercase tracking-widest leading-none whitespace-nowrap ${t.id === 'ai-assistant' ? 'text-xs text-primary-600 dark:text-primary-400' : 'text-[11px]'}`}>
+                    {t.label}
+                  </span>
                 )}
               </div>
               {activeSection === t.id && sidebarOpen && (
-                <div className="w-1.5 h-1.5 bg-white rounded-full relative z-10 animate-pulse" />
+                <div className="w-2 h-2 bg-white rounded-full relative z-10 animate-pulse" />
               )}
             </div>
           </button>

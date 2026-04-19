@@ -11,9 +11,9 @@ import { useSelector } from 'react-redux';
 import { motion, AnimatePresence } from 'framer-motion';
 import axios from 'axios';
 
-const Courses = () => {
+const Courses = ({ isEmbedded = false }) => {
   const { user } = useSelector(state => state.auth);
-  const [sidebarOpen, setSidebarOpen] = useState(window.innerWidth >= 1024);
+  const [sidebarOpen, setSidebarOpen] = useState(window.innerWidth >= 1024 && !isEmbedded);
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
   const [activeSem, setActiveSem] = useState(() => localStorage.getItem('courses_active_sem') || 'All');
 
@@ -188,89 +188,95 @@ const Courses = () => {
 
   return (
     <>
-    <div className="flex h-[calc(100vh-80px)] w-full bg-[#fafbfc] dark:bg-[#060811] overflow-hidden">
+    <div className={`flex ${isEmbedded ? 'h-full' : 'h-[calc(100vh-80px)]'} w-full bg-[#fafbfc] dark:bg-[#060811] overflow-hidden`}>
       
-      <AnimatePresence>
-        {isMobileSidebarOpen && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            onClick={() => setIsMobileSidebarOpen(false)}
-            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] lg:hidden"
-          />
-        )}
-      </AnimatePresence>
-
-      <aside className={`fixed lg:relative inset-y-0 left-0 bg-white dark:bg-[#0b0f19] border-r border-gray-100 dark:border-gray-800 flex flex-col shrink-0 z-[101] overflow-hidden shadow-2xl transition-all duration-300 ${sidebarOpen ? 'w-72' : 'w-20'} ${isMobileSidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}>
-        <div className={`p-6 border-b border-gray-50 dark:border-gray-800/50 sticky top-0 bg-white dark:bg-[#0b0f19] z-20 ${sidebarOpen ? 'p-8 flex justify-between items-center' : 'p-4 flex justify-center'}`}>
-          <div className="flex items-center gap-4">
-            <Link to="/dashboard" className="w-10 h-10 flex items-center justify-center bg-gray-50 dark:bg-gray-800/80 rounded-2xl text-gray-400 hover:text-primary-600 transition-all border border-transparent hover:border-gray-200 dark:hover:border-gray-700 shrink-0">
-              <ArrowRight size={18} className="rotate-180" />
-            </Link>
-            <div className={`flex flex-col transition-opacity duration-200 ${sidebarOpen ? 'opacity-100 flex' : 'opacity-0 hidden'}`}>
-              <span className="text-[8px] font-black text-primary-600 dark:text-primary-400 uppercase tracking-widest">Global Matrix</span>
-              <span className="text-xs font-black text-gray-800 dark:text-white uppercase tracking-tighter">Curriculum</span>
-            </div>
-          </div>
-          <button onClick={() => { setSidebarOpen(false); setIsMobileSidebarOpen(false); }} className="lg:hidden p-2 bg-gray-50 dark:bg-gray-800 text-gray-500 rounded-xl">
-            <X size={18} />
-          </button>
-          {sidebarOpen && (
-            <button
-              onClick={() => setSidebarOpen(false)}
-              className="p-2 hidden lg:flex bg-gray-50 dark:bg-gray-800 text-gray-400 hover:text-primary-600 rounded-xl transition-all h-10 w-10 items-center justify-center"
-            >
-              <Layout size={18} />
-            </button>
+      {!isEmbedded && (
+        <>
+        <AnimatePresence>
+          {isMobileSidebarOpen && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setIsMobileSidebarOpen(false)}
+              className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] lg:hidden"
+            />
           )}
-        </div>
+        </AnimatePresence>
 
-        {!sidebarOpen && (
-          <div className="px-4 pb-4 border-b border-gray-50 dark:border-gray-800/50 flex justify-center hidden lg:flex">
-             <button
-               onClick={() => setSidebarOpen(true)}
-               className="p-2 bg-primary-50 dark:bg-primary-900/20 text-primary-600 rounded-xl transition-all h-10 w-10 flex items-center justify-center"
-             >
-               <Layout size={18} />
-             </button>
+        <aside className={`fixed lg:relative inset-y-0 left-0 bg-white dark:bg-[#0b0f19] border-r border-gray-100 dark:border-gray-800 flex flex-col shrink-0 z-[101] overflow-hidden shadow-2xl transition-all duration-300 ${sidebarOpen ? 'w-72' : 'w-20'} ${isMobileSidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}>
+          <div className={`p-6 border-b border-gray-50 dark:border-gray-800/50 sticky top-0 bg-white dark:bg-[#0b0f19] z-20 ${sidebarOpen ? 'p-8 flex justify-between items-center' : 'p-4 flex justify-center'}`}>
+            <div className="flex items-center gap-4">
+              <Link to="/dashboard" className="w-10 h-10 flex items-center justify-center bg-gray-50 dark:bg-gray-800/80 rounded-2xl text-gray-400 hover:text-primary-600 transition-all border border-transparent hover:border-gray-200 dark:hover:border-gray-700 shrink-0">
+                <ArrowRight size={18} className="rotate-180" />
+              </Link>
+              <div className={`flex flex-col transition-opacity duration-200 ${sidebarOpen ? 'opacity-100 flex' : 'opacity-0 hidden'}`}>
+                <span className="text-[8px] font-black text-primary-600 dark:text-primary-400 uppercase tracking-widest">Global Matrix</span>
+                <span className="text-xs font-black text-gray-800 dark:text-white uppercase tracking-tighter">Curriculum</span>
+              </div>
+            </div>
+            <button onClick={() => { setSidebarOpen(false); setIsMobileSidebarOpen(false); }} className="lg:hidden p-2 bg-gray-50 dark:bg-gray-800 text-gray-500 rounded-xl">
+              <X size={18} />
+            </button>
+            {sidebarOpen && (
+              <button
+                onClick={() => setSidebarOpen(false)}
+                className="p-2 hidden lg:flex bg-gray-50 dark:bg-gray-800 text-gray-400 hover:text-primary-600 rounded-xl transition-all h-10 w-10 items-center justify-center"
+              >
+                <Layout size={18} />
+              </button>
+            )}
           </div>
-        )}
 
-        <nav className={`flex-1 py-8 space-y-2 overflow-y-auto min-h-0 custom-scrollbar pr-2 ${sidebarOpen ? 'px-6' : 'px-3'}`}>
-             {semesters.map((sem) => (
-                 <button 
-                  key={sem.id} 
-                  onClick={() => {
-                    setActiveSem(sem.id);
-                    if (window.innerWidth < 1024) setIsMobileSidebarOpen(false);
-                  }} 
-                  className={`w-full flex items-center gap-4 relative rounded-2xl transition-all duration-300 group ${activeSem === sem.id ? sem.active + ' shadow-lg' : 'bg-transparent text-gray-500 hover:text-gray-900 dark:hover:text-white'} ${sidebarOpen ? 'px-4 py-2' : 'h-12 justify-center'} ${isSemLocked(sem.id) ? 'opacity-60 grayscale' : ''}`}
-                >
-                  <div className={`flex items-center relative z-10 ${sidebarOpen ? 'w-full justify-between' : 'justify-center w-full'}`}>
-                    <div className={`flex items-center ${sidebarOpen ? 'gap-3' : 'justify-center'}`}>
-                      <div className={`w-8 h-8 shrink-0 rounded-xl flex items-center justify-center transition-colors ${activeSem === sem.id ? 'bg-white/20 text-white' : sem.color}`}>
-                        {isSemLocked(sem.id) ? <Lock size={14} /> : isSemCompleted(sem.id) ? <CheckCircle2 size={16} /> : <sem.icon size={16} />}
+          {!sidebarOpen && (
+            <div className="px-4 pb-4 border-b border-gray-50 dark:border-gray-800/50 flex justify-center hidden lg:flex">
+               <button
+                 onClick={() => setSidebarOpen(true)}
+                 className="p-2 bg-primary-50 dark:bg-primary-900/20 text-primary-600 rounded-xl transition-all h-10 w-10 flex items-center justify-center"
+               >
+                 <Layout size={18} />
+               </button>
+            </div>
+          )}
+
+          <nav className={`flex-1 py-8 space-y-2 overflow-y-auto min-h-0 custom-scrollbar pr-2 ${sidebarOpen ? 'px-6' : 'px-3'}`}>
+               {semesters.map((sem) => (
+                   <button 
+                    key={sem.id} 
+                    onClick={() => {
+                      setActiveSem(sem.id);
+                      if (window.innerWidth < 1024) setIsMobileSidebarOpen(false);
+                    }} 
+                    className={`w-full flex items-center gap-4 relative rounded-2xl transition-all duration-300 group ${activeSem === sem.id ? sem.active + ' shadow-lg' : 'bg-transparent text-gray-500 hover:text-gray-900 dark:hover:text-white'} ${sidebarOpen ? 'px-4 py-2' : 'h-12 justify-center'} ${isSemLocked(sem.id) ? 'opacity-60 grayscale' : ''}`}
+                  >
+                    <div className={`flex items-center relative z-10 ${sidebarOpen ? 'w-full justify-between' : 'justify-center w-full'}`}>
+                      <div className={`flex items-center ${sidebarOpen ? 'gap-3' : 'justify-center'}`}>
+                        <div className={`w-8 h-8 shrink-0 rounded-xl flex items-center justify-center transition-colors ${activeSem === sem.id ? 'bg-white/20 text-white' : sem.color}`}>
+                          {isSemLocked(sem.id) ? <Lock size={14} /> : isSemCompleted(sem.id) ? <CheckCircle2 size={16} /> : <sem.icon size={16} />}
+                        </div>
+                        {sidebarOpen && <span className="text-[9px] font-black uppercase tracking-widest">{sem.label}</span>}
                       </div>
-                      {sidebarOpen && <span className="text-[9px] font-black uppercase tracking-widest">{sem.label}</span>}
                     </div>
-                  </div>
-                </button>
-             ))}
-        </nav>
-      </aside>
+                  </button>
+               ))}
+          </nav>
+        </aside>
+        </>
+      )}
 
       <main className="flex-1 overflow-y-auto custom-scrollbar bg-slate-50/50 dark:bg-[#060811] flex flex-col transition-all">
          
-      <header className="sticky top-0 z-20 px-4 lg:px-8 py-5 bg-white/80 dark:bg-[#060811]/80 backdrop-blur-xl border-b border-gray-100 dark:border-gray-800 flex items-center justify-between gap-4">
+      <header className={`sticky top-0 z-20 px-4 lg:px-8 py-5 bg-white/80 dark:bg-[#060811]/80 backdrop-blur-xl border-b border-gray-100 dark:border-gray-800 flex items-center justify-between gap-4 ${isEmbedded ? 'rounded-t-[3rem]' : ''}`}>
          <div className="flex items-center gap-3">
-            <button onClick={() => setIsMobileSidebarOpen(true)} className="lg:hidden p-2.5 bg-primary-600 text-white rounded-xl shadow-lg shadow-primary-500/20">
-               <Layers size={18} />
-            </button>
+            {!isEmbedded && (
+              <button onClick={() => setIsMobileSidebarOpen(true)} className="lg:hidden p-2.5 bg-primary-600 text-white rounded-xl shadow-lg shadow-primary-500/20">
+                 <Layers size={18} />
+              </button>
+            )}
             <div className="flex flex-col">
                <span className="text-[8px] font-black text-primary-600 uppercase tracking-widest hidden lg:block">Architecture Flow</span>
                <h2 className="text-sm lg:text-xl font-black text-gray-900 dark:text-white uppercase tracking-tighter leading-none truncate max-w-[150px] lg:max-w-none">
-                  {selectedDept?.name || 'Curriculum'}
+                  {selectedDept?.name || 'Curriculum Hub'}
                </h2>
             </div>
          </div>
@@ -288,7 +294,7 @@ const Courses = () => {
          </div>
       </header>
       
-      <div className="lg:hidden sticky top-[72px] z-[35] flex overflow-x-auto py-4 px-4 bg-white/95 dark:bg-[#060811]/95 backdrop-blur-3xl border-b border-gray-100 dark:border-gray-800 custom-scrollbar gap-3 no-scrollbar shadow-lg shadow-black/5">
+      <div className={`${isEmbedded ? 'flex' : 'lg:hidden'} sticky top-[72px] z-[35] flex overflow-x-auto py-4 px-4 bg-white/95 dark:bg-[#060811]/95 backdrop-blur-3xl border-b border-gray-100 dark:border-gray-800 custom-scrollbar gap-3 no-scrollbar shadow-lg shadow-black/5`}>
         {semesters.map((sem) => (
           <button 
             key={sem.id} 

@@ -4,7 +4,27 @@
 @tailwind components;
 @tailwind utilities;
 
+/* 
+  DYNAMIC THEME OVERRIDES 
+  Ensures the global background flows correctly while allowing 
+  components to maintain their own surface elevation.
+*/
+.app-bg-sync {
+  background-color: var(--bg-light) !important;
+}
+
+.dark .app-bg-sync {
+  background-color: var(--bg-dark) !important;
+}
+
+/* Ensure root containers are transparent to show the body background */
+#root, .app-container {
+  background-color: transparent !important;
+}
+
 :root {
+  --bg-light: #FDFBF7;
+  --bg-dark: #0f172a;
   scroll-behavior: smooth;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -12,11 +32,11 @@
 
 html {
   font-size: 14px;
-  background-color: #f8fafc;
+  background-color: var(--bg-light);
 }
 
 .dark html {
-  background-color: #0f172a;
+  background-color: var(--bg-dark);
 }
 
 body {
@@ -24,13 +44,13 @@ body {
   overflow-x: hidden;
   font-family: 'Inter', sans-serif;
   line-height: 1.5;
-  background-color: #f8fafc;
+  background-color: transparent;
   color: #0f172a;
   transition: background-color 0.3s ease;
 }
 
 .dark body {
-  background-color: #0f172a;
+  background-color: var(--bg-dark);
   color: #f8fafc;
 }
 
@@ -55,15 +75,29 @@ body {
 }
 
 .glass {
-  background: rgba(255, 255, 255, 0.7);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.3);
+  background: rgba(255, 255, 255, 0.45);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  box-shadow: 0 10px 40px -10px rgba(0, 0, 0, 0.05);
 }
 
 .dark .glass {
-  background: rgba(15, 23, 42, 0.7);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(15, 23, 42, 0.35);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  box-shadow: 0 10px 40px -10px rgba(0, 0, 0, 0.4);
+}
+
+.surface-elevation {
+  background: rgba(255, 255, 255, 0.8) !important;
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.dark .surface-elevation {
+  background: rgba(30, 41, 59, 0.5) !important;
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.05);
 }
 
 /* Scrollbar */
@@ -136,4 +170,31 @@ body {
 }
 .animate-bounce-subtle {
   animation: bounce-subtle 2s ease-in-out infinite;
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+  width: 8px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: rgba(0,0,0,0.02);
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 20px;
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+
+.dark .custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #475569;
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+  border: 2px solid transparent;
+  background-clip: content-box;
 }

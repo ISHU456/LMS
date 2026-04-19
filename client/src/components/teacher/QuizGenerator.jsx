@@ -2,10 +2,12 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Plus, Trash2, Save, X, Brain, Clock, 
-  Target, Zap, Shield, HelpCircle, ChevronDown, ChevronUp 
+  Target, Zap, Shield, HelpCircle, ChevronDown, ChevronUp, Sparkles
 } from 'lucide-react';
 import axios from 'axios';
 import { useSelector } from 'react-redux';
+import AIQuizCreatorForm from './AIQuizCreatorForm.jsx';
+
 
 const QuizGenerator = ({ onClose, onSave }) => {
   const { user } = useSelector(state => state.auth);
@@ -22,18 +24,21 @@ const QuizGenerator = ({ onClose, onSave }) => {
       speedBonusMultiplier: 1.5
     },
     questions: [
-      { question: '', options: ['', '', '', ''], correctAnswer: 0, explanation: '' }
+      { text: '', options: ['', '', '', ''], correctAnswer: '', explanation: '', type: 'mcq' }
     ]
   });
 
   const [isLoading, setIsLoading] = useState(false);
+  const [showAIModal, setShowAIModal] = useState(false);
+
 
   const addQuestion = () => {
     setQuizForm({
       ...quizForm,
-      questions: [...quizForm.questions, { question: '', options: ['', '', '', ''], correctAnswer: 0, explanation: '' }]
+      questions: [...quizForm.questions, { text: '', options: ['', '', '', ''], correctAnswer: '', explanation: '', type: 'mcq' }]
     });
   };
+
 
   const removeQuestion = (index) => {
     const newQuestions = quizForm.questions.filter((_, i) => i !== index);
@@ -52,6 +57,23 @@ const QuizGenerator = ({ onClose, onSave }) => {
     setQuizForm({ ...quizForm, questions: newQuestions });
   };
 
+  const handleAIGenerated = (data) => {
+    setQuizForm({
+      ...quizForm,
+      title: data.title,
+      description: data.description,
+      category: data.category,
+      difficulty: data.difficulty,
+      questions: data.questions.map(q => ({
+        text: q.text,
+        options: q.options || [],
+        correctAnswer: q.correctAnswer,
+        explanation: q.explanation || '',
+        type: q.type || 'mcq'
+      }))
+    });
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsLoading(true);
@@ -67,6 +89,7 @@ const QuizGenerator = ({ onClose, onSave }) => {
       setIsLoading(false);
     }
   };
+
 
   return (
     <motion.div 
@@ -147,14 +170,35 @@ const QuizGenerator = ({ onClose, onSave }) => {
               <h3 className="text-sm font-black text-white uppercase tracking-widest flex items-center gap-3">
                 <HelpCircle size={18} className="text-indigo-500" /> Question Blocks
               </h3>
+            <div className="flex items-center gap-3">
+              <button 
+                type="button"
+                onClick={() => setShowAIModal(true)}
+                className="px-5 py-2.5 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-xl text-[10px] font-black uppercase tracking-widest shadow-lg hover:from-purple-500 hover:to-indigo-500 transition-all flex items-center gap-2"
+              >
+                <Sparkles size={14} /> Generate via AI
+              </button>
               <button 
                 type="button"
                 onClick={addQuestion}
-                className="px-5 py-2.5 bg-indigo-600 text-white rounded-xl text-[10px] font-black uppercase tracking-widest shadow-lg hover:bg-indigo-500 transition-all flex items-center gap-2"
+                className="px-5 py-2.5 bg-white/5 border border-white/10 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-white/10 transition-all flex items-center gap-2"
               >
                 <Plus size={14} /> Add Block
               </button>
             </div>
+          </div>
+
+          <AnimatePresence>
+            {showAIModal && (
+              <div className="fixed inset-0 z-[7000] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+                <AIQuizCreatorForm 
+                  onClose={() => setShowAIModal(false)}
+                  onGenerated={handleAIGenerated} 
+                />
+              </div>
+            )}
+          </AnimatePresence>
+
 
             {quizForm.questions.map((q, qIdx) => (
               <motion.div 
@@ -178,11 +222,12 @@ const QuizGenerator = ({ onClose, onSave }) => {
                         <input 
                           type="text" 
                           required
-                          value={q.question}
-                          onChange={e => handleQuestionChange(qIdx, 'question', e.target.value)}
+                          value={q.text}
+                          onChange={e => handleQuestionChange(qIdx, 'text', e.target.value)}
                           className="w-full bg-black/40 border border-white/5 rounded-xl px-5 py-3.5 text-sm font-bold text-white outline-none focus:border-indigo-500 transition-all"
                           placeholder="State the inquiry..."
                         />
+
                       </div>
                       <div>
                         <label className="text-[9px] font-black text-gray-500 uppercase tracking-widest mb-3 block">Explanation (Optional)</label>
@@ -201,10 +246,10 @@ const QuizGenerator = ({ onClose, onSave }) => {
                         <div key={oIdx} className="flex items-center gap-3">
                           <button 
                             type="button"
-                            onClick={() => handleQuestionChange(qIdx, 'correctAnswer', oIdx)}
-                            className={`w-6 h-6 rounded-lg border-2 flex items-center justify-center transition-all ${q.correctAnswer === oIdx ? 'bg-emerald-500 border-emerald-400 text-white' : 'border-white/10 hover:border-white/30'}`}
+                            onClick={() => handleQuestionChange(qIdx, 'correctAnswer', opt)}
+                            className={`w-6 h-6 rounded-lg border-2 flex items-center justify-center transition-all ${q.correctAnswer === opt ? 'bg-emerald-500 border-emerald-400 text-white' : 'border-white/10 hover:border-white/30'}`}
                           >
-                            {q.correctAnswer === oIdx && <Save size={10} />}
+                            {q.correctAnswer === opt && <Save size={10} />}
                           </button>
                           <input 
                             type="text" 
@@ -216,6 +261,7 @@ const QuizGenerator = ({ onClose, onSave }) => {
                           />
                         </div>
                       ))}
+
                    </div>
                 </div>
               </motion.div>

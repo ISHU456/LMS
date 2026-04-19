@@ -304,9 +304,9 @@ const AttendanceManager = ({ user, initialSemester, initialCourse, onPersistChan
         <div className="flex flex-col md:flex-row items-center gap-4 w-full xl:w-auto">
           {viewMode === 'mark' && (
             <div className="w-full xl:w-auto px-2 py-3 bg-gray-50/50 dark:bg-gray-800/40 rounded-[2rem] border border-gray-100/50 dark:border-gray-700/50 shadow-inner">
-              <div className="flex items-center justify-between xl:justify-start gap-1.5 lg:gap-3">
+              <div className="flex flex-wrap items-center justify-between xl:justify-start gap-2 lg:gap-4">
                 {/* Semester Node */}
-                <div className="flex items-center gap-1.5 px-2.5 py-2 bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 shrink-0">
+                <div className="flex items-center gap-1.5 px-3 py-2 bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 shrink-0">
                   <select 
                     value={semester} 
                     onChange={(e) => {
@@ -314,31 +314,31 @@ const AttendanceManager = ({ user, initialSemester, initialCourse, onPersistChan
                       setSemester(newSem);
                       onPersistChange(newSem, selectedCourse);
                     }}
-                    className="bg-transparent border-none text-[8px] lg:text-[10px] font-black text-gray-900 dark:text-white focus:ring-0 outline-none w-10 appearance-none cursor-pointer uppercase tracking-tighter" 
+                    className="bg-transparent border-none text-[10px] lg:text-xs font-black text-gray-900 dark:text-white focus:ring-0 outline-none w-24 appearance-none cursor-pointer uppercase tracking-tight" 
                   >
-                    {[1, 2, 3, 4, 5, 6, 7, 8].map(s => <option key={s} value={s} className="bg-white dark:bg-gray-900 text-black">S{s}</option>)}
+                    {[1, 2, 3, 4, 5, 6, 7, 8].map(s => <option key={s} value={s} className="bg-white dark:bg-gray-900 text-black">SEMESTER {s}</option>)}
                   </select>
                 </div>
 
                 {/* Section Node */}
-                <div className="flex items-center gap-1.5 px-2.5 py-2 bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 shrink-0">
+                <div className="flex items-center gap-1.5 px-3 py-2 bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 shrink-0">
                   <select 
                     value={section} 
                     onChange={(e) => setSection(e.target.value)}
-                    className="bg-transparent border-none text-[8px] lg:text-[10px] font-black text-gray-900 dark:text-white focus:ring-0 outline-none w-10 appearance-none cursor-pointer uppercase tracking-tighter" 
+                    className="bg-transparent border-none text-[10px] lg:text-xs font-black text-gray-900 dark:text-white focus:ring-0 outline-none w-16 appearance-none cursor-pointer uppercase tracking-tight" 
                   >
                     {['A', 'B'].map(s => <option key={s} value={s} className="bg-white dark:bg-gray-900 text-black">SEC {s}</option>)}
                   </select>
                 </div>
 
                 {/* Date Node */}
-                <div className="flex items-center gap-1.5 px-2.5 py-2 bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 flex-1 min-w-0">
-                  <Clock size={10} className="text-indigo-500 shrink-0 hidden xs:block" />
+                <div className="flex items-center gap-2 px-3 py-2 bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 flex-1 min-w-0">
+                  <Clock size={14} className="text-indigo-500 shrink-0 hidden xs:block" />
                   <input 
                     type="datetime-local" 
                     value={attendanceDate} 
                     onChange={(e) => setAttendanceDate(e.target.value)}
-                    className="bg-transparent border-none text-[8px] lg:text-[10px] font-black uppercase tracking-tighter text-gray-900 dark:text-white focus:ring-0 outline-none w-full min-w-0" 
+                    className="bg-transparent border-none text-[10px] lg:text-xs font-black uppercase tracking-tighter text-gray-900 dark:text-white focus:ring-0 outline-none w-full min-w-0" 
                   />
                 </div>
               </div>
@@ -369,7 +369,7 @@ const AttendanceManager = ({ user, initialSemester, initialCourse, onPersistChan
 
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
         <div className="lg:col-span-1 space-y-4">
-          <div className="bg-white dark:bg-gray-900 p-5 rounded-3xl border border-gray-100 dark:border-gray-800 shadow-sm flex flex-col h-[600px]">
+          <div className="bg-white dark:bg-gray-900 p-5 rounded-3xl border border-gray-100 dark:border-gray-800 shadow-sm flex flex-col h-full lg:h-[calc(100vh-280px)] overflow-hidden">
             <div className="flex items-center justify-between mb-4 shrink-0">
                <h3 className="text-[10px] font-black text-gray-400 dark:text-gray-200 uppercase tracking-widest">Select Subject</h3>
                <span className="text-[9px] font-black px-2 py-0.5 rounded-full bg-indigo-50 dark:bg-indigo-900/30 text-indigo-500">{sidebarFilteredCourses.length}</span>
@@ -407,8 +407,8 @@ const AttendanceManager = ({ user, initialSemester, initialCourse, onPersistChan
 
         <div className="lg:col-span-3 space-y-6">
           {viewMode === 'mark' ? (
-            <div className="bg-white dark:bg-[#080c14] rounded-[2.5rem] border border-slate-200 dark:border-slate-800/60 shadow-xl overflow-hidden relative min-h-[500px]">
-              <div className="overflow-x-auto custom-scrollbar h-full">
+            <div className="bg-white dark:bg-[#080c14] rounded-[2.5rem] border border-slate-200 dark:border-slate-800/60 shadow-xl overflow-hidden relative h-full lg:h-[calc(100vh-280px)]">
+              <div className="overflow-auto custom-scrollbar h-full">
                 <table className="w-full text-left border-collapse">
                   <thead className="bg-slate-50/80 dark:bg-slate-900/50 backdrop-blur-md sticky top-0 z-10">
                     <tr>
@@ -419,7 +419,7 @@ const AttendanceManager = ({ user, initialSemester, initialCourse, onPersistChan
                   </thead>
                   <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60">
                     {paginatedStudents.map(student => (
-                      <tr key={student._id} className="group hover:bg-slate-50/50 dark:hover:bg-white/[0.02] transition-all">
+                      <tr key={`att-${student._id}`} className="group hover:bg-slate-50/50 dark:hover:bg-white/[0.02] transition-all">
                         <td className="px-8 py-5">
                           <div className="flex items-center gap-4">
                             <div className="relative group/avatar">

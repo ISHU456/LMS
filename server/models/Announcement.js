@@ -57,6 +57,14 @@ const announcementSchema = new mongoose.Schema({
     user: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
     lastSeenAt: { type: Date, default: Date.now },
   }],
+
+  // Moderation & Reporting
+  reports: [{
+    user: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+    reason: { type: String },
+    createdAt: { type: Date, default: Date.now }
+  }],
+  isReported: { type: Boolean, default: false },
 }, { timestamps: true });
 
 const Announcement = mongoose.model('Announcement', announcementSchema);

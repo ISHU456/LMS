@@ -29,7 +29,8 @@ import {
     rejectCourseResults,
     notifyFaculty,
     getPendingTeachers,
-    authorizeTeacher
+    authorizeTeacher,
+    getMonthlyFacultyAttendance
 } from '../controllers/adminController.js';
 import { protect, admin } from '../middlewares/authMiddleware.js';
 
@@ -47,6 +48,7 @@ router.delete('/users/:id', deleteUser);
 // TEACHER ATTENDANCE
 router.get('/teachers/attendance', getTeachersWithAttendance);
 router.post('/teachers/attendance', markTeacherAttendance);
+router.get('/teachers/monthly-attendance', getMonthlyFacultyAttendance);
 
 // TEACHER & COURSE MGMT
 router.get('/teachers/pending', getPendingTeachers);

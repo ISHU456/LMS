@@ -7,13 +7,23 @@ import { UserCheck } from 'lucide-react';
 
 const FaceCamera = () => {
     const webcamRef = useRef(null);
+    const intervalRef = useRef(null);
+    const latestDescriptor = useRef(null);
+    const completionTriggered = useRef(false);
+    
     const [loading, setLoading] = useState(true);
     const { completeStep, setMFAError } = useMFA();
     const [matchesFound, setMatchesFound] = useState(0);
 
     useEffect(() => {
-        let interval = null;
+        if (matchesFound >= 3 && !completionTriggered.current) {
+            completionTriggered.current = true;
+            if (intervalRef.current) clearInterval(intervalRef.current);
+            completeStep('face', latestDescriptor.current);
+        }
+    }, [matchesFound, completeStep]);
 
+    useEffect(() => {
         const init = async () => {
             const loaded = await loadModels();
             if (loaded) {
@@ -25,7 +35,7 @@ const FaceCamera = () => {
         };
 
         const startCapture = () => {
-            interval = setInterval(async () => {
+            intervalRef.current = setInterval(async () => {
                 if (webcamRef.current && webcamRef.current.video && webcamRef.current.video.readyState === 4) {
                     const video = webcamRef.current.video;
                     try {
@@ -37,14 +47,8 @@ const FaceCamera = () => {
                             .withFaceDescriptor();
 
                         if (detection) {
-                            setMatchesFound(prev => {
-                                const updated = prev + 1;
-                                if (updated >= 3) {
-                                    clearInterval(interval);
-                                    completeStep('face', Array.from(detection.descriptor)); // Send descriptor
-                                }
-                                return updated;
-                            });
+                            latestDescriptor.current = Array.from(detection.descriptor);
+                            setMatchesFound(prev => prev + 1);
                         }
                     } catch (error) {
                         console.error('Detection loop error', error);
@@ -56,9 +60,9 @@ const FaceCamera = () => {
         init();
 
         return () => {
-            if (interval) clearInterval(interval);
+            if (intervalRef.current) clearInterval(intervalRef.current);
         };
-    }, []);
+    }, [setMFAError]);
 
     const handleManualCapture = () => {
         if (webcamRef.current) {

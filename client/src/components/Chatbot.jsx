@@ -156,7 +156,7 @@ const Chatbot = ({ variant = 'floating', className = '', noAutoScroll = false })
       </div>
 
       {/* Messages Area */}
-      <div className="relative z-10 flex-1 overflow-y-auto p-6 space-y-6 no-scrollbar bg-gray-50/30 dark:bg-[#030712]/50">
+      <div className="relative z-10 flex-1 overflow-y-auto p-6 space-y-6 custom-scrollbar bg-gray-50/30 dark:bg-[#030712]/50">
         {messages.map((msg) => (
           <motion.div 
             initial={{ opacity: 0, y: 10 }}

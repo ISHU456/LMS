@@ -13,7 +13,8 @@ const quizAttemptSchema = new mongoose.Schema({
     isCorrect: { type: Boolean }
   }],
   rank: { type: Number },
-  tabSwitches: { type: Number, default: 0 }, // Simple anti-cheat
+  attemptNumber: { type: Number, default: 1 },
+  tabSwitches: { type: Number, default: 0 },
   submittedAt: { type: Date, default: Date.now },
   status: { type: String, enum: ['completed', 'failed'], default: 'completed' }
 }, { timestamps: true });

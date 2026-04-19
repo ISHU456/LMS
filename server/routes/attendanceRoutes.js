@@ -23,7 +23,7 @@ const router = express.Router();
 
 // Only teachers/admin can mark/edit attendance
 router.post('/bulk-mark', protect, authorize('teacher', 'admin'), markBulkAttendance);
-router.get('/course/:courseId', protect, authorize('teacher', 'admin'), getCourseAttendance);
+router.get('/course/:courseId', protect, authorize('teacher', 'admin', 'student'), getCourseAttendance);
 router.get('/course/:courseId/face-data', protect, authorize('teacher'), getClassFaceData);
 router.get('/stats/teacher', protect, authorize('teacher'), getTeacherStats);
 router.put('/:id', protect, authorize('teacher', 'admin'), updateAttendance);

@@ -44,6 +44,7 @@ export const getAdminDashboardStats = async (req, res) => {
         const attendancePercentage = totalEligible > 0 ? Math.round((attendanceCount / totalEligible) * 100) : 100;
 
         const pendingApprovals = await User.countDocuments({ aiCreditsRequested: true });
+        const reportedAnnouncementsCount = await Announcement.countDocuments({ isReported: true });
 
         // 4. Growth Data (Weekly/Monthly/Daily)
         const now = new Date();
@@ -106,6 +107,7 @@ export const getAdminDashboardStats = async (req, res) => {
             deptPopulation,
             attendance: attendancePercentage,
             pendingApprovals,
+            reportedAnnouncementsCount,
             growth: { daily: dailyGrowth, weekly: weeklyGrowth, monthly: monthlyGrowth },
             timeline,
             leaderboard,
@@ -160,6 +162,16 @@ export const updateUser = async (req, res) => {
     user.role = req.body.role || user.role;
     user.semester = req.body.semester || user.semester;
     user.employeeId = req.body.employeeId || user.employeeId;
+    
+    // Manual currency adjustment
+    if (req.body.coins !== undefined) {
+        user.coins = req.body.coins;
+    }
+    
+    // Neural Credits (for AI Mode)
+    if (req.body.credits !== undefined) {
+        user.credits = req.body.credits;
+    }
 
     const updatedUser = await user.save();
     res.json(updatedUser);
@@ -192,7 +204,7 @@ export const deleteUser = async (req, res) => {
 export const getTeachersWithAttendance = async (req, res) => {
     try {
         const date = req.query.date || new Date().toISOString().split('T')[0];
-        const teachers = await User.find({ role: 'teacher' }).select('name email department employeeId');
+        const teachers = await User.find({ role: { $in: ['teacher', 'hod'] } }).select('name email department employeeId');
         
         const attendance = await TeacherAttendance.find({
             date: {
@@ -247,6 +259,25 @@ export const getDepartments = async (req, res) => {
     try {
         const departments = await Department.find().select('name code');
         res.json(departments);
+    } catch (e) {
+        res.status(500).json({ message: e.message });
+    }
+};
+
+export const getMonthlyFacultyAttendance = async (req, res) => {
+    try {
+        const { month, year } = req.query;
+        if (!month || !year) return res.status(400).json({ message: 'Month and Year required' });
+
+        const startDate = new Date(year, month - 1, 1);
+        const endDate = new Date(year, month, 0, 23, 59, 59);
+
+        const faculty = await User.find({ role: { $in: ['teacher', 'hod'] } }).select('name department employeeId profilePic');
+        const attendance = await TeacherAttendance.find({
+            date: { $gte: startDate, $lte: endDate }
+        });
+
+        res.json({ faculty, attendance });
     } catch (e) {
         res.status(500).json({ message: e.message });
     }

@@ -68,7 +68,7 @@ const Home = () => {
   ];
 
   return (
-    <div className="relative overflow-x-hidden bg-white dark:bg-[#030712] text-gray-900 dark:text-gray-100 transition-colors duration-500">
+    <div className="relative overflow-x-hidden bg-transparent text-gray-900 dark:text-gray-100 transition-colors duration-500">
 
       {/* --- PREMIUM SUBTLE BACKGROUND --- */}
       <div className="fixed inset-0 z-0 pointer-events-none overflow-hidden">

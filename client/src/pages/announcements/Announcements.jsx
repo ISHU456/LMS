@@ -4,175 +4,311 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Sparkles, Trophy, Bell, Settings, Search, Megaphone, 
   Newspaper, LayoutGrid, TrendingUp, Users, Calendar, 
-  Star, Briefcase, GraduationCap, ArrowRight, ShieldCheck, Heart, MessageSquare
+  Star, Briefcase, GraduationCap, ArrowRight, ShieldCheck, Heart, MessageSquare, ShieldAlert, Shield
 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 
 import CreatePost from '../../components/announcements/CreatePost';
 import AnnouncementFeed from '../../components/announcements/AnnouncementFeed';
-import GlobalEducationNews from '../../components/announcements/GlobalEducationNews';
 
-const Announcements = () => {
+const Announcements = ({ isEmbedded = false }) => {
   const { user } = useSelector((state) => state.auth);
+  const navigate = useNavigate();
   const [feedVersion, setFeedVersion] = useState(0);
   const [trendingPosts, setTrendingPosts] = useState([]);
+  const [personalStats, setPersonalStats] = useState({ postsCount: 0, impactCount: 0 });
+
+  const safeFormatDate = (dateLike) => {
+    try {
+      const d = new Date(dateLike);
+      if (isNaN(d.getTime())) return 'recent';
+      const diff = Math.floor((new Date() - d) / 1000);
+      if (diff < 60) return 'Just now';
+      if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
+      if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
+      return d.toLocaleDateString();
+    } catch {
+      return 'recent';
+    }
+  };
 
   useEffect(() => {
-    window.scrollTo(0, 0);
-  }, []);
+    if (!isEmbedded) window.scrollTo(0, 0);
+  }, [isEmbedded]);
+
+  const [tickerPosts, setTickerPosts] = useState([]);
 
   useEffect(() => {
-    const fetchTrending = async () => {
+    const fetchTickerData = async () => {
       try {
         const res = await axios.get('http://localhost:5001/api/announcements', {
-          params: { limit: 50 },
+          params: { limit: 10, sort: 'createdAt' }, // Fetch latest first
           headers: { Authorization: `Bearer ${user.token}` }
         });
         const data = res.data.announcements || (Array.isArray(res.data) ? res.data : []);
-        const sorted = data.sort((a, b) => (b.likes?.length || 0) - (a.likes?.length || 0)).slice(0, 3);
-        setTrendingPosts(sorted);
+        setTickerPosts(data);
       } catch (err) {
-        console.error("Failed to fetch trending posts", err);
+        console.error("Failed to fetch ticker data", err);
       }
     };
+
+    const fetchTrendingData = async () => {
+      try {
+        const res = await axios.get('http://localhost:5001/api/announcements/trending', {
+          headers: { Authorization: `Bearer ${user.token}` }
+        });
+        setTrendingPosts(res.data);
+      } catch (err) {
+        console.error("Failed to fetch trending data", err);
+      }
+    };
+
+    const fetchPersonalStats = async () => {
+      try {
+        const res = await axios.get('http://localhost:5001/api/announcements/stats/me', {
+          headers: { Authorization: `Bearer ${user.token}` }
+        });
+        setPersonalStats(res.data);
+      } catch (err) {
+        console.error("Failed to fetch personal stats", err);
+      }
+    };
+
     if (user?.token) {
-      fetchTrending();
+      fetchTickerData();
+      fetchTrendingData();
+      fetchPersonalStats();
     }
   }, [user]);
 
   const handlePostCreated = (newPost) => {
-    // Socket.io handles feed injection automatically now via HandleNewAnnouncement
+    // Socket.io handles feed injection, but we refresh personal stats locally
+    const fetchTrendingData = async () => {
+      try {
+        const res = await axios.get('http://localhost:5001/api/announcements/trending', {
+          headers: { Authorization: `Bearer ${user.token}` }
+        });
+        setTrendingPosts(res.data);
+      } catch (err) {}
+    };
+    fetchPersonalStats();
+    fetchTrendingData();
   };
 
   return (
-    <div className="h-[calc(100vh-5rem)] overflow-hidden bg-[#f8fafc] dark:bg-[#0b0f19] transition-colors duration-500">
-      <div className="h-full max-w-[1700px] mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        <div className="h-full flex flex-col lg:flex-row gap-8">
+    <div className={`${isEmbedded ? 'h-auto' : 'h-[calc(100vh-5rem)]'} bg-[#f8fafc] dark:bg-[#030712] transition-colors duration-500`}>
+      <div className={`h-full max-w-[1800px] mx-auto ${isEmbedded ? 'px-0' : 'px-4 sm:px-6 lg:px-8'} py-6 flex flex-col`}>
+        
+        {/* Institutional News Ticker */}
+        <div className="shrink-0 mb-6 h-12 bg-white/40 dark:bg-white/5 border-y border-slate-200 dark:border-white/5 backdrop-blur-xl overflow-hidden flex items-center relative group">
+           <div className="absolute left-0 top-0 bottom-0 bg-emerald-600 px-8 flex items-center z-10 shadow-2xl">
+              <div className="flex items-center gap-3">
+                 <div className="w-2 h-2 rounded-full bg-white animate-ping" />
+                 <span className="text-[10px] font-black text-emerald-50 px-1 uppercase tracking-[0.3em] italic">Neural Pulse</span>
+              </div>
+           </div>
+           <div className="flex-1 overflow-hidden">
+              <div className="whitespace-nowrap animate-marquee flex items-center gap-12 pl-[180px]">
+                 {(tickerPosts.length > 0 ? tickerPosts.concat(tickerPosts) : [
+                    { category: 'Motivation', title: 'The Architecture of Innovation', createdAt: '2026-03-28' },
+                    { category: 'Motivation', title: 'Recursive Success Protocol', createdAt: '2026-03-28' },
+                    { category: 'Motivation', title: 'The Power of Neural Networks', createdAt: '2026-03-28' }
+                 ].concat([
+                    { category: 'Motivation', title: 'The Architecture of Innovation', createdAt: '2026-03-28' },
+                    { category: 'Motivation', title: 'Recursive Success Protocol', createdAt: '2026-03-28' },
+                    { category: 'Motivation', title: 'The Power of Neural Networks', createdAt: '2026-03-28' }
+                 ])).map((post, i) => (
+                    <div key={i} className="flex items-center gap-4 cursor-pointer hover:text-amber-500 transition-colors">
+                       <span className="text-[10px] font-black text-amber-500 uppercase tracking-widest">• {post.category || 'URGENT'}</span>
+                       <span className="text-xs font-bold text-slate-700 dark:text-gray-300">{post.title || post.content?.substring(0, 60)}</span>
+                       <span className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em]">{safeFormatDate(post.createdAt)}</span>
+                    </div>
+                 ))}
+              </div>
+           </div>
+        </div>
+
+        <div className="flex-1 min-h-0 flex flex-col lg:flex-row gap-8">
           
           {/* LEFT SIDEBAR - User Profile & Navigation */}
-          <aside className="hidden lg:block w-[320px] shrink-0 h-full overflow-y-auto overflow-x-hidden custom-scrollbar pr-2">
-            <div className="flex flex-col gap-6 pt-8 pb-24">
-              {/* Profile Card */}
-              <div className="bg-white dark:bg-gray-900 rounded-[2.5rem] border border-gray-100 dark:border-gray-800 p-8 shadow-2xl shadow-gray-200/50 dark:shadow-none overflow-hidden relative group">
-                <div className="absolute top-0 left-0 w-full h-24 bg-gradient-to-br from-primary-600 via-indigo-600 to-purple-600 z-0" />
-                <div className="relative z-10 pt-4 flex flex-col items-center">
-                  <div className="w-24 h-24 rounded-3xl bg-white dark:bg-gray-800 p-1.5 shadow-2xl mb-4 transform group-hover:scale-105 transition-all duration-500 border border-gray-100 dark:border-gray-700">
-                    {user?.profilePic ? (
-                      <img src={user.profilePic} alt={user.name} className="w-full h-full object-cover rounded-[1.2rem]" />
-                    ) : (
-                      <div className="w-full h-full bg-gradient-to-br from-primary-50 to-indigo-50 dark:from-primary-900/20 dark:to-indigo-900/20 flex items-center justify-center text-primary-600 dark:text-primary-400 font-black text-3xl rounded-[1.2rem]">
-                        {user?.name?.charAt(0) || 'U'}
-                      </div>
-                    )}
-                  </div>
-                  <h2 className="text-xl font-black text-gray-900 dark:text-white text-center leading-tight">{user?.name}</h2>
-                  <div className="mt-2 px-4 py-1.5 rounded-full bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-700">
-                    <span className="text-[10px] font-black uppercase text-gray-500 tracking-[0.2em]">{user?.role} • {user?.department || 'CS Dept'}</span>
+          <aside className={`${isEmbedded ? 'hidden' : 'hidden lg:block'} w-[340px] shrink-0 h-full overflow-y-auto overflow-x-hidden custom-scrollbar pr-2`}>
+            <div className="flex flex-col gap-6 pt-8 pb-32">
+              {/* Profile Card - LinkedIn Style */}
+              <div className="bg-white dark:bg-[#0b0f1a] rounded-[3rem] border border-slate-100 dark:border-white/5 shadow-2xl shadow-slate-200/50 dark:shadow-none overflow-hidden relative group">
+                <div className="absolute top-0 left-0 w-full h-32 bg-gradient-to-br from-indigo-600 via-purple-600 to-rose-600 z-0 opacity-90" />
+                <div className="relative z-10 pt-10 flex flex-col items-center">
+                  <motion.div 
+                    whileHover={{ scale: 1.05, rotate: 2 }}
+                    className="w-28 h-28 rounded-[2rem] bg-white dark:bg-[#0b0f1a] p-1.5 shadow-2xl mb-4 border border-white/20"
+                  >
+                    <div className="w-full h-full rounded-[1.8rem] bg-slate-100 dark:bg-slate-800 overflow-hidden flex items-center justify-center">
+                      {user?.profilePic ? (
+                        <img src={user.profilePic} alt={user.name} className="w-full h-full object-cover" />
+                      ) : (
+                        <span className="text-4xl font-black text-slate-300 dark:text-gray-600">
+                          {user?.name?.charAt(0) || 'U'}
+                        </span>
+                      )}
+                    </div>
+                  </motion.div>
+                  <h2 className="text-2xl font-black text-slate-900 dark:text-white text-center leading-tight tracking-tight uppercase italic">{user?.name}</h2>
+                  <div className="mt-3 px-6 py-2 rounded-full bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/5">
+                    <span className="text-[10px] font-black uppercase text-indigo-500 dark:text-indigo-400 tracking-[0.3em]">{user?.role} • {user?.department || 'Node Architecture'}</span>
                   </div>
                 </div>
                 
-                <div className="mt-8 pt-8 border-t border-gray-100 dark:border-gray-800 space-y-4">
-                  <div className="flex justify-between items-center px-2">
-                    <div className="flex flex-col">
-                      <span className="text-[10px] font-black uppercase tracking-widest text-gray-400">Posts Contribution</span>
-                      <span className="text-sm font-black text-gray-900 dark:text-white">Active Publisher</span>
-                    </div>
-                    <div className="w-10 h-10 rounded-xl bg-primary-50 dark:bg-primary-900/20 flex items-center justify-center text-primary-600">
-                      <TrendingUp size={18} />
-                    </div>
+                <div className="mt-10 p-8 pt-0 space-y-6 relative z-10">
+                  <div className="grid grid-cols-2 gap-4">
+                     <div className="p-4 bg-slate-50/50 dark:bg-white/5 rounded-2xl border border-slate-100 dark:border-white/5 text-center">
+                        <span className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Impact</span>
+                        <span className="text-lg font-black text-slate-900 dark:text-white">
+                          {personalStats.impactCount > 999 ? (personalStats.impactCount / 1000).toFixed(1) + 'k' : personalStats.impactCount}
+                        </span>
+                     </div>
+                     <div className="p-4 bg-slate-50/50 dark:bg-white/5 rounded-2xl border border-slate-100 dark:border-white/5 text-center">
+                        <span className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Posts</span>
+                        <span className="text-lg font-black text-slate-900 dark:text-white">{personalStats.postsCount}</span>
+                     </div>
                   </div>
                 </div>
               </div>
 
               {/* Quick Navigation Shortcuts */}
-              <div className="bg-white/40 dark:bg-gray-900/40 rounded-[2.5rem] border border-gray-100 dark:border-gray-800 p-6 backdrop-blur-md">
-                <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-gray-400 mb-6 px-2">Navigation</h3>
-                <nav className="space-y-1">
+              <div className="bg-white/40 dark:bg-white/5 rounded-[3rem] border border-slate-100 dark:border-white/5 p-8 backdrop-blur-xl">
+                <h3 
+                  onClick={() => navigate('/departments')}
+                  className="text-[10px] font-black uppercase tracking-[0.4em] text-slate-400 mb-8 px-2 italic cursor-pointer hover:text-indigo-500 transition-colors"
+                >
+                  Important Links
+                </h3>
+                <nav className="space-y-2">
                   {[
-                    { label: 'My Department', icon: <Users size={18} />, active: false },
-                    { label: 'Saved Posts', icon: <Star size={18} />, active: false },
-                    { label: 'Events Calendar', icon: <Calendar size={18} />, active: false },
-                    { label: 'Notifications', icon: <Bell size={18} />, badge: '12', active: false },
-                    { label: 'Settings', icon: <Settings size={18} />, active: false },
-                  ].map((item, i) => (
-                    <button key={i} className="w-full flex items-center justify-between p-3.5 rounded-2xl hover:bg-white dark:hover:bg-gray-800 transition-all group font-bold text-gray-600 dark:text-gray-400 hover:text-primary-600">
-                      <div className="flex items-center gap-3">
-                        <span className="group-hover:scale-110 transition-transform">{item.icon}</span>
-                        <span className="text-sm">{item.label}</span>
+                    { label: 'Matrix Arena', icon: <Users size={20} />, path: '/arena' },
+                    { label: 'Governance Node', icon: <Calendar size={20} />, path: '/dashboard?tab=schedule' },
+                    { label: 'Neural Broadcasts', icon: <Bell size={20} />, badge: '12', path: '/notifications' },
+                    { label: 'Identity Nexus', icon: <Shield size={20} />, path: '/profile' },
+                    ...(user?.role === 'admin' || user?.role === 'hod' ? [
+                      { label: 'Moderation Grid', icon: <ShieldAlert size={20} />, path: '/admin-dashboard?tab=moderation', active: true, color: 'text-rose-500' }
+                    ] : [])
+                  ].filter(item => !item.role || item.role.includes(user?.role)).map((item, i) => (
+                    <motion.button 
+                      key={i} 
+                      whileHover={{ x: 8 }}
+                      onClick={() => item.path && navigate(item.path)}
+                      className={`w-full flex items-center justify-between p-4 rounded-[1.5rem] hover:bg-white dark:hover:bg-white/5 transition-all group font-bold ${item.color || 'text-slate-600 dark:text-gray-400'} hover:text-indigo-600 shadow-sm hover:shadow-md`}
+                    >
+                      <div className="flex items-center gap-4">
+                        <span className={`p-2 rounded-xl bg-slate-100 dark:bg-white/5 group-hover:bg-indigo-50 dark:group-hover:bg-indigo-900/20 group-hover:text-indigo-600 transition-colors ${item.active ? 'text-indigo-600 bg-indigo-50 dark:bg-indigo-900/20' : ''}`}>{item.icon}</span>
+                        <span className="text-[11px] uppercase tracking-widest font-black">{item.label}</span>
                       </div>
                       {item.badge && (
-                        <span className="bg-primary-600 text-white text-[10px] px-2 py-0.5 rounded-lg font-black">{item.badge}</span>
+                        <span className="bg-indigo-600 text-white text-[9px] px-2 py-0.5 rounded-lg font-black tracking-widest">{item.badge}</span>
                       )}
-                    </button>
+                    </motion.button>
                   ))}
                 </nav>
               </div>
             </div>
           </aside>
 
-          {/* MAIN CENTER FEED */}
-          <main className="flex-1 h-full max-w-[800px] min-w-0 w-full flex flex-col gap-8 mx-auto lg:mx-0 overflow-y-auto overflow-x-hidden custom-scrollbar px-6 pt-8 pb-32">
+           {/* MAIN CENTER FEED */}
+          <main className="flex-1 h-full max-w-[800px] min-w-0 w-full flex flex-col gap-6 mx-auto lg:mx-0 overflow-y-auto overflow-x-hidden custom-scrollbar px-6 pt-0 pb-32 relative">
+
             {/* Announcement Banner */}
-            <div className="relative h-64 rounded-[3rem] overflow-hidden shadow-2xl shadow-indigo-500/20 group">
+            <div className="relative h-72 rounded-[3.5rem] overflow-hidden shadow-2xl shadow-indigo-500/10 group mb-4">
               <img src="/banner.png" alt="Academic Feed" className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-1000" />
               <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent z-0" />
-              <div className="absolute top-0 right-0 p-12 opacity-30 z-10">
-                <Sparkles size={120} className="text-white" />
+              <div className="absolute top-0 right-0 p-12 opacity-30 z-10 transition-transform group-hover:rotate-12 duration-1000">
+                <Sparkles size={140} className="text-white" />
               </div>
-              <div className="relative z-10 p-10 h-full flex flex-col justify-end">
-                <span className="px-3 py-1 w-fit rounded-full bg-primary-600/50 backdrop-blur-md text-white text-[10px] font-black uppercase tracking-[0.2em]">Live Campus</span>
-                <h1 className="text-4xl font-black text-white mt-3 leading-none uppercase tracking-tighter">Smart Academic Feed</h1>
-                <p className="text-white/80 text-sm font-medium mt-2">Connecting students and faculty through real-time updates.</p>
+              <div className="relative z-10 p-12 h-full flex flex-col justify-end">
+                <span className="px-5 py-2 w-fit rounded-full bg-white/10 backdrop-blur-xl border border-white/20 text-white text-[10px] font-black uppercase tracking-[0.3em] shadow-2xl">Institutional Broadcast</span>
+                <h1 className="text-5xl lg:text-6xl font-black text-white mt-4 leading-none uppercase tracking-tighter italic">Lattice Community</h1>
+                <p className="text-white/70 text-sm font-bold mt-4 max-w-lg leading-relaxed">Connecting faculty and scholars through high-performance academic governance and synchronous social identity nodes.</p>
               </div>
             </div>
 
-            <CreatePost user={user} onPostCreated={handlePostCreated} />
-            <AnnouncementFeed key={feedVersion} user={user} />
+            <div className="relative z-40 w-full">
+              <CreatePost user={user} onPostCreated={handlePostCreated} />
+            </div>
+            
+            <div className="space-y-8 relative z-10 w-full">
+               <AnnouncementFeed key={feedVersion} user={user} />
+            </div>
           </main>
 
           {/* RIGHT SIDEBAR - Trending & Highlights */}
           <aside className="hidden xl:block w-[350px] shrink-0 h-full overflow-y-auto overflow-x-hidden custom-scrollbar pl-2">
             <div className="flex flex-col gap-6 pt-8 pb-24">
-              {/* Trending Posts */}
-              <div className="bg-white dark:bg-gray-900 rounded-[2.5rem] border border-gray-100 dark:border-gray-800 p-8 shadow-2xl shadow-gray-200/50 dark:shadow-none">
-                <div className="flex items-center justify-between mb-8">
-                  <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-gray-400 font-black">Trending Hub</h3>
-                  <TrendingUp size={18} className="text-primary-500" />
+              {/* Trending Hub - Reimagined as Pulse Matrix */}
+              <div className="bg-white/70 dark:bg-[#080c14]/70 backdrop-blur-3xl rounded-[3rem] border border-slate-200/60 dark:border-white/5 p-8 shadow-2xl shadow-indigo-500/5 relative overflow-hidden group">
+                {/* Background Decor */}
+                <div className="absolute -top-24 -right-24 w-48 h-48 bg-indigo-500/10 rounded-full blur-3xl group-hover:scale-150 transition-transform duration-1000" />
+                
+                <div className="flex items-center justify-between mb-10 relative z-10">
+                  <div>
+                    <h3 className="text-[10px] font-black uppercase tracking-[0.4em] text-slate-400">Neural Pulse</h3>
+                    <p className="text-sm font-black text-slate-900 dark:text-white mt-1 uppercase tracking-tighter">Trending Hub</p>
+                  </div>
+                  <div className="p-3 bg-indigo-50 dark:bg-indigo-900/20 rounded-2xl text-indigo-600">
+                    <TrendingUp size={20} />
+                  </div>
                 </div>
                 
-                <div className="space-y-6">
-                  {trendingPosts.length > 0 ? trendingPosts.map((post, i) => (
-                    <div key={post._id} className="flex gap-4 group cursor-pointer border-b border-gray-50 dark:border-gray-800 pb-4 last:border-0 last:pb-0">
-                      <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-primary-50 to-indigo-50 dark:from-gray-800 dark:to-gray-800 flex items-center justify-center text-primary-600 group-hover:scale-110 transition-transform overflow-hidden font-black">
-                        {post.author?.profilePic ? (
-                          <img src={post.author.profilePic} alt="author" className="w-full h-full object-cover"/>
-                        ) : (
-                          <span className="text-lg">{i + 1}</span>
-                        )}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-black text-gray-900 dark:text-white group-hover:text-primary-600 transition-colors tracking-tight line-clamp-1 truncate">
-                          {post.title || post.content}
-                        </p>
-                        <p className="text-[11px] font-bold text-gray-400 mt-1 line-clamp-1">{post.content}</p>
-                        <div className="flex items-center gap-3 mt-2">
-                          <div className="flex items-center gap-1.5 text-[10px] font-black text-gray-500">
-                            <Heart size={12} className="text-rose-500" /> {post.likes?.length || 0}
+                <div className="space-y-4 relative z-10">
+                  {trendingPosts.slice(0, 3).length > 0 ? trendingPosts.slice(0, 3).map((post, i) => {
+                    const isLive = post.title?.toLowerCase().includes('live class') || post.content?.toLowerCase().includes('broadcast');
+                    return (
+                      <motion.div 
+                        key={post._id} 
+                        whileHover={{ x: 6 }}
+                        className="p-5 rounded-[2rem] bg-slate-50/50 dark:bg-white/5 border border-slate-100 dark:border-white/5 transition-all hover:bg-white dark:hover:bg-white/10 hover:shadow-xl group/card relative"
+                      >
+                        <div className="flex gap-5">
+                          {/* Rank/Counter */}
+                          <div className="shrink-0 flex flex-col items-center">
+                            <span className="text-3xl font-black tracking-tighter text-slate-200 dark:text-slate-800 group-hover/card:text-indigo-500/20 transition-colors">0{i + 1}</span>
+                            {isLive && (
+                              <div className="mt-2 w-1.5 h-1.5 rounded-full bg-rose-500 animate-ping shadow-[0_0_8px_rgba(244,63,94,0.8)]" />
+                            )}
                           </div>
-                          <div className="flex items-center gap-1.5 text-[10px] font-black text-gray-500">
-                            <MessageSquare size={12} /> {post.commentsCount || post.comments?.length || 0}
+
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 mb-2">
+                              {isLive && (
+                                <span className="px-2 py-0.5 rounded-md bg-rose-500/10 text-rose-500 text-[8px] font-black uppercase tracking-widest border border-rose-500/20">Live</span>
+                              )}
+                              <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest truncate">{post.category || 'Institutional'}</span>
+                            </div>
+                            
+                            <h4 className="text-xs font-black text-slate-900 dark:text-gray-100 line-clamp-2 leading-tight tracking-tight uppercase group-hover/card:text-indigo-600 transition-colors">
+                              {post.title || post.content}
+                            </h4>
+
+                            <div className="flex items-center gap-4 mt-4 opacity-60">
+                              <div className="flex items-center gap-1.5 text-[9px] font-black text-slate-500 uppercase tracking-widest">
+                                <Heart size={10} className="text-rose-500" /> {post.likesCount || 0}
+                              </div>
+                              <div className="flex items-center gap-1.5 text-[9px] font-black text-slate-500 uppercase tracking-widest">
+                                <MessageSquare size={10} /> {post.commentsCount || 0}
+                              </div>
+                              <div className="ml-auto text-[8px] font-black text-slate-400 uppercase">
+                                {safeFormatDate(post.createdAt)}
+                              </div>
+                            </div>
                           </div>
                         </div>
-                      </div>
+                      </motion.div>
+                    );
+                  }) : (
+                    <div className="py-20 flex flex-col items-center justify-center space-y-4">
+                       <div className="w-10 h-10 rounded-full border-2 border-slate-100 dark:border-white/5 border-t-indigo-500 animate-spin" />
+                       <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Syncing Lattice Pulse...</p>
                     </div>
-                  )) : (
-                    <p className="text-xs font-bold text-gray-400 uppercase tracking-widest text-center py-4">Scanning network...</p>
                   )}
                 </div>
               </div>
-
-              {/* Global Education Pulse */}
-              <GlobalEducationNews />
 
               {/* Verification / Security Badge */}
               <div className="bg-gradient-to-br from-gray-900 to-gray-800 dark:from-gray-800 dark:to-black rounded-[2rem] p-8 text-white relative overflow-hidden group">
@@ -186,22 +322,6 @@ const Announcements = () => {
                 <div className="absolute -bottom-10 -right-10 w-32 h-32 bg-emerald-500/10 rounded-full blur-3xl" />
               </div>
 
-              {/* Quick Links Grid */}
-              <div className="grid grid-cols-2 gap-4">
-                {[
-                  { label: 'Exams', icon: <Newspaper size={18} />, color: 'text-rose-500', bg: 'bg-rose-50' },
-                  { label: 'Library', icon: <LayoutGrid size={18} />, color: 'text-amber-500', bg: 'bg-amber-50' },
-                  { label: 'Grades', icon: <TrendingUp size={18} />, color: 'text-emerald-500', bg: 'bg-emerald-50' },
-                  { label: 'Hostel', icon: <ArrowRight size={18} />, color: 'text-primary-500', bg: 'bg-primary-50' },
-                ].map((item, i) => (
-                  <div key={i} className="bg-white dark:bg-gray-900 rounded-3xl p-6 border border-gray-100 dark:border-gray-800 flex flex-col items-center justify-center gap-3 cursor-pointer hover:shadow-2xl hover:shadow-primary-500/10 transition-all group">
-                      <div className={`w-12 h-12 rounded-2xl ${item.bg} dark:bg-gray-800 flex items-center justify-center ${item.color} group-hover:scale-110 transition-transform shadow-sm`}>
-                        {item.icon}
-                      </div>
-                      <span className="text-[10px] font-black uppercase tracking-widest text-gray-500">{item.label}</span>
-                  </div>
-                ))}
-              </div>
             </div>
           </aside>
 
@@ -209,26 +329,41 @@ const Announcements = () => {
       </div>
       <style>
         {`
+          @keyframes marquee {
+            0% { transform: translateX(0); }
+            100% { transform: translateX(-50%); }
+          }
+          .animate-marquee {
+            animation: marquee 60s linear infinite;
+            display: flex;
+          }
+          .animate-marquee:hover {
+            animation-play-state: paused;
+          }
           .custom-scrollbar::-webkit-scrollbar {
-            width: 4px;
-            height: 4px;
+            width: 6px;
+            height: 6px;
           }
           .custom-scrollbar::-webkit-scrollbar-track {
             background: transparent;
           }
           .custom-scrollbar::-webkit-scrollbar-thumb {
-            background: rgba(0, 0, 0, 0.05);
-            border-radius: 10px;
+            background: rgba(67, 97, 238, 0.1);
+            border-radius: 20px;
+            border: 2px solid transparent;
+            background-clip: content-box;
           }
           .dark .custom-scrollbar::-webkit-scrollbar-thumb {
-            background: rgba(255, 255, 255, 0.05);
+            background: rgba(255, 255, 255, 0.1);
           }
           .custom-scrollbar:hover::-webkit-scrollbar-thumb {
-            background: rgba(67, 97, 238, 0.2);
+            background: rgba(67, 97, 238, 0.4);
+            background-clip: content-box;
           }
            /* Hide main page scrollbar to enforce 3-column independent scrolling */
           html, body {
             overflow: hidden !important;
+            height: 100%;
           }
         `}
       </style>

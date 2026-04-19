@@ -239,11 +239,13 @@ const AdminResultHub = ({ user }) => {
     doc.setFillColor(15, 23, 42); // bg-slate-900
     doc.rect(0, 0, 210, 45, 'F');
     doc.setTextColor(255, 255, 255);
-    doc.setFontSize(24);
+    doc.setFontSize(26);
     doc.setFont("helvetica", "bold");
-    doc.text("OFFICIAL GRADE TRANSCRIPT", 20, 25);
-    doc.setFontSize(10);
-    doc.text(`CERTIFIED DIGITAL ARCHIVE | SEMESTER: ${semester} | ACADEMIC NODE: ${academicYear}`, 20, 35);
+    doc.text("OFFICIAL ACADEMIC TRANSCRIPT", 20, 26);
+    doc.setFontSize(9);
+    doc.setFont("helvetica", "normal");
+    doc.text(`DIGITAL CERTIFICATION NODE | SEMESTER: ${semester} | CYCLE: ${academicYear}`, 20, 34);
+    doc.text(`SECURITY HASH: ${Math.random().toString(36).substring(2, 15).toUpperCase()}`, 20, 40);
     
     // Identity Profile
     doc.setTextColor(50, 50, 50);
@@ -282,6 +284,7 @@ const AdminResultHub = ({ user }) => {
     doc.text(`PERCENTAGE: ${final.percentage || 'N/A'}% | OFFICIAL RECORD`, 30, doc.lastAutoTable.finalY + 30);
 
     const pdfBlob = doc.output('blob');
+    doc.save(`transcript_${student.rollNumber}_sem${semester}.pdf`);
 
     // 2. Upload to Cloud
     try {
@@ -345,6 +348,11 @@ const AdminResultHub = ({ user }) => {
     s.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     s.rollNumber.toLowerCase().includes(searchTerm.toLowerCase())
   ).sort((a, b) => {
+    // Primary sort by section if viewing all sections
+    if (section === 'all' && a.section !== b.section) {
+      return (a.section || '').localeCompare(b.section || '');
+    }
+    // Secondary sort by user's choice
     if (a[sortConfig.key] < b[sortConfig.key]) return sortConfig.direction === 'asc' ? -1 : 1;
     if (a[sortConfig.key] > b[sortConfig.key]) return sortConfig.direction === 'asc' ? 1 : -1;
     return 0;
@@ -443,7 +451,25 @@ const AdminResultHub = ({ user }) => {
           </div>
         </div>
 
-        <div className="md:col-span-full xl:col-span-2 space-y-3">
+        <div className="space-y-3">
+          <label className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] ml-2">Cohort Section</label>
+          <div className="relative group">
+            <LayoutGrid size={16} className="absolute left-6 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-red-500 transition-colors" />
+            <select 
+              value={section} 
+              onChange={(e) => setSection(e.target.value)}
+              className="w-full bg-gray-50 dark:bg-gray-800/50 border-none focus:ring-2 focus:ring-red-500/20 rounded-2xl py-5 pl-14 pr-8 text-[11px] font-black uppercase tracking-widest dark:text-white outline-none appearance-none cursor-pointer group-hover:bg-gray-100 dark:group-hover:bg-gray-800 transition-all shadow-inner"
+            >
+              <option value="all">Global Roster</option>
+              <option value="A">Section Alpha (A)</option>
+              <option value="B">Section Beta (B)</option>
+              <option value="C">Section Gamma (C)</option>
+            </select>
+            <ChevronRight size={14} className="absolute right-6 top-1/2 -translate-y-1/2 text-gray-400 rotate-90" />
+          </div>
+        </div>
+
+        <div className="md:col-span-full xl:col-span-1 space-y-3">
           <label className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] ml-2">Identity Filter</label>
           <div className="relative group">
             <Search className="absolute left-6 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-red-500 transition-colors" size={16} />

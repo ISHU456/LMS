@@ -21,6 +21,8 @@ import mfaRoutes from './routes/mfaRoutes.js';
 import accessRequestRoutes from './routes/accessRequestRoutes.js';
 import gamificationRoutes from './routes/gamificationRoutes.js';
 import newsRoutes from './routes/newsRoutes.js';
+import codingRoutes from './routes/codingRoutes.js';
+
 
 import Department from './models/Department.js';
 import Course from './models/Course.js';
@@ -86,7 +88,9 @@ app.get('/', (req, res) => {
   res.send('API is running...');
 });
 
+
 app.use('/api/auth', authRoutes);
+
 app.use('/api/resources', resourceRoutes);
 app.use('/api/assignments', assignmentRoutes);
 app.use('/api/announcements', announcementRoutes);
@@ -103,6 +107,8 @@ app.use('/api/mfa', mfaRoutes);
 app.use('/api/access-requests', accessRequestRoutes);
 app.use('/api/gamification', gamificationRoutes);
 app.use('/api/news', newsRoutes);
+app.use('/api/coding', codingRoutes);
+
 
 
 // PUBLIC SETTINGS
@@ -115,21 +121,111 @@ app.get('/api/public/settings', async (req, res) => {
     }
 });
 
+// LIVE STATUS API
+app.get('/api/live/status/:roomId', (req, res) => {
+  const { roomId } = req.params;
+  const isLive = !!broadcasters[roomId];
+  res.json({ isLive });
+});
+
+const broadcasters = {}; // roomId -> { id, name }
+const roomParticipants = {}; // roomId -> [{ id, name, email }]
+
 // Socket.io for Real-time features
 io.on('connection', (socket) => {
-  // console.log('New client connected', socket.id);
-  
-  socket.on('join-room', (roomId, userId) => {
+  // WebRTC Broadcaster Logic (Teacher)
+  socket.on('broadcaster-join', async (roomId, name) => {
+    broadcasters[roomId] = { id: socket.id, name };
     socket.join(roomId);
-    socket.to(roomId).emit('user-connected', userId);
+    
+    // Fetch academic context for targeted broadcasting
+    try {
+      const course = await Course.findOne({ code: roomId }).populate('department');
+      if (course) {
+        io.emit('global-class-started', { 
+          roomId, 
+          name, 
+          department: course.department?.name,
+          deptCode: course.department?.code,
+          semester: course.semester
+        });
+      } else {
+        io.emit('global-class-started', { roomId, name });
+      }
+    } catch (e) {
+      io.emit('global-class-started', { roomId, name });
+    }
+    
+    socket.to(roomId).emit('broadcaster-connected', name);
+    
+    // Broadcast existing participants to broadcaster (though they'll join later)
+    if (!roomParticipants[roomId]) roomParticipants[roomId] = [];
+    socket.emit('update-participants', roomParticipants[roomId]);
+  });
 
-    socket.on('disconnect', () => {
-      socket.to(roomId).emit('user-disconnected', userId);
-    });
+  // WebRTC Watcher Logic (Student)
+  socket.on('watcher-join', (roomId, user) => {
+    socket.join(roomId);
+    
+    if (!roomParticipants[roomId]) roomParticipants[roomId] = [];
+    // Add if not already there
+    if (!roomParticipants[roomId].find(p => p.id === socket.id)) {
+      roomParticipants[roomId].push({ id: socket.id, ...user });
+    }
+    
+    // Notify room of updated list
+    io.to(roomId).emit('update-participants', roomParticipants[roomId]);
+    
+    if (broadcasters[roomId]) {
+      // Send offer with broadcaster name
+      socket.to(broadcasters[roomId].id).emit('watcher-connected', socket.id, user);
+      socket.emit('broadcaster-name', broadcasters[roomId].name);
+    }
+  });
+
+  // Signaling
+  socket.on('offer', (id, message) => {
+    // Find room to attach broadcaster name
+    let broadcasterName = 'Professor';
+    for (const rid in broadcasters) {
+      if (broadcasters[rid].id === socket.id) broadcasterName = broadcasters[rid].name;
+    }
+    socket.to(id).emit('offer', socket.id, message, broadcasterName);
+  });
+  socket.on('answer', (id, message) => {
+    socket.to(id).emit('answer', socket.id, message);
+  });
+  socket.on('candidate', (id, message) => {
+    socket.to(id).emit('candidate', socket.id, message);
+  });
+
+  // Chat & Interactions
+  socket.on('chat-message', (roomId, message) => {
+    io.to(roomId).emit('chat-message', message);
+  });
+  socket.on('raise-hand', (roomId, user) => {
+    if (broadcasters[roomId]) {
+      socket.to(broadcasters[roomId].id).emit('raise-hand', user);
+    }
   });
 
   socket.on('disconnect', () => {
-    // console.log('Client disconnected');
+    // Check if broadcaster left
+    for (const roomId in broadcasters) {
+      if (broadcasters[roomId].id === socket.id) {
+        delete broadcasters[roomId];
+        socket.to(roomId).emit('broadcaster-disconnected');
+      }
+    }
+    // Check if participant left
+    for (const roomId in roomParticipants) {
+      const initialLen = roomParticipants[roomId].length;
+      roomParticipants[roomId] = roomParticipants[roomId].filter(p => p.id !== socket.id);
+      if (roomParticipants[roomId].length !== initialLen) {
+        io.to(roomId).emit('update-participants', roomParticipants[roomId]);
+      }
+    }
+    socket.broadcast.emit('disconnectPeer', socket.id);
   });
 });
 

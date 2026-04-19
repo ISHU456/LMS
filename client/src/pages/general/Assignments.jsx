@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useSelector } from 'react-redux';
 import { useGamification } from '../../hooks/useGamification';
 
-const Assignments = () => {
+const Assignments = ({ isEmbedded = false }) => {
   const { user } = useSelector(state => state.auth);
   const studentId = user?._id;
   const { gamification, submitAssignment } = useGamification(studentId);
@@ -63,14 +63,14 @@ const Assignments = () => {
   };
 
   return (
-    <div className="min-h-[calc(100vh-73px)] bg-gray-50 dark:bg-[#0f172a] p-4 md:p-8 flex justify-center">
+    <div className={`min-h-[calc(100vh-73px)] bg-gray-50 dark:bg-[#0f172a] ${isEmbedded ? 'p-0' : 'p-4 md:p-8'} flex justify-center`}>
       <div className="w-full max-w-6xl space-y-8">
         
         {/* Header */}
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <div className={`flex flex-col md:flex-row justify-between items-start md:items-center gap-4 ${isEmbedded ? 'pt-4' : ''}`}>
            <div>
-              <h1 className="text-3xl font-extrabold text-gray-900 dark:text-white capitalize tracking-tight flex items-center gap-3">
-                 <Edit3 size={32} className="text-primary-500" /> Assignment & Project Center
+              <h1 className={`${isEmbedded ? 'text-2xl' : 'text-3xl'} font-extrabold text-gray-900 dark:text-white capitalize tracking-tight flex items-center gap-3`}>
+                 <Edit3 size={isEmbedded ? 24 : 32} className="text-primary-500" /> Assignment & Project Hub
               </h1>
               <p className="text-gray-500 dark:text-gray-400 font-medium mt-1">Manage deliverables, track strict deadlines, and review detailed faculty remarks.</p>
            </div>

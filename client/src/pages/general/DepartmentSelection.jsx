@@ -53,14 +53,15 @@ const DepartmentSelection = () => {
         window.dispatchEvent(new CustomEvent('smartlms:department_selected', { detail: dept }));
 
         // 3. Navigate to appropriate entry page
-        navigate('/courses');
+        navigate('/dashboard');
       }
     } catch (err) {
       console.error('Failed to sync department selection', err);
       // Fallback: at least store locally
       localStorage.setItem('selectedDepartment', JSON.stringify(dept));
-      navigate('/courses');
+      navigate('/dashboard');
     }
+
   };
 
   const getDeptIcon = (code) => {

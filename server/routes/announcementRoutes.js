@@ -7,6 +7,11 @@ import {
   deleteAnnouncement,
   addView,
   updatePresence,
+  reportAnnouncement,
+  getReportedAnnouncements,
+  dismissReport,
+  getUserAnnouncementStats,
+  getTrendingAnnouncements
 } from '../controllers/announcementController.js';
 import {
   addComment,
@@ -22,13 +27,21 @@ router.route('/')
   .get(getAnnouncements)
   .post(protect, createAnnouncement);
 
+router.get('/stats/me', protect, getUserAnnouncementStats);
+router.get('/trending', protect, getTrendingAnnouncements);
+
 // Engagement / presence
 router.post('/:id/view', addView); 
 router.post('/:id/presence', protect, updatePresence);
 
 router.post('/:id/like', protect, likeAnnouncement);
 router.post('/:id/react', protect, reactToAnnouncement);
+router.post('/:id/report', protect, reportAnnouncement);
 router.delete('/:id', protect, deleteAnnouncement);
+
+// Admin Moderation
+router.get('/reported', protect, getReportedAnnouncements);
+router.post('/:id/dismiss-report', protect, dismissReport);
 
 // Comments
 router.route('/:announcementId/comments')

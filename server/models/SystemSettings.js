@@ -9,6 +9,8 @@ const systemSettingsSchema = new mongoose.Schema({
     allowSelfRegistration: { type: Boolean, default: true },
     aiDailyCredits: { type: Number, default: 10 },
     globalAlert: { type: String, default: '' },
+    lightModeBgColor: { type: String, default: '#FDFBF7' },
+    darkModeBgColor: { type: String, default: '#0f172a' },
     updatedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' }
 }, { timestamps: true });
 

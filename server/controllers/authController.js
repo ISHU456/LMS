@@ -164,6 +164,9 @@ export const updateUserProfile = async (req, res) => {
       user.contact = req.body.contact || user.contact;
       user.address = req.body.address || user.address;
       user.department = req.body.department || user.department;
+      user.dob = req.body.dob || user.dob;
+      user.year = req.body.year || user.year;
+      user.semester = req.body.semester || user.semester;
       
       if (req.body.profilePic && req.body.profilePic.startsWith('data:image')) {
         const uploadRes = await cloudinary.uploader.upload(req.body.profilePic, {

@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Camera, User, Phone, MapPin, Building, HeartPulse, ShieldAlert, Lock, Mail, Calendar, AtSign, Briefcase, GraduationCap, Globe, CheckCircle2, AlertCircle } from 'lucide-react';
+import { Camera, User, Phone, MapPin, Building, HeartPulse, ShieldAlert, Lock, Mail, Calendar, AtSign, Briefcase, GraduationCap, Globe, CheckCircle2, AlertCircle, Palette } from 'lucide-react';
 import { useSelector, useDispatch } from 'react-redux';
 import { updateProfile } from '../../features/auth/authSlice';
+import Cropper from 'react-easy-crop';
+import getCroppedImg from '../../utils/cropImage';
 
 const Profile = () => {
   const { user } = useSelector((state) => state.auth);
@@ -25,6 +27,13 @@ const Profile = () => {
 
   const [errorMsg, setErrorMsg] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
+
+  // Image Cropping States
+  const [imageToCrop, setImageToCrop] = useState(null);
+  const [crop, setCrop] = useState({ x: 0, y: 0 });
+  const [zoom, setZoom] = useState(1);
+  const [croppedAreaPixels, setCroppedAreaPixels] = useState(null);
+  const [showCropper, setShowCropper] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -103,10 +112,27 @@ const Profile = () => {
     const file = e.target.files[0];
     if (file) {
       const reader = new FileReader();
-      reader.onload = (readerEvent) => {
-        setFormData({ ...formData, profilePic: readerEvent.target.result });
+      reader.onload = () => {
+        setImageToCrop(reader.result);
+        setShowCropper(true);
       };
       reader.readAsDataURL(file);
+    }
+  };
+
+  const onCropComplete = (croppedArea, croppedAreaPixels) => {
+    setCroppedAreaPixels(croppedAreaPixels);
+  };
+
+  const handleSaveCrop = async () => {
+    try {
+      const croppedImage = await getCroppedImg(imageToCrop, croppedAreaPixels);
+      setFormData({ ...formData, profilePic: croppedImage });
+      setShowCropper(false);
+      setImageToCrop(null);
+    } catch (e) {
+      console.error("Crop error:", e);
+      setErrorMsg("Failed to process image. Please try another one.");
     }
   };
 
@@ -124,8 +150,32 @@ const Profile = () => {
     { id: 'personal', label: 'Personal Information', icon: User },
     { id: 'academic', label: 'Academic Details', icon: Building },
     { id: 'emergency', label: 'Family & Emergency', icon: HeartPulse },
+    { id: 'aesthetics', label: 'Personal Aesthetics', icon: Palette },
     { id: 'security', label: 'Security & Access', icon: Lock },
   ];
+
+  const THEMES = [
+    { id: 'academic', name: 'Classic Academic', light: '#FDFBF7', dark: '#0f172a' },
+    { id: 'indigo', name: 'Indigo Fusion', light: '#F0F4F8', dark: '#0B0E14' },
+    { id: 'nature', name: 'Nature\'s Breath', light: '#F0FDF4', dark: '#052E16' },
+    { id: 'amethyst', name: 'Royal Amethyst', light: '#F5F3FF', dark: '#1E1B4B' },
+    { id: 'sunset', name: 'Sunset Horizon', light: '#FFF1F2', dark: '#450A0A' },
+    { id: 'ocean', name: 'Ocean Deep', light: '#F0F9FF', dark: '#082F49' },
+    { id: 'cyber', name: 'Cyber Gold', light: '#FEFCE8', dark: '#1A1600' }
+  ];
+
+  const applyPersonalTheme = (themeId) => {
+    const theme = THEMES.find(t => t.id === themeId);
+    if (theme) {
+        localStorage.setItem('personal_theme', JSON.stringify(theme));
+        document.documentElement.style.setProperty('--bg-light', theme.light);
+        document.documentElement.style.setProperty('--bg-dark', theme.dark);
+        setSuccessMsg(`Appearance recalibrated to ${theme.name}.`);
+    } else {
+        localStorage.removeItem('personal_theme');
+        window.location.reload(); // Fallback to institutional
+    }
+  };
 
   return (
     <div className="flex-1 bg-slate-50 dark:bg-[#030712] min-h-screen p-4 md:p-10 transition-colors duration-500 relative">
@@ -138,7 +188,7 @@ const Profile = () => {
           <div className="flex flex-col lg:flex-row items-center gap-10">
             {/* Avatar Section */}
             <div className="relative shrink-0 group">
-               <div className="w-40 h-40 rounded-3xl border-4 border-white dark:border-gray-800 bg-white dark:bg-gray-800 shadow-xl overflow-hidden flex items-center justify-center relative ring-1 ring-black/5 dark:ring-white/5">
+               <div className="w-40 h-40 rounded-3xl border-4 border-white bg-white shadow-xl overflow-hidden flex items-center justify-center relative ring-1 ring-black/5">
                  {formData.profilePic ? (
                    <img src={formData.profilePic} alt="Profile" className="w-full h-full object-cover transition-transform duration-700" />
                  ) : (
@@ -351,6 +401,46 @@ const Profile = () => {
                     </motion.div>
                   )}
 
+                  {activeTab === 'aesthetics' && (
+                    <motion.div key="aesthetics" initial={{opacity:0, y:8}} animate={{opacity:1, y:0}} exit={{opacity:0, y:-8}} className="space-y-8">
+                       <div className="border-b border-gray-100 dark:border-gray-800 pb-5">
+                         <h2 className="text-lg font-bold text-gray-900 dark:text-white tracking-tight">Personal Workspace Aesthetics</h2>
+                         <p className="text-xs text-gray-500 font-medium">Customize your individual environment with curated themes</p>
+                       </div>
+
+                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <button 
+                            type="button"
+                            onClick={() => applyPersonalTheme(null)}
+                            className="p-6 rounded-3xl border border-gray-100 dark:border-gray-800 bg-white/40 dark:bg-white/5 hover:border-primary-500/30 transition-all text-left"
+                          >
+                             <p className="text-xs font-black uppercase tracking-widest text-primary-600 mb-1">Institutional Default</p>
+                             <p className="text-[10px] text-gray-500 font-bold uppercase italic">Follow the university's global signature</p>
+                          </button>
+
+                          {THEMES.map(t => (
+                            <button 
+                                key={t.id}
+                                type="button"
+                                onClick={() => applyPersonalTheme(t.id)}
+                                className="p-6 rounded-3xl border border-gray-100 dark:border-gray-800 bg-white/40 dark:bg-white/5 hover:border-primary-500/30 transition-all group"
+                            >
+                                <div className="flex items-center justify-between mb-3">
+                                    <div className="text-[10px] font-black text-gray-900 dark:text-white uppercase tracking-widest">{t.name}</div>
+                                    <div className="flex gap-1">
+                                        <div className="w-3 h-3 rounded-full border border-black/10" style={{ backgroundColor: t.light }} />
+                                        <div className="w-3 h-3 rounded-full border border-black/10" style={{ backgroundColor: t.dark }} />
+                                    </div>
+                                </div>
+                                <div className="h-1.5 w-full bg-gray-100 dark:bg-white/5 rounded-full overflow-hidden">
+                                    <div className="h-full bg-primary-500 w-0 group-hover:w-full transition-all duration-700" />
+                                </div>
+                            </button>
+                          ))}
+                       </div>
+                    </motion.div>
+                  )}
+
                   {activeTab === 'security' && (
                     <motion.div key="security" initial={{opacity:0, y:8}} animate={{opacity:1, y:0}} exit={{opacity:0, y:-8}} className="space-y-8">
                        <div className="border-b border-gray-100 dark:border-gray-800 pb-5">
@@ -391,6 +481,88 @@ const Profile = () => {
           </div>
         </div>
       </div>
+
+      {/* CROPPER MODAL */}
+      <AnimatePresence>
+        {showCropper && (
+          <motion.div 
+            initial={{ opacity: 0 }} 
+            animate={{ opacity: 1 }} 
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm"
+          >
+            <motion.div 
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="bg-white dark:bg-gray-900 w-full max-w-xl rounded-3xl overflow-hidden shadow-2xl border border-white/10"
+            >
+              <div className="p-6 border-b border-gray-100 dark:border-gray-800 flex justify-between items-center">
+                <div>
+                  <h3 className="text-xl font-bold text-gray-900 dark:text-white">Adjust Profile Photo</h3>
+                  <p className="text-xs text-gray-500 font-medium mt-1">Drag to position and use slider to scale</p>
+                </div>
+                <button 
+                  onClick={() => setShowCropper(false)}
+                  className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full transition-colors"
+                >
+                  <AlertCircle className="text-gray-400 rotate-45" size={24} />
+                </button>
+              </div>
+
+              <div className="relative h-96 w-full bg-slate-900">
+                <Cropper
+                  image={imageToCrop}
+                  crop={crop}
+                  zoom={zoom}
+                  aspect={1}
+                  onCropChange={setCrop}
+                  onCropComplete={onCropComplete}
+                  onZoomChange={setZoom}
+                  cropShape="rect"
+                  showGrid={true}
+                  minZoom={0.5}
+                  restrictPosition={false}
+                />
+              </div>
+
+              <div className="p-8 space-y-6">
+                <div className="space-y-3">
+                  <div className="flex justify-between text-[11px] font-bold text-gray-500 uppercase tracking-widest">
+                    <span>Zoom Level</span>
+                    <span>{Math.round(zoom * 100)}%</span>
+                  </div>
+                  <input
+                    type="range"
+                    value={zoom}
+                    min={0.5}
+                    max={3}
+                    step={0.1}
+                    aria-labelledby="Zoom"
+                    onChange={(e) => setZoom(parseFloat(e.target.value))}
+                    className="w-full h-1.5 bg-gray-200 dark:bg-gray-800 rounded-lg appearance-none cursor-pointer accent-primary-600"
+                  />
+                </div>
+
+                <div className="flex gap-4">
+                  <button 
+                    onClick={() => setShowCropper(false)}
+                    className="flex-1 py-3.5 rounded-2xl border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 font-bold text-xs tracking-widest hover:bg-gray-50 dark:hover:bg-gray-800 transition-all uppercase"
+                  >
+                    Cancel
+                  </button>
+                  <button 
+                    onClick={handleSaveCrop}
+                    className="flex-1 py-3.5 rounded-2xl bg-primary-600 text-white font-bold text-xs tracking-widest hover:bg-primary-700 shadow-xl shadow-primary-500/20 transition-all uppercase"
+                  >
+                    Apply Crop
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       <style>{`
         .glass {

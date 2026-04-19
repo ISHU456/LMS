@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { Sun, Moon, Star, UserCircle, LogOut, Menu, X, LayoutDashboard, GraduationCap, Building2, Megaphone, Home, Flame, Award, Edit, Bot, ArrowLeft, FileText, CheckCircle, TrendingUp, Terminal, ShieldCheck, MapPin } from 'lucide-react';
+import { Sun, Moon, Star, UserCircle, LogOut, Menu, X, LayoutDashboard, GraduationCap, Building2, Megaphone, Home, Flame, Award, Edit, Bot, ArrowLeft, FileText, CheckCircle, TrendingUp, Terminal, ShieldCheck, MapPin, Code, ClipboardList, Trophy } from 'lucide-react';
+
 import { motion, AnimatePresence } from 'framer-motion';
 import { useSelector, useDispatch } from 'react-redux';
 import { logout } from '../features/auth/authSlice';
@@ -85,26 +86,32 @@ const Navbar = ({ darkMode, toggleDarkMode }) => {
   const isAIModePage = location.pathname === '/ai-mode';
 
   const navLinks = (isAIModePage && !user) ? [
-    { name: 'Back to Hub', path: '/', icon: <ArrowLeft size={18} /> },
-    { name: 'Browse Courses', path: '/departments', icon: <Building2 size={18} /> },
+    { name: 'Return to Hub', path: '/', icon: <ArrowLeft size={18} /> },
+    { name: 'Departments', path: '/departments', icon: <Building2 size={18} /> },
   ] : [
-    { name: 'Home', path: '/', icon: <Home size={18} /> },
+    { name: 'Home', path: (user && (user.role === 'admin' || user.role === 'teacher')) ? getDashboardLink() : '/', icon: <Home size={18} /> },
+    
+    // Academic Pillar
     { name: 'Courses', path: '/courses', icon: <GraduationCap size={18} /> },
     { name: 'Announcements', path: '/community', icon: <Megaphone size={18} /> },
+
+    { name: 'Arena', path: '/arena', icon: <Trophy size={18} /> },
+    { name: 'AI Mode', path: '/ai-mode', icon: <Bot size={18} /> },
+
     ...(user ? [
       ...(user.role === 'student' ? [
-        { name: 'Results', path: '/results/my', icon: <FileText size={18} /> },
+        { name: 'Performance', path: '/results/my', icon: <FileText size={18} /> },
         { name: 'Attendance', path: '/daily-attendance', icon: <ShieldCheck size={18} /> }
       ] : []),
-      ...(user.role === 'teacher' ? [{ name: 'Mark Entry', path: '/results/entry', icon: <Edit size={18} /> }] : []),
+
+      ...(user.role === 'teacher' ? [{ name: 'Evaluation', path: '/results/entry', icon: <Edit size={18} /> }] : []),
       ...(user.role === 'admin' || user.role === 'hod' ? [
-        { name: 'Results', path: '/results/verify', icon: <CheckCircle size={18} /> },
+        { name: 'Verification', path: '/results/verify', icon: <CheckCircle size={18} /> },
         ...(user.role === 'admin' ? [
-          { name: 'GPS Config', path: '/admin/gps-config', icon: <MapPin size={18} /> }
+          { name: 'Geofence', path: '/admin/gps-config', icon: <MapPin size={18} /> }
         ] : [])
       ] : [])
     ] : []),
-    { name: 'AI Mode', path: '/ai-mode', icon: <Bot size={18} /> },
   ];
 
   const [isProfileOpen, setIsProfileOpen] = useState(false);
@@ -142,7 +149,13 @@ const Navbar = ({ darkMode, toggleDarkMode }) => {
                   to={finalLink.path}
                   className={`relative px-4 py-2 group`}
                 >
-                  <span className={`relative z-10 text-[10px] font-black uppercase tracking-[0.2em] transition-colors duration-300 ${location.pathname === finalLink.path ? 'text-primary-600 dark:text-primary-400' : 'text-gray-500 dark:text-gray-400 group-hover:text-gray-900 dark:group-hover:text-white'}`}>
+                  <span className={`relative z-10 text-[10px] font-black uppercase tracking-[0.2em] transition-colors duration-300 ${
+                    location.pathname === finalLink.path 
+                      ? 'text-primary-600 dark:text-primary-400' 
+                      : finalLink.name === 'Arena'
+                        ? 'text-black dark:text-teal-400 opacity-80 group-hover:opacity-100'
+                        : 'text-gray-500 dark:text-gray-400 group-hover:text-gray-900 dark:group-hover:text-white'
+                  }`}>
                     {finalLink.name}
                   </span>
                   
@@ -152,20 +165,28 @@ const Navbar = ({ darkMode, toggleDarkMode }) => {
                   {location.pathname === finalLink.path && (
                     <motion.div 
                       layoutId="nav-underline"
-                      className="absolute bottom-0 left-4 right-4 h-0.5 bg-primary-500 rounded-full"
+                      className={`absolute bottom-0 left-4 right-4 h-0.5 rounded-full ${finalLink.name === 'Quiz Arena' ? 'bg-emerald-500' : 'bg-primary-500'}`}
                     />
                   )}
-                  <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-0 h-0.5 bg-primary-500/40 rounded-full group-hover:w-1/2 transition-all duration-300" />
+                  <div className={`absolute bottom-0 left-1/2 -translate-x-1/2 w-0 h-0.5 rounded-full group-hover:w-1/2 transition-all duration-300 ${finalLink.name === 'Quiz Arena' ? 'bg-emerald-500/40' : 'bg-primary-500/40'}`} />
                 </Link>
               );
             })}
             
             {/* Display Semester on every page for students */}
             {user?.role === 'student' && user?.semester && (
-              <div className="ml-4 px-3 py-1.5 rounded-xl border border-primary-500/20 bg-primary-500/10 text-primary-600 dark:text-primary-400">
-                <div className="text-[10px] font-black uppercase tracking-widest flex items-center gap-2">
-                  <GraduationCap size={14} className="opacity-70" />
-                  Semester {user.semester}
+              <div className="flex items-center gap-2 ml-4">
+                <div className="px-3 py-1.5 rounded-xl border border-primary-500/20 bg-primary-500/10 text-primary-600 dark:text-primary-400">
+                  <div className="text-[10px] font-black uppercase tracking-widest flex items-center gap-2">
+                    <GraduationCap size={14} className="opacity-70" />
+                    Semester {user.semester}
+                  </div>
+                </div>
+                <div className="px-3 py-1.5 rounded-xl border border-amber-500/20 bg-amber-500/10 text-amber-600 dark:text-amber-400">
+                  <div className="text-[10px] font-black uppercase tracking-widest flex items-center gap-2">
+                    <Flame size={14} className="fill-current text-orange-500" />
+                    {user.coins || 0} Coins
+                  </div>
                 </div>
               </div>
             )}
@@ -185,11 +206,12 @@ const Navbar = ({ darkMode, toggleDarkMode }) => {
             <div className="flex items-center gap-3 pl-3 border-l border-gray-100 dark:border-gray-800 relative">
               {user ? (
                 <>
-                  {/* Streak Compact */}
-                  <div className="hidden lg:flex items-center gap-1 px-2 py-1.5 bg-orange-50 dark:bg-orange-950/20 text-orange-600 dark:text-orange-400 rounded-lg border border-orange-100 dark:border-orange-900/20 mr-1">
-                    <Flame size={12} className={gamification?.streakDays > 0 ? 'fill-current' : 'opacity-40'} />
-                    <span className="text-[10px] font-black">{gamification?.streakDays || 0}</span>
-                  </div>
+                  {user?.role === 'student' && (
+                    <div className="flex items-center gap-1.5 px-3 py-1.5 bg-orange-500/10 text-orange-600 dark:text-orange-400 rounded-xl border border-orange-500/20 mr-2 shadow-sm">
+                      <Flame size={14} className={ (user?.streak || gamification?.streakDays) > 0 ? 'fill-current text-orange-500 animate-pulse' : 'opacity-40'} />
+                      <span className="text-xs font-black uppercase tracking-tighter">{(user?.streak || gamification?.streakDays) || 0}d</span>
+                    </div>
+                  )}
 
                   {/* Profile Trigger - Avatar Only */}
                   <div className="relative">
@@ -252,7 +274,7 @@ const Navbar = ({ darkMode, toggleDarkMode }) => {
                               <div className="w-8 h-8 rounded-lg bg-primary-500/10 flex items-center justify-center text-primary-500 group-hover:bg-primary-500 group-hover:text-white transition-all">
                                 <LayoutDashboard size={14} />
                               </div>
-                              System Dashboard
+                              {user.role === 'admin' ? 'Admin Home' : user.role === 'teacher' ? 'Faculty Home' : 'System Dashboard'}
                             </Link>
 
                             <Link 
@@ -365,7 +387,7 @@ const Navbar = ({ darkMode, toggleDarkMode }) => {
                   <>
                     <Link to={getDashboardLink()} onClick={() => setIsMobileMenuOpen(false)} className="flex items-center gap-4 p-4 rounded-2xl bg-primary-600 text-white font-black text-sm uppercase tracking-widest shadow-lg shadow-primary-500/20">
                       <LayoutDashboard size={20} />
-                      Dashboard
+                      {user.role === 'admin' || user.role === 'teacher' ? 'Home' : 'Dashboard'}
                     </Link>
                     <Link to="/profile" onClick={() => setIsMobileMenuOpen(false)} className="flex items-center gap-4 p-4 rounded-2xl bg-gray-50 dark:bg-gray-800/50 text-gray-900 dark:text-white font-black text-sm uppercase tracking-widest">
                       <UserCircle size={20} />

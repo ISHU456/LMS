@@ -64,6 +64,7 @@ const CourseDetail = () => {
   );
   const [onlineStudents, setOnlineStudents] = useState(0);
   const [classLive, setClassLive] = useState(false);
+  const prevLiveState = useRef(false);
   const [selectedAssignment, setSelectedAssignment] = useState(null);
 
   // Update URL and LocalStorage when active section changes
@@ -431,7 +432,6 @@ const CourseDetail = () => {
       console.error(err); 
     } 
   };
-
   const fetchOnlineCount = async () => {
     try {
       const res = await axios.get(`http://localhost:5001/api/auth/course-activity/${courseId}`);
@@ -452,12 +452,40 @@ const CourseDetail = () => {
   };
 
 
+  const fetchLiveStatus = async () => {
+    try {
+      const { data } = await axios.get(`http://localhost:5001/api/live/status/${courseId}`);
+      if (data.isLive && !prevLiveState.current && isStudent) {
+        // Trigger acoustic ping
+        const context = new (window.AudioContext || window.webkitAudioContext)();
+        const oscillator = context.createOscillator();
+        const gain = context.createGain();
+        oscillator.type = 'sine';
+        oscillator.frequency.setValueAtTime(880, context.currentTime); // A5
+        gain.gain.setValueAtTime(0.1, context.currentTime);
+        oscillator.connect(gain);
+        gain.connect(context.destination);
+        oscillator.start();
+        oscillator.stop(context.currentTime + 0.2);
+
+        // Dispatch global marquee alert
+        window.dispatchEvent(new CustomEvent('smartlms:marquee_alert', { 
+            detail: { message: `🔴 LIVE CLASS HAS STARTED: ${courseInfo?.name || courseId}. Join now protocol engaged.` } 
+        }));
+      }
+      setClassLive(data.isLive);
+      prevLiveState.current = data.isLive;
+    } catch (err) {
+      console.error('Live status check failed', err);
+    }
+  };
 
   useEffect(() => {
     fetchCourseData();
     fetchResources(); 
     fetchAssignments();
     fetchOnlineCount();
+    fetchLiveStatus();
     fetchAnnouncements();
     sendPulse();
 
@@ -470,8 +498,9 @@ const CourseDetail = () => {
 
     const interval = setInterval(() => {
       fetchOnlineCount();
+      fetchLiveStatus();
       sendPulse();
-    }, 30000);
+    }, 10000); // Polling every 10s
 
     const handleMouseMove = (e) => {
       if (!isResizing.current) return;
@@ -895,6 +924,7 @@ const CourseDetail = () => {
           isTeacher={isFacultyRole}
           canManage={isAuthorizedTeacher}
           navigate={navigate}
+          isLive={classLive}
         />
 
         <div className={`flex-1 flex flex-col min-h-0 overflow-hidden transition-all duration-500 ${activeSection === 'ai-assistant' ? 'p-0 pb-0' : 'p-3 md:p-8'}`}>

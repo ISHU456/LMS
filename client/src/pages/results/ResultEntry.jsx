@@ -9,7 +9,7 @@ import * as XLSX from 'xlsx';
 import axios from 'axios';
 import InstitutionalAlert from '../../components/InstitutionalAlert';
 
-const ResultEntry = () => {
+const ResultEntry = ({ isEmbedded = false }) => {
   const dispatch = useDispatch();
   const { results, isLoading, isSuccess, isError, message } = useSelector(state => state.results);
   const { user } = useSelector(state => state.auth);
@@ -483,13 +483,15 @@ const ResultEntry = () => {
 
 
   return (
-    <div className="min-h-full bg-slate-50 dark:bg-[#020617] p-4 md:p-10 transition-colors duration-300">
+    <div className={`min-h-full bg-slate-50 dark:bg-[#020617] ${isEmbedded ? 'p-0' : 'p-4 md:p-10'} transition-colors duration-300`}>
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="max-w-7xl mx-auto">
-          <header className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
+          <header className={`flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4 ${isEmbedded ? 'pt-4' : ''}`}>
             <div>
               <div className="flex items-center gap-3 mb-2">
-                  <button onClick={() => navigate('/faculty-dashboard')} className="p-3 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-2xl text-slate-500 border border-slate-100 dark:border-slate-800 transition-all shadow-sm"><ChevronRight size={20} className="rotate-180" /></button>
-                  <h1 className="text-4xl font-black text-slate-900 dark:text-white tracking-tight uppercase italic">Result Entry</h1>
+                  {!isEmbedded && (
+                    <button onClick={() => navigate('/faculty-dashboard')} className="p-3 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-2xl text-slate-500 border border-slate-100 dark:border-slate-800 transition-all shadow-sm"><ChevronRight size={20} className="rotate-180" /></button>
+                  )}
+                  <h1 className={`${isEmbedded ? 'text-2xl' : 'text-4xl'} font-black text-slate-900 dark:text-white tracking-tight uppercase italic`}>Result Entry</h1>
               </div>
               <p className="text-slate-400 dark:text-slate-500 font-black text-[10px] uppercase tracking-[0.2em] ml-2">Certification Protocol Nodes</p>
             </div>

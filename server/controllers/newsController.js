@@ -12,7 +12,7 @@ export const getEducationNews = async (req, res) => {
       return res.json({ success: true, items: cachedEducationNews });
     }
 
-    const apiKey = process.env.NEWS_API_KEY;
+    const apiKey = "pub_bee8c3de0f2b494bae0826bd8563e370";
     
     if (!apiKey) {
       // Return mock data if NO API key provided
@@ -45,17 +45,17 @@ export const getEducationNews = async (req, res) => {
       return res.json({ success: true, items: mockNews, isMock: true });
     }
 
-    const query = "(engineering technology OR \"science innovation\" OR \"artificial intelligence\") AND (placement OR internship OR \"job market\" OR \"career trends\")";
-    const url = `https://newsapi.org/v2/everything?q=${encodeURIComponent(query)}&sortBy=publishedAt&pageSize=6&language=en&apiKey=${apiKey}`;
+    const categories = "top,world,politics";
+    const url = `https://newsdata.io/api/1/news?apikey=${apiKey}&category=${categories}&language=en,hi`;
 
     const response = await axios.get(url);
-    const articles = response.data.articles.map(article => ({
+    const articles = response.data.results.map(article => ({
         title: article.title,
         description: article.description,
-        url: article.url,
-        source: { name: article.source.name },
-        publishedAt: article.publishedAt,
-        image: article.urlToImage
+        url: article.link,
+        source: { name: article.source_id },
+        publishedAt: article.pubDate,
+        image: article.image_url
     }));
 
     cachedEducationNews = articles;

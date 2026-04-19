@@ -1,5 +1,6 @@
 import { motion } from 'framer-motion';
-import { Lock, UserPlus, LogIn } from 'lucide-react';
+import { Lock as LockIcon, UserPlus, LogIn } from 'lucide-react';
+
 import { Link } from 'react-router-dom';
 
 const LockedOverlay = ({ title = "Secure Content Locked", message = "Authentication required to access the academic matrix." }) => {
@@ -17,7 +18,8 @@ const LockedOverlay = ({ title = "Secure Content Locked", message = "Authenticat
         className="relative z-10 w-full max-w-xs bg-white dark:bg-[#0f172a] p-8 rounded-[2rem] border border-gray-100 dark:border-gray-800 shadow-[0_24px_80px_-12px_rgba(0,0,0,0.12)] text-center flex flex-col items-center"
       >
         <div className="w-16 h-16 bg-amber-500/10 text-amber-500 rounded-2xl flex items-center justify-center mb-6 shadow-inner ring-1 ring-amber-500/20">
-          <Lock size={32} strokeWidth={2.5} />
+          <LockIcon size={32} strokeWidth={2.5} />
+
         </div>
 
         <h2 className="text-xl font-black text-gray-900 dark:text-white uppercase tracking-tighter mb-3 leading-none">

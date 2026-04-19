@@ -19,7 +19,18 @@ import {
   FileText,
   LayoutDashboard,
   Users,
+  ChevronRight,
+  ChevronLeft,
+  Zap,
+  X,
+  Palette,
+  RefreshCw,
+  ArrowRight,
+  Check,
+  Layers,
 } from 'lucide-react';
+import MonthlyRegister from '../../components/teacher/MonthlyRegister';
+import CoinIcon from '../../components/CoinIcon';
 import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts';
 
 import QuizCenter from '../../components/student/QuizCenter';
@@ -33,6 +44,109 @@ import {
 } from '../../data/learningCatalog';
 import { getCourseProgressSummary, getTodayKey } from '../../utils/gamificationStore';
 
+const MomentumSidebarTracker = ({ user, isInline }) => {
+    const [secondsActive, setSecondsActive] = useState(() => {
+        if (!user?._id) return 0;
+        const saved = sessionStorage.getItem(`lms_active_sec_${user._id}`);
+        return saved ? parseInt(saved, 10) : 0;
+    });
+    
+    const [isRecorded, setIsRecorded] = useState(() => {
+        if (!user?.lastStreakedAt) return false;
+        const today = new Date().setHours(0,0,0,0);
+        const last = new Date(user.lastStreakedAt).setHours(0,0,0,0);
+        return last === today;
+    });
+
+    useEffect(() => {
+        if (isRecorded || !user?._id) return;
+
+        const handleUpdate = (e) => {
+            if (e.detail.userId === user._id) {
+                setSecondsActive(e.detail.seconds);
+                if (e.detail.seconds >= 600) {
+                    setIsRecorded(true);
+                }
+            }
+        };
+
+        window.addEventListener('smartlms:active_seconds_update', handleUpdate);
+        return () => window.removeEventListener('smartlms:active_seconds_update', handleUpdate);
+    }, [user?._id, isRecorded]);
+
+    if (isRecorded || secondsActive >= 600) {
+        if (isInline) {
+            return (
+                <div className="flex items-center gap-1.5 px-3 py-0.5 bg-emerald-500/10 rounded-full border border-emerald-500/20">
+                    <Zap size={10} className="text-emerald-500 fill-current" />
+                    <span className="text-xs font-black text-emerald-600 uppercase tracking-widest italic">Streak</span>
+                </div>
+            );
+        }
+        return (
+            <div className="p-4 rounded-3xl border border-emerald-100 dark:border-emerald-900/30 bg-emerald-50/50 dark:bg-emerald-900/10 mt-2">
+                <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-xl bg-emerald-500 text-white flex items-center justify-center shadow-lg shadow-emerald-500/20">
+                        <Zap size={16} fill="white" />
+                    </div>
+                    <div>
+                       <p className="text-[10px] font-black uppercase text-emerald-600 dark:text-emerald-400 leading-none">Momentum Stabilized</p>
+                       <p className="text-[8px] font-bold text-emerald-500/60 uppercase tracking-widest mt-1">Daily Reward Claimed</p>
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
+    const progress = (secondsActive / 600) * 100;
+    const minutesLeft = Math.ceil((600 - secondsActive) / 60);
+
+    if (isInline) {
+        return (
+            <div className="flex items-center gap-3">
+                <div className="flex flex-col">
+                    <div className="flex items-center justify-between gap-3 mb-1.5">
+                        <div className="flex items-center gap-1.5">
+                            <Zap size={12} className="text-orange-500 animate-pulse" />
+                            <span className="text-[10px] font-black uppercase tracking-[0.15em] text-gray-500 dark:text-gray-400">Momentum</span>
+                        </div>
+                        <span className="text-xs font-black text-orange-600 dark:text-orange-400 italic">{minutesLeft}m Left</span>
+                    </div>
+                    <div className="h-1.5 w-28 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden border border-white/5">
+                        <motion.div 
+                            initial={{ width: 0 }}
+                            animate={{ width: `${progress}%` }}
+                            className="h-full bg-gradient-to-r from-orange-500 to-amber-500 shadow-[0_0_8px_rgba(249,115,22,0.4)]"
+                        />
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
+    return (
+        <div className="p-4 rounded-3xl border border-gray-100 dark:border-gray-800 bg-white/35 dark:bg-gray-900/25 mt-2 overflow-hidden group">
+            <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2">
+                    <Zap size={14} className="text-primary-600 animate-pulse" />
+                    <span className="text-[10px] font-black uppercase tracking-widest text-gray-500 dark:text-gray-400">Momentum Build</span>
+                </div>
+                <span className="text-[10px] font-black text-primary-600 italic">{minutesLeft}m Left</span>
+            </div>
+            <div className="h-1.5 w-full bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden border border-white/5">
+                <motion.div 
+                    initial={{ width: 0 }}
+                    animate={{ width: `${progress}%` }}
+                    className="h-full bg-gradient-to-r from-primary-600 to-indigo-600"
+                />
+            </div>
+            <p className="text-[8px] font-bold text-gray-400 uppercase tracking-tighter mt-2 text-center group-hover:text-primary-500 transition-colors">
+                Stay active for 10 min to earn coins
+            </p>
+        </div>
+    );
+};
+
 const StudentDashboard = () => {
   const { user } = useSelector((state) => state.auth);
   const dispatch = useDispatch();
@@ -44,8 +158,8 @@ const StudentDashboard = () => {
   const [activeTab, setActiveTab] = useState(() => localStorage.getItem('student_active_tab') || 'overview');
   const [isLoading, setIsLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
-  const [selectedSem, setSelectedSem] = useState(() => Number(localStorage.getItem('student_selected_sem')) || user?.semester || 1);
-  const [leaderboardSem, setLeaderboardSem] = useState(() => localStorage.getItem('student_leaderboard_sem') || user?.semester || 'All');
+  const [selectedSem, setSelectedSem] = useState(() => Number(user?.semester) || Number(localStorage.getItem('student_selected_sem')) || 1);
+  const [leaderboardSem, setLeaderboardSem] = useState('All');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   useEffect(() => {
@@ -60,7 +174,7 @@ const StudentDashboard = () => {
     localStorage.setItem('student_selected_sem', selectedSem);
   }, [selectedSem]);
   const [isMounted, setIsMounted] = useState(false);
-  const itemsPerPage = 25;
+  const itemsPerPage = 10;
 
   useEffect(() => {
     setIsMounted(true);
@@ -70,7 +184,10 @@ const StudentDashboard = () => {
 
   const [resourceMetaByCourseId, setResourceMetaByCourseId] = useState({});
   const [globalLeaderboard, setGlobalLeaderboard] = useState([]);
-  const [classroomAttendance, setClassroomAttendance] = useState({ students: [], records: [] });
+  const [attendanceDate, setAttendanceDate] = useState(new Date().toISOString().split('T')[0]);
+  const [selectedCourseAtt, setSelectedCourseAtt] = useState(null);
+  const [dailyAttendanceData, setDailyAttendanceData] = useState({ records: [], dailyRecords: [], students: [] });
+  const [isAttHistoryLoading, setIsAttHistoryLoading] = useState(false);
 
   useEffect(() => {
     setIsLoading(true);
@@ -106,9 +223,10 @@ const StudentDashboard = () => {
           c.semester === selectedSem && 
           (c.department?.name === user?.department || c.department?.code === user?.department)
         ).map(c => ({
+          _id: c._id,
           id: c.code,
           name: c.name,
-          accent: '#4361ee', // Default, can be refined
+          accent: '#4361ee',
           excludedStudents: c.excludedStudents || []
         }));
 
@@ -141,7 +259,6 @@ const StudentDashboard = () => {
 
     load();
     fetchLeaderboard();
-    fetchClassroomAttendance();
 
     const interval = setInterval(() => {
       fetchLeaderboard();
@@ -167,6 +284,8 @@ const StudentDashboard = () => {
   const [gamifiedStats, setGamifiedStats] = useState({ earned: [], all: [], stats: { coins: 0, streak: 0, learningTime: 0 } });
   const [activeQuizId, setActiveQuizId] = useState(null);
   const [availableQuizzes, setAvailableQuizzes] = useState([]);
+  const [selectedQuizLeaderboard, setSelectedQuizLeaderboard] = useState(null);
+  const [quizLeaderboardData, setQuizLeaderboardData] = useState([]);
 
   useEffect(() => {
     const fetchGamification = async () => {
@@ -183,20 +302,47 @@ const StudentDashboard = () => {
     if (user?.token) fetchGamification();
   }, [user?.token, activeTab]);
 
-  const fetchClassroomAttendance = async () => {
+  const viewQuizLeaderboard = async (quizId) => {
     try {
-      const res = await axios.get('http://localhost:5001/api/attendance/classroom', {
-        headers: { Authorization: `Bearer ${user.token}` }
-      });
-      const data = res.data;
-      if (data.students) {
-        data.students.sort((a, b) => a.name.localeCompare(b.name));
-      }
-      setClassroomAttendance(data);
+      const config = { headers: { Authorization: `Bearer ${user.token}` } };
+      const res = await axios.get(`http://localhost:5001/api/gamification/quizzes/${quizId}/leaderboard`, config);
+      setQuizLeaderboardData(res.data);
+      setSelectedQuizLeaderboard(availableQuizzes.find(q => q._id === quizId));
     } catch (err) {
-      console.error("Failed to fetch classroom attendance");
+      console.error(err);
     }
   };
+
+   const fetchDailyAttendance = async () => {
+    if (!selectedCourseAtt || !selectedCourseAtt._id) return;
+    setIsAttHistoryLoading(true);
+    try {
+      const config = { headers: { Authorization: `Bearer ${user.token}` } };
+      // Use the same endpoint pattern as AttendanceManager
+      const res = await axios.get(`http://localhost:5001/api/attendance/course/${selectedCourseAtt._id}?startDate=${attendanceDate}&endDate=${attendanceDate}&semester=${selectedSem}&section=${user.section || 'A'}`, config);
+      
+      // Also fetch students for this course to ensure identity matrix is complete
+      const studentsRes = await axios.get(`http://localhost:5001/api/courses/${selectedCourseAtt.code}/students?semester=${selectedSem}&section=${user.section || 'A'}`, config);
+      
+      setDailyAttendanceData({
+        records: res.data.attendanceRecords || [],
+        dailyRecords: res.data.dailyRecords || [],
+        students: studentsRes.data || []
+      });
+    } catch (err) {
+      console.error("Daily sync failed", err);
+    } finally {
+      setIsAttHistoryLoading(false);
+    }
+  };
+
+
+  useEffect(() => {
+    if (semesterCourses.length > 0 && !selectedCourseAtt) {
+      setSelectedCourseAtt(semesterCourses[0]);
+    }
+  }, [semesterCourses]);
+
 
   const attendancePercentLast7 = useMemo(() => {
     const attendanceDates = gamification?.attendanceDates || [];
@@ -213,7 +359,7 @@ const StudentDashboard = () => {
     return attended / 7;
   }, [gamification?.attendanceDates]);
 
-  const streakDays = gamification?.streakDays || 0;
+  const streakDays = user?.streak || gamification?.streakDays || 0;
   const xp = gamification?.xp || 0;
   const progressToNext = ((xp % 100) / 100) * 100;
 
@@ -256,10 +402,11 @@ const StudentDashboard = () => {
   }, []);
 
   const leaderboardData = useMemo(() => {
-    const list = globalLeaderboard.length > 0 ? globalLeaderboard : [
-      { name: 'Ishaan', xp: 480, semester: 1, department: 'CS' },
-      { name: 'Ananya', xp: 420, semester: 1, department: 'CS' },
-      { name: 'Kabir', xp: 390, semester: 1, department: 'CS' }
+    const list = globalLeaderboard && globalLeaderboard.length > 0 ? globalLeaderboard : [
+      { _id: 'p1', name: 'Ishaan Anand', xp: 480, semester: Number(user?.semester) || 1, department: user?.department || 'CS' },
+      { _id: 'p2', name: 'Ananya Singh', xp: 420, semester: Number(user?.semester) || 1, department: user?.department || 'CS' },
+      { _id: 'p3', name: 'Kabir Verma', xp: 395, semester: Number(user?.semester) || 1, department: user?.department || 'CS' },
+      { _id: 'p4', name: 'Dr. Malviya', xp: 310, semester: Number(user?.semester) || 1, department: user?.department || 'CS' },
     ];
 
     // Pre-calculate global rank mapping
@@ -317,7 +464,6 @@ const StudentDashboard = () => {
     }
     return keys;
   }, []);
-
   const weeklyPerformance = useMemo(() => {
     const attendanceDates = new Set(gamification?.attendanceDates || []);
     const attempts = gamification?.quizAttempts || [];
@@ -327,30 +473,31 @@ const StudentDashboard = () => {
       const key = getTodayKey(new Date(a.submittedAt));
       quizPassedByKey[key] = (quizPassedByKey[key] || 0) + 1;
     }
-
     const data = last7Keys.map((k) => {
-      const attended = attendanceDates.has(k) ? 1 : 0;
+      const attendedCount = attendanceDates.has(k) ? 1 : 0;
       const quizPassed = Math.min(2, quizPassedByKey[k] || 0);
-      // Blend attendance + quiz pass into a 0..100 score.
-      const perf = Math.min(100, Math.round(attended * 70 + quizPassed * 30));
+      const perf = Math.min(100, Math.round(attendedCount * 70 + quizPassed * 30));
       return {
-        day: k.slice(5),
-        attendance: attended,
-        quizPassed,
-        performance: perf,
+        date: `${k.substring(4, 6)}-${k.substring(6, 8)}`,
+        attended: attendedCount > 0 ? 100 : 0,
+        momentum: perf || (attendedCount > 0 ? 60 : 20)
       };
     });
-
     return data;
   }, [gamification, last7Keys]);
+
+  const streakProgressPercent = Math.min(100, (streakDays / 7) * 100);
+  const nextStreakMilestone = streakDays >= 7 ? 'Streak Master Achieved' : `Streak Master in ${7 - streakDays} days`;
 
   const menuItems = useMemo(
     () => [
       { id: 'overview', icon: Home, label: 'Overview' },
-      { id: 'progress', icon: Target, label: 'Progress' },
+      { id: 'result', icon: Target, label: 'Result' },
       { id: 'quizzes', icon: Brain, label: 'Quiz Arena' },
+      { id: 'monthly-register', icon: Layers, label: 'Monthly Register' },
       { id: 'achievements', icon: Trophy, label: 'Achievements' },
       { id: 'leaderboard', icon: Trophy, label: 'Leaderboard' },
+      { id: 'aesthetics', icon: Palette, label: 'Aesthetics' },
     ],
     []
   );
@@ -426,7 +573,7 @@ const StudentDashboard = () => {
   }
 
   return (
-    <div className="flex min-h-[calc(100vh-73px)] flex-col lg:flex-row bg-gray-50 dark:bg-[#0f172a] overflow-x-hidden relative">
+    <div className="flex h-[calc(100vh-73px)] flex-col lg:flex-row bg-transparent overflow-hidden relative">
       <AnimatePresence>
         {isSidebarOpen && (
           <motion.div
@@ -439,7 +586,7 @@ const StudentDashboard = () => {
         )}
       </AnimatePresence>
 
-      <aside className={`fixed lg:relative inset-y-0 left-0 w-72 shrink-0 glass border-r border-gray-200 dark:border-gray-800 p-4 space-y-4 z-[101] transform transition-transform duration-300 lg:translate-x-0 ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'} lg:block bg-white dark:bg-[#0f172a]`}>
+      <aside className={`fixed lg:relative inset-y-0 left-0 w-72 shrink-0 glass border-r border-gray-200 dark:border-gray-800 p-4 space-y-4 z-[101] transform transition-transform duration-300 lg:translate-x-0 ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'} lg:block surface-elevation h-full overflow-y-auto custom-scrollbar`}>
         <div className="flex items-center justify-between lg:hidden mb-4">
            <span className="text-sm font-black uppercase tracking-widest text-primary-600">Quick Access</span>
            <button onClick={() => setIsSidebarOpen(false)} className="p-2 rounded-xl bg-gray-100 dark:bg-gray-800 text-gray-500">
@@ -447,7 +594,7 @@ const StudentDashboard = () => {
            </button>
         </div>
         {/* Mini-Profile */}
-        <div className="p-4 rounded-3xl border border-gray-100 dark:border-gray-800 bg-white/40 dark:bg-gray-900/30">
+        <div className="p-4 rounded-3xl border border-gray-100 dark:border-gray-800 glass">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3 min-w-0">
               <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-primary-600 to-indigo-600 text-white flex items-center justify-center font-black shadow-lg shadow-primary-500/30 shrink-0">
@@ -535,9 +682,9 @@ const StudentDashboard = () => {
                 <h1 className="text-3xl font-extrabold text-gray-900 dark:text-white capitalize">
                   {menuItems.find((i) => i.id === activeTab)?.label}
                 </h1>
-                <p className="text-gray-600 dark:text-gray-300 mt-1 font-semibold flex items-center gap-2">
+                <div className="text-gray-600 dark:text-gray-300 mt-1 font-semibold flex items-center gap-2 flex-wrap">
                   Welcome back, <span className="uppercase font-extrabold text-primary-600 dark:text-primary-400">{user?.name?.split(' ')[0] || 'Student'}</span>
-                  <span className="w-1.5 h-1.5 rounded-full bg-gray-300 dark:bg-gray-700" />
+                  <span className="hidden md:block w-1.5 h-1.5 rounded-full bg-gray-300 dark:bg-gray-700" />
                   <div className="flex items-center bg-gray-100 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
                     <select 
                       value={selectedSem} 
@@ -565,7 +712,7 @@ const StudentDashboard = () => {
                        )}
                     </div>
                   </div>
-                </p>
+                </div>
                 {!user?.faceRegistered && (
                   <div className="mt-4 p-3 bg-blue-500/10 border border-blue-500/20 rounded-2xl flex items-center justify-between gap-4">
                     <div className="flex items-center gap-3">
@@ -586,7 +733,17 @@ const StudentDashboard = () => {
                 )}
               </div>
 
-              <div className="w-full grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
+              <div className="w-full grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-3">
+                <div className="p-4 rounded-2xl border border-amber-100 dark:border-amber-900/10 bg-amber-50/20 dark:bg-amber-500/5 group hover:bg-amber-500/10 transition-all">
+                  <div className="flex items-center justify-between">
+                    <div className="text-[10px] font-black uppercase tracking-widest text-amber-600 dark:text-amber-500">Scholar Coins</div>
+                    <CoinIcon size={16} className="group-hover:rotate-12 transition-transform" />
+                  </div>
+                  <div className="text-2xl font-black text-amber-600 dark:text-amber-500 mt-1 tabular-nums italic">{user?.coins || 0}</div>
+                  <div className="mt-2 text-[8px] font-black text-amber-600/60 uppercase tracking-widest italic flex items-center gap-1.5">
+                    <Zap size={8} /> Redeem for Prizes
+                  </div>
+                </div>
                 <div className="p-4 rounded-2xl border border-gray-100 dark:border-gray-800 bg-white/40 dark:bg-gray-900/30">
                   <div className="text-[10px] font-black uppercase tracking-widest text-gray-500 dark:text-gray-400">Badges</div>
                   <div className="text-2xl font-extrabold text-gray-900 dark:text-white mt-1">{(gamification?.badges || []).length}</div>
@@ -613,7 +770,7 @@ const StudentDashboard = () => {
                   <div className="text-2xl font-extrabold text-gray-900 dark:text-white mt-1">{pendingTasksCount}</div>
                   <div className="mt-3 text-[10px] font-black uppercase tracking-widest text-primary-600 dark:text-primary-400">Tasks assigned</div>
                 </div>
-                <div className="sm:col-span-2 xl:col-span-1 p-6 rounded-[2.5rem] border border-gray-100 dark:border-gray-800 bg-white/40 dark:bg-gray-900/30 backdrop-blur-3xl relative overflow-hidden group">
+                <div className="sm:col-span-2 xl:col-span-2 p-6 rounded-[2.5rem] border border-gray-100 dark:border-gray-800 bg-white/40 dark:bg-gray-900/30 backdrop-blur-3xl relative overflow-hidden group">
                   {/* Decorative Background Flame */}
                   <div className="absolute top-[-20%] right-[-10%] opacity-5 scale-150 rotate-12 group-hover:rotate-0 transition-transform duration-1000">
                     <Flame size={200} className="text-orange-500 fill-current" />
@@ -631,6 +788,22 @@ const StudentDashboard = () => {
                            <span className="text-4xl sm:text-5xl font-black text-gray-900 dark:text-white tracking-tighter">{streakDays}</span>
                            <span className="text-lg sm:text-xl font-black text-gray-400 uppercase">Days</span>
                         </div>
+                        
+                        {(() => {
+                           if (!user?.lastStreakedAt) return null;
+                           const today = new Date().setHours(0,0,0,0);
+                           const last = new Date(user.lastStreakedAt).setHours(0,0,0,0);
+                           if (last === today) {
+                              return (
+                                <div className="mt-2 flex items-center gap-1.5 px-3 py-1 bg-emerald-500/10 rounded-full border border-emerald-500/20 w-fit">
+                                   <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                                   <span className="text-[8px] font-black text-emerald-500 uppercase tracking-widest">Daily Reward Claimed</span>
+                                </div>
+                              );
+                           }
+                           return null;
+                        })()}
+
                         <p className="text-[10px] font-black uppercase tracking-widest text-gray-500 mt-2">
                            {streakDays >= 7 ? 'Legendary Consistency!' : `${7 - (streakDays % 7)} days to next major badge`}
                         </p>
@@ -669,15 +842,19 @@ const StudentDashboard = () => {
                    <Trophy size={18} />
                 </div>
                 <div className="flex flex-col">
-                   <span className="text-[10px] font-black uppercase text-gray-500">Your Current Sem Rank</span>
-                   <div className="flex items-center gap-2">
-                      <span className="text-xl font-black text-gray-900 dark:text-white">#{leaderboardData.currentSemRank}</span>
-                      <span className="text-[10px] bg-emerald-500/10 text-emerald-600 px-2 py-0.5 rounded-full font-black uppercase tracking-tighter italic">Top Standing</span>
+                   <span className="text-[11px] font-black uppercase tracking-wider text-gray-500 mb-1">Your Current Sem Rank</span>
+                   <div className="flex items-center gap-4">
+                      <div className="flex items-center gap-2">
+                         <span className="text-3xl font-black text-gray-900 dark:text-white tracking-tighter">#{leaderboardData.currentSemRank}</span>
+                         <span className="text-[11px] bg-emerald-500/10 text-emerald-600 px-3 py-1 rounded-full font-black uppercase tracking-widest italic border border-emerald-500/20">Top Standing</span>
+                      </div>
+                      <div className="h-6 w-px bg-gray-200 dark:bg-gray-800 hidden sm:block" />
+                      <MomentumSidebarTracker user={user} isInline={true} />
                    </div>
                 </div>
               </div>
               <button
-                onClick={() => setActiveTab('quizzes')}
+                onClick={() => navigate('/quize-arena')}
                 className="px-4 py-2 rounded-2xl bg-gray-900 dark:bg-white text-white dark:text-gray-900 font-black text-xs uppercase tracking-widest hover:opacity-90 transition"
               >
                 Jump to Quiz Arena
@@ -800,10 +977,10 @@ const StudentDashboard = () => {
                   </div>
 
                   <div className="mt-6">
-                    <div className="text-xs font-black uppercase tracking-widest text-gray-500 dark:text-gray-400 mb-3">Weekly performance</div>
-                    <div className="h-[220px] w-full relative">
+                    <div className="text-xs font-black uppercase tracking-widest text-gray-500 dark:text-gray-400 mb-3">Weekly Result</div>
+                    <div className="w-full relative" style={{ height: '220px' }}>
                       {isMounted && (
-                        <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
+                        <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={220}>
                         <AreaChart data={weeklyPerformance}>
                           <defs>
                             <linearGradient id="perfGrad" x1="0" y1="0" x2="0" y2="1">
@@ -1043,7 +1220,7 @@ const StudentDashboard = () => {
             </motion.div>
           )}
 
-          {activeTab === 'progress' && (
+          {activeTab === 'result' && (
             <motion.div key="progress" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }}>
               <div className="grid grid-cols-1 gap-6">
                 {courseProgressCards.map((card) => (
@@ -1136,140 +1313,78 @@ const StudentDashboard = () => {
             </motion.div>
           )}
 
-          {activeTab === 'quizzes' && (
-            <motion.div key="quizzes" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }}>
-              <QuizCenter
-                studentId={studentId}
-                gamification={gamification}
-                submitQuizAttempt={submitQuizAttempt}
-                studentName={user?.name}
-              />
-            </motion.div>
-          )}
+          {activeTab === 'aesthetics' && (
+                <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-10">
+                    <div className="flex flex-col">
+                        <h2 className="text-3xl font-black uppercase tracking-tighter dark:text-white italic">Workspace <span className="text-primary-600">Aesthetics</span></h2>
+                        <p className="text-[10px] text-slate-400 font-black uppercase tracking-[0.3em] mt-2">Personalize your neural learning environment</p>
+                    </div>
 
-          {activeTab === 'attendance' && (
-            <motion.div key="attendance" initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0 }} className="space-y-6 pb-20">
-              <div className="glass p-10 rounded-[40px] border border-gray-100 dark:border-gray-800 shadow-2xl relative overflow-hidden">
-                <div className="flex flex-col md:flex-row items-center justify-between gap-6 mb-12">
-                   <div className="text-center md:text-left">
-                      <div className="flex items-center gap-3 mb-2 justify-center md:justify-start">
-                        <div className="w-12 h-12 rounded-3xl bg-red-600 text-white flex items-center justify-center shadow-lg shadow-red-500/30">
-                          <CalendarDays size={24} />
-                        </div>
-                        <h2 className="text-3xl font-black text-gray-900 dark:text-white uppercase tracking-tighter">Master Classroom Register</h2>
-                      </div>
-                      <p className="text-[10px] font-black uppercase tracking-[0.3em] text-gray-400 italic">Institutional Presence Ledger · {classroomAttendance.month}/{classroomAttendance.year}</p>
-                   </div>
-
-                   <div className="flex flex-wrap justify-center gap-3">
-                      {[
-                        { label: 'P: Present', color: 'emerald' },
-                        { label: 'A: Absent', color: 'red' },
-                        { label: 'H: Holiday', color: 'amber' },
-                        { label: 'L: Leave', color: 'blue' },
-                      ].map(tag => (
-                        <div key={tag.label} className={`px-4 py-2 rounded-2xl bg-${tag.color}-500/10 text-${tag.color}-500 border border-${tag.color}-500/20 text-[10px] font-black uppercase tracking-widest`}>
-                          {tag.label}
-                        </div>
-                      ))}
-                   </div>
-                </div>
-
-                <div className="relative overflow-x-auto rounded-[2rem] border border-gray-100 dark:border-gray-800 bg-white/30 dark:bg-gray-900/40 backdrop-blur-xl">
-                  <table className="w-full text-left border-collapse min-w-[1200px]">
-                    <thead>
-                       <tr className="border-b border-gray-100 dark:border-gray-800">
-                          <th className="sticky left-0 z-20 bg-gray-50/80 dark:bg-gray-900/80 backdrop-blur-md p-6 border-r border-gray-100 dark:border-gray-800 min-w-[240px]">
-                            <span className="text-[10px] font-black uppercase tracking-widest text-gray-400">Student Identity Matrix</span>
-                          </th>
-                          {Array.from({ length: 31 }, (_, i) => {
-                            const day = i + 1;
-                            const isSunday = new Date(classroomAttendance.year, classroomAttendance.month - 1, day).getDay() === 0;
-                            const isHoliday = [8, 25, 29].includes(day);
-                            return (
-                              <th key={day} className={`p-4 text-center border-r border-gray-100 dark:border-gray-800 min-w-[50px] ${isSunday || isHoliday ? 'bg-amber-500/5' : ''}`}>
-                                <div className="text-[10px] font-black text-gray-400 mb-1">{day}</div>
-                                <div className={`text-[8px] font-bold ${(isSunday || isHoliday) ? 'text-amber-500' : 'text-gray-300'}`}>
-                                  {isSunday ? 'SUN' : isHoliday ? 'HOL' : 'WK'}
+                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+                        <button 
+                            onClick={() => {
+                                localStorage.removeItem('personal_theme');
+                                window.location.reload();
+                            }}
+                            className="p-8 rounded-[2.5rem] border border-gray-100 dark:border-gray-800 bg-white/40 dark:bg-gray-900/30 hover:border-primary-500/30 transition-all text-left group"
+                        >
+                            <div className="flex items-center gap-3 mb-4">
+                                <div className="p-3 bg-gray-100 dark:bg-gray-800 rounded-2xl text-gray-500 group-hover:scale-110 transition-transform">
+                                    <RefreshCw size={20} />
                                 </div>
-                              </th>
-                            );
-                          })}
-                       </tr>
-                    </thead>
-                    <tbody>
-                      {classroomAttendance.students.map((student, sIdx) => {
-                        const isPrimary = student._id === user?._id;
-                        return (
-                          <tr key={student._id} className={`border-b border-gray-100 dark:border-gray-800 group hover:bg-gray-50/50 dark:hover:bg-gray-900/50 transition-colors ${isPrimary ? 'bg-primary-50/30 dark:bg-primary-900/10' : ''}`}>
-                            <td className="sticky left-0 z-10 bg-inherit p-4 border-r border-gray-100 dark:border-gray-800">
-                               <div className="flex items-center gap-3">
-                                 <div className="w-8 h-8 rounded-xl bg-gray-100 dark:bg-gray-800 flex items-center justify-center font-black text-[10px] border border-gray-200 dark:border-gray-700">
-                                    {sIdx + 1}
-                                 </div>
-                                 <div className="min-w-0">
-                                    <p className={`text-xs font-black truncate ${isPrimary ? 'text-primary-600' : 'text-gray-900 dark:text-white'}`}>{student.name}</p>
-                                    <p className="text-[9px] font-black uppercase text-gray-400 tracking-tighter truncate">{student.enrollmentNumber}</p>
-                                 </div>
-                                 {isPrimary && <span className="ml-auto text-[8px] bg-primary-600 text-white px-2 py-0.5 rounded-full font-black">YOU</span>}
-                               </div>
-                            </td>
-                            {Array.from({ length: 31 }, (_, i) => {
-                               const day = i + 1;
-                               const dateKey = `${classroomAttendance.year}-${classroomAttendance.month.toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`;
-                               const isSunday = new Date(classroomAttendance.year, classroomAttendance.month - 1, day).getDay() === 0;
-                               const isHoliday = [8, 25, 29].includes(day);
-                               
-                               const record = classroomAttendance.records.find(r => 
-                                 r.student.toString() === student._id.toString() && 
-                                 new Date(r.date).getUTCDate() === day
-                               );
+                                <div className="text-xs font-black uppercase tracking-widest text-gray-900 dark:text-white underline decoration-primary-500/30">Institutional Default</div>
+                            </div>
+                            <p className="text-[10px] text-gray-500 font-bold uppercase italic leading-relaxed">Reset to follow the university's master protocol signature.</p>
+                        </button>
 
-                               let status = '-';
-                               let style = 'text-gray-200 opacity-20';
-                               
-                               if (isSunday || isHoliday) {
-                                  status = 'H';
-                                  style = 'text-amber-500 font-black';
-                               } else if (record) {
-                                  if (record.status === 'present') { status = 'P'; style = 'text-emerald-500 font-black'; }
-                                  else if (record.status === 'absent') { status = 'A'; style = 'text-red-500 font-black'; }
-                                  else if (record.status === 'late') { status = 'L'; style = 'text-blue-500 font-black'; }
-                               } else if (day < new Date().getDate()) {
-                                  status = 'A';
-                                  style = 'text-red-500/40 font-bold';
-                               }
+                        {[
+                            { id: 'academic', name: 'Classic Academic', light: '#FDFBF7', dark: '#0f172a', desc: 'Warm paper & deep slate for scholarly focus.' },
+                            { id: 'indigo', name: 'Indigo Fusion', light: '#F0F4F8', dark: '#0B0E14', desc: 'Cool slate & obsidian for tech-driven minds.' },
+                            { id: 'nature', name: 'Nature\'s Breath', light: '#F0FDF4', dark: '#052E16', desc: 'Mint & forest tones for a calm study session.' },
+                            { id: 'amethyst', name: 'Royal Amethyst', light: '#F5F3FF', dark: '#1E1B4B', desc: 'Lavender & midnight for premium distinction.' },
+                            { id: 'sunset', name: 'Sunset Horizon', light: '#FFF1F2', dark: '#450A0A', desc: 'Rose & burgundy for high-energy productivity.' },
+                            { id: 'ocean', name: 'Ocean Deep', light: '#F0F9FF', dark: '#082F49', desc: 'Sky & sea blues for serene concentration.' },
+                            { id: 'cyber', name: 'Cyber Gold', light: '#FEFCE8', dark: '#1A1600', desc: 'Lemon & bronze for bold institutional grit.' }
+                        ].map(t => (
+                            <button 
+                                key={t.id}
+                                onClick={() => {
+                                    localStorage.setItem('personal_theme', JSON.stringify(t));
+                                    document.documentElement.style.setProperty('--bg-light', t.light);
+                                    document.documentElement.style.setProperty('--bg-dark', t.dark);
+                                }}
+                                className="p-8 rounded-[2.5rem] border border-gray-100 dark:border-gray-800 bg-white/40 dark:bg-gray-900/30 hover:border-primary-500/30 transition-all text-left group"
+                            >
+                                <div className="flex items-center justify-between mb-4">
+                                    <div className="text-xs font-black uppercase tracking-widest text-gray-900 dark:text-white">{t.name}</div>
+                                    <div className="flex gap-1.5">
+                                        <div className="w-4 h-4 rounded-full border border-black/5 shadow-sm" style={{ backgroundColor: t.light }} />
+                                        <div className="w-4 h-4 rounded-full border border-black/5 shadow-sm" style={{ backgroundColor: t.dark }} />
+                                    </div>
+                                </div>
+                                <p className="text-[10px] text-gray-400 font-bold uppercase italic leading-relaxed mb-6">{t.desc}</p>
+                                <div className="h-1 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
+                                    <div className="h-full bg-primary-500 w-0 group-hover:w-full transition-all duration-700" />
+                                </div>
+                            </button>
+                        ))}
+                    </div>
+                </motion.div>
+             )}
 
-                               return (
-                                 <td key={day} className={`p-4 text-center border-r border-gray-100 dark:border-gray-800 group-hover:bg-gray-50/80 dark:group-hover:bg-gray-900/80 ${isSunday || isHoliday ? 'bg-amber-500/5' : ''}`}>
-                                    <span className={`text-xs ${style}`}>{status}</span>
-                                 </td>
-                               );
-                            })}
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
+          {/* Attendance tab removed */}
 
-                <div className="mt-12 flex flex-col md:flex-row items-center justify-between gap-6 p-10 rounded-[2.5rem] bg-gray-900 dark:bg-white text-white dark:text-gray-900">
-                  <div className="flex items-center gap-6">
-                     <div className="text-center">
-                        <p className="text-[10px] font-black uppercase tracking-widest opacity-50">Peer Presence Rank</p>
-                        <p className="text-4xl font-black mt-2">Active</p>
-                     </div>
-                     <div className="w-px h-12 bg-white/10 dark:bg-gray-900/10" />
-                     <div className="text-center">
-                        <p className="text-[10px] font-black uppercase tracking-widest opacity-50">Global Sync Percentage</p>
-                        <p className="text-4xl font-black mt-2">84.2%</p>
-                     </div>
-                  </div>
-                  <button className="px-8 py-5 rounded-[2rem] bg-red-600 text-white font-black text-xs uppercase tracking-[0.2em] shadow-2xl shadow-red-500/30 hover:scale-105 transition-all">
-                     Download Monthly Analytics
-                  </button>
-                </div>
-              </div>
+          {activeTab === 'monthly-register' && (
+            <motion.div key="monthly-reg" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
+                <MonthlyRegister 
+                    user={user} 
+                    initialSemester={selectedSem} 
+                    initialCourse={selectedCourseAtt} 
+                    onPersistChange={(s, c) => {
+                        setSelectedSem(s);
+                        setSelectedCourseAtt(c);
+                    }} 
+                />
             </motion.div>
           )}
 
@@ -1283,17 +1398,57 @@ const StudentDashboard = () => {
                </div>
                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                   {availableQuizzes.map(q => (
-                    <div key={q._id} className="group relative bg-white dark:bg-gray-900 p-8 rounded-[2.5rem] border border-gray-100 dark:border-gray-800 shadow-sm hover:shadow-2xl transition-all overflow-hidden">
+                    <div key={q._id} className="group relative bg-white dark:bg-gray-900 p-8 rounded-[2.5rem] border border-gray-100 dark:border-gray-800 shadow-sm hover:shadow-2xl transition-all overflow-hidden flex flex-col">
                        <div className="absolute top-0 right-0 w-24 h-24 bg-primary-600/5 rounded-bl-[4rem] group-hover:scale-110 transition-transform" />
                        <div className="w-14 h-14 rounded-2xl bg-primary-600/10 text-primary-600 flex items-center justify-center mb-6 shadow-inner"><Brain size={28}/></div>
                        <h3 className="text-xl font-black text-gray-900 dark:text-white uppercase tracking-tight mb-2 leading-none">{q.title}</h3>
-                       <p className="text-[11px] font-medium text-gray-500 dark:text-gray-400 mb-8 line-clamp-2 uppercase tracking-wide">{q.description || 'Test your cognitive logic across institutional parameters.'}</p>
-                       <div className="flex items-center justify-between pt-6 border-t border-gray-50 dark:border-gray-800">
+                       <p className="text-[11px] font-medium text-gray-500 dark:text-gray-400 mb-6 line-clamp-2 uppercase tracking-wide">{q.description || 'Test your cognitive logic across institutional parameters.'}</p>
+                       
+                       {q.isCompleted && q.bestAttempt ? (
+                         <div className="mb-6 p-4 rounded-3xl bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-white/5 space-y-4">
+                            <div className="flex justify-between items-center">
+                               <div className="flex items-center gap-2">
+                                  <Trophy size={14} className="text-amber-500" />
+                                  <span className="text-[10px] font-black text-gray-900 dark:text-white uppercase">Best Attempt</span>
+                               </div>
+                               <div className="px-3 py-1 bg-primary-600 text-white text-[9px] font-black rounded-lg uppercase tracking-widest">Rank #{q.bestAttempt.rank}</div>
+                            </div>
+                            <div className="grid grid-cols-3 gap-4 border-t border-gray-100 dark:border-white/5 pt-4">
+                               <div className="text-center">
+                                  <div className="text-base font-black text-gray-900 dark:text-white">{q.bestAttempt.score}</div>
+                                  <div className="text-[8px] font-black text-gray-400 uppercase">Obtained</div>
+                               </div>
+                               <div className="text-center">
+                                  <div className="text-base font-black text-emerald-500">{q.bestAttempt.correct}</div>
+                                  <div className="text-[8px] font-black text-gray-400 uppercase">Correct</div>
+                               </div>
+                               <div className="text-center">
+                                  <div className="text-base font-black text-red-500">{q.bestAttempt.wrong}</div>
+                                  <div className="text-[8px] font-black text-gray-400 uppercase">Wrong</div>
+                               </div>
+                            </div>
+                            <button 
+                              onClick={(e) => { e.stopPropagation(); viewQuizLeaderboard(q._id); }}
+                              className="w-full mt-4 py-2 text-[9px] font-black uppercase tracking-widest text-primary-600 border border-primary-600/20 rounded-xl hover:bg-primary-600 hover:text-white transition-all flex items-center justify-center gap-2"
+                            >
+                               <Trophy size={10} /> View Peer Rankings
+                            </button>
+                         </div>
+                       ) : (
+                         <div className="flex-grow" />
+                       )}
+
+                       <div className="flex items-center justify-between pt-6 border-t border-gray-50 dark:border-gray-800 mt-auto">
                           <div className="flex items-center gap-4">
                              <div className="flex items-center gap-2"><Target size={14} className="text-gray-400"/><span className="text-[10px] font-black text-gray-500">{q.totalPoints} PTS</span></div>
                              <div className="flex items-center gap-2"><Clock size={14} className="text-gray-400"/><span className="text-[10px] font-black text-gray-500">{q.timeLimit} MIN</span></div>
                           </div>
-                          <button onClick={() => setActiveQuizId(q._id)} className="w-10 h-10 rounded-xl bg-gray-900 text-white flex items-center justify-center hover:bg-primary-600 transition-all shadow-lg active:scale-90"><ChevronRight size={20}/></button>
+                          <button 
+                             onClick={() => setActiveQuizId(q._id)} 
+                             className={`px-5 py-2.5 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all shadow-lg active:scale-95 ${q.isCompleted ? 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 hover:bg-emerald-500 hover:text-white' : 'bg-gray-900 dark:bg-white text-white dark:text-gray-900 hover:bg-primary-600 hover:text-white'}`}
+                          >
+                             {q.isCompleted ? 'Re-attempt' : 'Start Quiz'}
+                          </button>
                        </div>
                     </div>
                   ))}
@@ -1307,12 +1462,13 @@ const StudentDashboard = () => {
                   <div className="bg-gradient-to-br from-primary-600 to-indigo-800 rounded-[3rem] p-10 text-white shadow-2xl relative overflow-hidden group">
                      <div className="relative z-10">
                         <div className="text-[10px] font-black uppercase tracking-[0.3em] opacity-60 mb-2">Neural Bank</div>
-                        <div className="text-6xl font-black flex items-baseline gap-3">
-                           {gamifiedStats.stats.coins} <span className="text-xl opacity-60">COINS</span>
+                        <div className="text-6xl font-black flex items-center gap-3">
+                           {gamifiedStats.stats.coins}
+                           <CoinIcon size={36} />
                         </div>
                         <div className="mt-8 flex items-center gap-2 px-4 py-2 bg-white/10 rounded-xl border border-white/10 w-fit drop-shadow-xl backdrop-blur-md">
                            <Flame size={16} className="text-orange-400" />
-                           <span className="text-[10px] font-black uppercase tracking-widest">{gamifiedStats.stats.streak} DAY STREAK ACTIVE</span>
+                           <span className="text-[10px] font-black uppercase tracking-widest">{streakDays} DAY STREAK ACTIVE</span>
                         </div>
                      </div>
                      <div className="absolute top-[-10%] right-[-10%] opacity-10 group-hover:rotate-12 transition-transform duration-1000"><Zap size={240} className="fill-current" /></div>
@@ -1327,11 +1483,11 @@ const StudentDashboard = () => {
                         </div>
                      </div>
                      <div className="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-[3rem] p-8 flex flex-col justify-center">
-                        <div className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Badges Unlocked</div>
-                        <div className="text-4xl font-black text-gray-900 dark:text-white tabular-nums">{gamifiedStats.earned.length} <span className="text-sm font-bold text-gray-500">/{gamifiedStats.all.length}</span></div>
+                        <div className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Progression Level</div>
+                        <div className="text-4xl font-black text-gray-900 dark:text-white tabular-nums">LVL {Math.floor(gamifiedStats.stats.coins / 100) + 1}</div>
                         <div className="mt-4 flex gap-2">
-                           <div className="w-2 h-2 rounded-full bg-emerald-500" />
-                           <div className="w-2 h-2 rounded-full bg-emerald-500" />
+                           <div className="w-2 h-2 rounded-full bg-primary-500" />
+                           <div className="w-2 h-2 rounded-full bg-primary-500" />
                            <div className="w-2 h-2 rounded-full bg-gray-200 dark:bg-gray-800" />
                         </div>
                      </div>
@@ -1339,25 +1495,76 @@ const StudentDashboard = () => {
                </div>
 
                <div className="bg-white dark:bg-gray-900 rounded-[3.5rem] p-12 border border-gray-100 dark:border-gray-800 shadow-xl">
-                  <h3 className="text-sm font-black text-gray-900 dark:text-white uppercase tracking-[0.3em] mb-12 flex items-center gap-4">
-                     Institutional Badge Catalog <div className="h-px flex-1 bg-gray-100 dark:bg-gray-800" />
-                  </h3>
-                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-10">
-                     {gamifiedStats.all.map(badge => {
-                        const isEarned = gamifiedStats.earned.some(b => b.badge._id === badge._id);
-                        return (
-                          <div key={badge._id} className="flex flex-col items-center group">
-                             <div className={`w-28 h-28 rounded-[2rem] p-1 transition-all duration-500 ${isEarned ? 'bg-gradient-to-tr from-primary-600 via-indigo-500 to-indigo-400 rotate-0 shadow-[0_20px_40px_rgba(79,70,229,0.3)]' : 'bg-gray-100 dark:bg-gray-800 border-dashed border-2 border-gray-300 dark:border-gray-700'}`}>
-                                <div className="w-full h-full bg-white dark:bg-[#0b0f1a] rounded-[1.8rem] flex items-center justify-center relative overflow-hidden group-hover:scale-95 transition-transform">
-                                   {isEarned && <div className="absolute inset-0 bg-indigo-600/5 animate-pulse" />}
-                                   {badge.icon.startsWith('http') ? <img src={badge.icon} alt={badge.name} className="w-16 h-16 object-contain relative z-10" /> : <div className="text-4xl">{badge.icon}</div>}
-                                </div>
-                             </div>
-                             <h4 className={`text-[11px] font-black uppercase tracking-tighter mt-6 text-center leading-tight ${isEarned ? 'text-gray-900 dark:text-white' : 'text-gray-400'}`}>{badge.name}</h4>
-                             <p className="text-[8px] font-black text-gray-500 uppercase tracking-widest mt-1.5 opacity-0 group-hover:opacity-100 transition-all text-center px-2">{badge.description}</p>
-                          </div>
-                        );
-                     })}
+                  <div className="mb-12">
+                     <h3 className="text-sm font-black text-gray-900 dark:text-white uppercase tracking-[0.3em] flex items-center gap-4 mb-2">
+                        Institutional Badge Catalog <div className="h-px flex-1 bg-gray-100 dark:border-gray-800" />
+                     </h3>
+                     <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest italic">Unlock achievements with streak, accuracy, and consistency</p>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-10">
+                     {[
+                        {
+                           id: 'streak_master',
+                           name: 'Streak Master',
+                           desc: '7 days attendance',
+                           icon: <Flame size={32} />,
+                           color: 'orange',
+                           unlocked: streakDays >= 7
+                        },
+                        {
+                           id: 'quiz_genius',
+                           name: 'Quiz Genius',
+                           desc: '90%+ quiz accuracy',
+                           icon: <Brain size={32} />,
+                           color: 'indigo',
+                           unlocked: (gamifiedStats.stats.accuracy || 0) >= 90
+                        },
+                        {
+                           id: 'consistent_learner',
+                           name: 'Consistent Learner',
+                           desc: '100% last 7 days attendance',
+                           icon: <Target size={32} />,
+                           color: 'emerald',
+                           unlocked: weeklyPerformance.every(d => d.attended > 0)
+                        },
+                        {
+                           id: 'level_5_climber',
+                           name: 'Level 5 Climber',
+                           desc: 'Reach level 5',
+                           icon: <ChevronRight size={32} />,
+                           color: 'amber',
+                           unlocked: (Math.floor(gamifiedStats.stats.coins / 100) + 1) >= 5
+                        }
+                     ].map(badge => (
+                        <div key={badge.id} className="group relative flex flex-col items-center p-8 rounded-[2.5rem] bg-gray-50/50 dark:bg-white/5 border border-gray-100 dark:border-white/5 transition-all hover:-translate-y-2">
+                           <div className={`w-24 h-24 rounded-3xl flex items-center justify-center transition-all duration-500 ${badge.unlocked ? `bg-${badge.color}-500/10 text-${badge.color}-500 shadow-[0_15px_35px_-5px_rgba(var(--primary-rgb),0.2)] scale-110` : 'bg-gray-200 dark:bg-gray-800 text-gray-400 opacity-40 grayscale'}`}>
+                              {badge.icon}
+                              {badge.unlocked && (
+                                 <div className="absolute top-4 right-4 animate-bounce">
+                                    <Sparkles size={16} className="text-amber-400" />
+                                 </div>
+                              )}
+                           </div>
+                           
+                           <div className="mt-8 text-center space-y-2">
+                              <h4 className={`text-sm font-black uppercase tracking-tight ${badge.unlocked ? 'text-gray-900 dark:text-white' : 'text-gray-400'}`}>
+                                 {badge.name}
+                              </h4>
+                              <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest leading-relaxed">
+                                 {badge.desc}
+                              </p>
+                           </div>
+
+                           {!badge.unlocked && (
+                              <div className="absolute inset-0 bg-white/40 dark:bg-black/40 backdrop-blur-[1px] rounded-[2.5rem] flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                                 <div className="px-5 py-2 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-xl font-black text-[9px] uppercase tracking-widest">
+                                    Locked
+                                 </div>
+                              </div>
+                           )}
+                        </div>
+                     ))}
                   </div>
                </div>
             </motion.div>
@@ -1372,12 +1579,18 @@ const StudentDashboard = () => {
                      ))}
                   </div>
                   <div className="flex items-center gap-3">
-                     <span className="text-[10px] font-black uppercase tracking-widest text-gray-500">Ranking Sector</span>
-                     <select className="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 px-5 py-2.5 rounded-2xl text-[10px] font-black uppercase outline-none focus:border-indigo-500 transition-all">
-                        <option>Batch 2024-28</option>
-                        <option>Entire Faculty</option>
-                     </select>
-                  </div>
+                      <span className="text-[10px] font-black uppercase tracking-widest text-gray-500">Ranking Sector</span>
+                      <select 
+                        value={leaderboardSem}
+                        onChange={(e) => setLeaderboardSem(e.target.value)}
+                        className="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 px-5 py-2.5 rounded-2xl text-[10px] font-black uppercase outline-none focus:border-primary-500 transition-all"
+                      >
+                         <option value="All">Global Roster</option>
+                         {[1,2,3,4,5,6,7,8].map(s => (
+                           <option key={s} value={s}>Semester {s}</option>
+                         ))}
+                      </select>
+                   </div>
                </div>
 
                <div className="bg-white dark:bg-gray-900 rounded-[3rem] border border-gray-100 dark:border-gray-800 overflow-hidden shadow-2xl">
@@ -1391,35 +1604,86 @@ const StudentDashboard = () => {
                         </tr>
                       </thead>
                       <tbody>
-                        {globalLeaderboard.map((student, i) => (
-                          <tr key={student._id} className={`group hover:bg-indigo-50/30 dark:hover:bg-indigo-900/5 transition-all ${student._id === user._id ? 'bg-primary-600/10 border-l-4 border-primary-600' : ''}`}>
-                            <td className="px-10 py-6">
-                               <div className="flex items-center gap-4">
-                                  <span className={`text-xl font-black italic tracking-tighter ${i < 3 ? 'text-primary-600' : 'text-gray-400'}`}>#{i + 1}</span>
-                                  {i < 3 && <div className={`w-6 h-6 rounded-lg ${i===0?'bg-yellow-400':i===1?'bg-gray-300':'bg-orange-400'} flex items-center justify-center text-white`}><Trophy size={14}/></div>}
-                               </div>
-                            </td>
-                            <td className="px-10 py-6">
-                              <div className="flex items-center gap-4">
-                                 <div className="w-10 h-10 rounded-xl bg-gray-100 dark:bg-gray-800 flex items-center justify-center font-black overflow-hidden drop-shadow-xl border-2 border-white dark:border-gray-700">
-                                    {student.profilePic ? <img src={student.profilePic} alt="" className="w-full h-full object-cover" /> : <Users size={20} className="text-gray-400" />}
+                        {paginatedLeaderboard.map((student, i) => {
+                          const absoluteRank = (currentPage - 1) * itemsPerPage + i + 1;
+                          return (
+                            <tr key={`leader-${student._id}`} className={`group hover:bg-primary-500/5 dark:hover:bg-primary-600/5 transition-all ${student._id === user._id ? 'bg-primary-600/10 border-l-4 border-primary-600' : ''}`}>
+                              <td className="px-10 py-6">
+                                 <div className="flex items-center gap-4">
+                                    <span className={`text-xl font-black italic tracking-tighter ${absoluteRank <= 3 ? 'text-primary-600' : 'text-gray-400'}`}>#{absoluteRank}</span>
+                                    {absoluteRank <= 3 && <div className={`w-6 h-6 rounded-lg ${absoluteRank===1?'bg-yellow-400':absoluteRank===2?'bg-gray-300':'bg-orange-400'} flex items-center justify-center text-white`}><Trophy size={14}/></div>}
                                  </div>
-                                 <div>
-                                    <p className="text-sm font-black text-gray-900 dark:text-white uppercase tracking-tight leading-none mb-1">{student.name}</p>
-                                    <p className="text-[9px] font-black text-gray-500 uppercase tracking-widest">{student.department || 'DEPT-X'}</p>
+                              </td>
+                              <td className="px-10 py-6">
+                                <div className="flex items-center gap-4">
+                                   <div className="w-10 h-10 rounded-xl bg-gray-100 dark:bg-gray-800 flex items-center justify-center font-black overflow-hidden drop-shadow-xl border-2 border-white dark:border-gray-700">
+                                      {student.profilePic ? <img src={student.profilePic} alt="" className="w-full h-full object-cover" /> : <Users size={20} className="text-gray-400" />}
+                                   </div>
+                                   <div>
+                                      <p className="text-sm font-black text-gray-900 dark:text-white uppercase tracking-tight leading-none mb-1">{student.name}</p>
+                                      <p className="text-[9px] font-black text-gray-500 uppercase tracking-widest">{student.department || 'DEPT-X'}</p>
+                                   </div>
+                                </div>
+                              </td>
+                              <td className="px-10 py-6 text-right">
+                                 <div className="inline-flex items-center gap-3 px-4 py-1.5 bg-gray-50 dark:bg-gray-950/50 rounded-xl border border-gray-100 dark:border-gray-800 transition-all group-hover:border-indigo-200">
+                                    <span className="text-lg font-black text-gray-900 dark:text-white tabular-nums tracking-tighter">{student.coins || student.xp || 0}</span>
+                                    <CoinIcon size={14} />
                                  </div>
-                              </div>
-                            </td>
-                            <td className="px-10 py-6 text-right">
-                               <div className="inline-flex items-center gap-3 px-4 py-1.5 bg-gray-50 dark:bg-gray-950/50 rounded-xl border border-gray-100 dark:border-gray-800 transition-all group-hover:border-indigo-200">
-                                  <span className="text-lg font-black text-gray-900 dark:text-white tabular-nums tracking-tighter">{student.coins || student.xp || 0}</span>
-                                  <Sparkles size={14} className="text-yellow-500 fill-current" />
-                               </div>
-                            </td>
-                          </tr>
-                        ))}
+                              </td>
+                            </tr>
+                          );
+                        })}
                       </tbody>
                     </table>
+                  </div>
+
+                  {/* Pagination Controls */}
+                  <div className="px-10 py-6 bg-gray-50/50 dark:bg-gray-950/50 border-t border-gray-100 dark:border-gray-800 flex items-center justify-between">
+                     <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest">
+                        {leaderboardData.list.length > 0 
+                          ? `Showing ${(currentPage-1)*itemsPerPage + 1} to ${Math.min(currentPage*itemsPerPage, leaderboardData.list.length)} of ${leaderboardData.list.length} Collaborators`
+                          : "Initializing Peer Grid: 0 Collaborators Identified"}
+                     </p>
+                     <div className="flex items-center gap-2">
+                        <button 
+                          disabled={currentPage === 1}
+                          onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                          className="p-2 rounded-xl bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 text-gray-400 hover:text-primary-600 disabled:opacity-30 disabled:hover:text-gray-400 transition-all"
+                        >
+                           <ChevronLeft size={18} />
+                        </button>
+                        
+                        <div className="flex items-center gap-1">
+                           {[...Array(Math.min(5, totalPages))].map((_, i) => {
+                             let pageNum = currentPage;
+                             if (totalPages > 5) {
+                                pageNum = Math.max(1, Math.min(currentPage - 2 + i, totalPages - 4 + i));
+                             } else {
+                                pageNum = i + 1;
+                             }
+                             if (pageNum > totalPages) return null;
+                             
+                             return (
+                               <button 
+                                 key={pageNum}
+                                 onClick={() => setCurrentPage(pageNum)}
+                                 className={`w-9 h-9 rounded-xl font-black text-[10px] transition-all ${currentPage === pageNum ? 'bg-primary-600 text-white shadow-lg shadow-primary-500/30' : 'bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 text-gray-500 hover:border-primary-500 hover:text-primary-600'}`}
+                               >
+                                 {pageNum}
+                               </button>
+                             );
+                           })}
+                        </div>
+
+                        <button 
+                          disabled={currentPage === totalPages}
+                          onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                          className="p-2 rounded-xl bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 text-gray-400 hover:text-primary-600 disabled:opacity-30 disabled:hover:text-gray-400 transition-all"
+                        >
+                           <ChevronRight size={18} />
+                        </button>
+                     </div>
                   </div>
                </div>
             </motion.div>
@@ -1437,6 +1701,55 @@ const StudentDashboard = () => {
             }} 
           />
         )}
+      <AnimatePresence>
+        {selectedQuizLeaderboard && (
+          <div className="fixed inset-0 z-[6000] flex items-center justify-center p-4">
+            <motion.div initial={{ opacity:0 }} animate={{ opacity:1 }} exit={{ opacity:0 }} onClick={() => setSelectedQuizLeaderboard(null)} className="absolute inset-0 bg-slate-950/80 backdrop-blur-md" />
+            <motion.div 
+               initial={{ scale:0.95, y:20 }} 
+               animate={{ scale:1, y:0 }} 
+               exit={{ scale:0.95, y:20 }} 
+               className="relative w-full max-w-2xl bg-white dark:bg-gray-950 rounded-[3rem] p-10 border border-white/5 shadow-2xl overflow-hidden flex flex-col max-h-[85vh]"
+            >
+               <div className="flex items-center justify-between mb-8 overflow-hidden">
+                  <div className="flex items-center gap-4">
+                     <div className="w-14 h-14 rounded-2xl bg-amber-500/10 text-amber-500 flex items-center justify-center shadow-inner"><Trophy size={28}/></div>
+                     <div className="truncate">
+                        <h2 className="text-xl font-black text-gray-900 dark:text-white uppercase tracking-tighter leading-none">{selectedQuizLeaderboard.title}</h2>
+                        <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mt-1">Peer Proficiency Rankings</p>
+                     </div>
+                  </div>
+                  <button onClick={() => setSelectedQuizLeaderboard(null)} className="p-3 hover:bg-gray-100 dark:hover:bg-white/5 rounded-2xl text-gray-400 group h-fit">
+                     <X size={20} className="group-hover:rotate-90 transition-transform" />
+                  </button>
+               </div>
+
+               <div className="flex-1 overflow-y-auto custom-scrollbar pr-2 space-y-3">
+                  {quizLeaderboardData.map((entry, idx) => (
+                    <div key={entry._id} className={`p-5 rounded-[1.75rem] border flex items-center justify-between gap-4 transition-all ${entry._id === user?._id ? 'bg-primary-600 border-primary-500 text-white' : 'bg-gray-50/50 dark:bg-white/5 border-gray-100 dark:border-white/5 text-gray-900 dark:text-white hover:border-primary-500/30'}`}>
+                       <div className="flex items-center gap-4">
+                          <div className={`w-8 h-8 rounded-xl flex items-center justify-center font-black text-xs ${idx === 0 ? 'bg-amber-400 text-amber-900 shadow-lg shadow-amber-400/30' : idx === 1 ? 'bg-slate-300 text-slate-900 shadow-lg shadow-slate-300/30' : idx === 2 ? 'bg-orange-400 text-orange-900 shadow-lg shadow-orange-400/30' : 'bg-white/10'}`}>
+                             {idx + 1}
+                          </div>
+                          <div className="w-10 h-10 rounded-xl overflow-hidden bg-gray-200 shrink-0">
+                             {entry.profilePic ? <img src={entry.profilePic} className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center text-xs font-black bg-primary-600/10">{entry.name[0]}</div>}
+                          </div>
+                          <div className="min-w-0">
+                             <p className="text-sm font-black tracking-tight truncate">{entry.name}</p>
+                             <p className={`text-[9px] font-black uppercase tracking-widest opacity-60 ${entry._id === user?._id ? 'text-white' : 'text-gray-500'}`}>{entry.department || 'General'}</p>
+                          </div>
+                       </div>
+                       <div className="text-right whitespace-nowrap">
+                          <p className="text-lg font-black">{entry.score}</p>
+                          <p className="text-[9px] font-black uppercase tracking-widest opacity-60">{Math.floor(entry.timeTaken / 60)}m {entry.timeTaken % 60}s</p>
+                       </div>
+                    </div>
+                  ))}
+               </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
       </main>
     </div>
   );

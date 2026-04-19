@@ -4,6 +4,7 @@ import PostCard from './PostCard';
 import { Loader2, Sparkles, Filter, Newspaper, Layers, Search } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { io } from 'socket.io-client';
+import GeminiLoader from '../GeminiLoader';
 
 const socket = io('http://localhost:5001');
 
@@ -134,7 +135,7 @@ const AnnouncementFeed = ({ user, initialSearch = '', initialCategory = 'All' })
         </div>
 
         <div className="flex gap-2 overflow-x-auto pb-2 no-scrollbar">
-           {['All', 'Academic', 'Events', 'Exams', 'Sports'].map(cat => (
+           {['All', 'Admin', 'Teacher', 'Student'].map(cat => (
              <button
               key={cat}
               onClick={() => setCategory(cat)}
@@ -167,9 +168,8 @@ const AnnouncementFeed = ({ user, initialSearch = '', initialCategory = 'All' })
         </AnimatePresence>
 
         {isLoading && (
-          <div className="flex flex-col items-center justify-center py-20 gap-4">
-            <Loader2 className="w-10 h-10 text-primary-600 animate-spin" />
-            <p className="text-xs font-black uppercase tracking-widest text-gray-400">Syncing Feed...</p>
+          <div className="py-10">
+            <GeminiLoader text="Syncing Feed..." />
           </div>
         )}
 

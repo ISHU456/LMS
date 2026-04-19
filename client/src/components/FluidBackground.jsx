@@ -15,7 +15,7 @@ const FluidBackground = () => {
         }}
       />
       <div
-        className="absolute inset-0 bg-white dark:bg-[#030712] opacity-40 dark:opacity-60"
+        className="absolute inset-0 bg-[var(--bg-light)] dark:bg-[var(--bg-dark)] opacity-40 dark:opacity-60"
       />
       <div
         className="absolute inset-0"

@@ -1,3 +1,4 @@
+import { createPortal } from 'react-dom';
 import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { 
@@ -105,10 +106,10 @@ const AdminStudentProfileModal = ({ studentId, user, onClose }) => {
         </div>
     );
 
-    return (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-[100] flex items-center justify-center p-4">
+    return createPortal(
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-[150] flex items-center justify-center p-6 md:p-12 lg:p-20 overflow-hidden">
             <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }}
-                className="bg-white dark:bg-[#0f172a] w-full max-w-4xl rounded-[40px] overflow-hidden shadow-2xl border border-white/10 flex flex-col max-h-[90vh]">
+                className="bg-white dark:bg-[#0f172a] w-full max-w-4xl rounded-[40px] overflow-hidden shadow-2xl border border-white/10 flex flex-col max-h-[85vh] relative shadow-blue-500/10 mt-12 md:mt-16">
                 
                 <div className="p-8 border-b border-gray-100 dark:border-gray-800 flex justify-between items-center bg-gray-50/50 dark:bg-gray-800/30">
                     <div className="flex items-center gap-4">
@@ -363,7 +364,8 @@ const AdminStudentProfileModal = ({ studentId, user, onClose }) => {
                     )}
                 </div>
             </motion.div>
-        </div>
+        </div>,
+        document.body
     );
 };
 

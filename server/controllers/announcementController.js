@@ -22,6 +22,9 @@ const mapAnnouncement = (announcement) => {
   obj.onlineNow = Array.isArray(obj.presence)
     ? obj.presence.filter((p) => p?.lastSeenAt && new Date(p.lastSeenAt) >= onlineSince).length
     : 0;
+  
+  obj.isReported = !!obj.isReported;
+  obj.reportCount = Array.isArray(obj.reports) ? obj.reports.length : 0;
   return obj;
 };
 
@@ -101,6 +104,10 @@ export const getAnnouncements = async (req, res) => {
     const limit = parseInt(req.query.limit) || 10;
     const skip = (page - 1) * limit;
     const courseIdParam = req.query.courseId;
+    const categoryParam = req.query.category;
+    const searchParam = req.query.search;
+    const priorityParam = req.query.priority;
+
     const query = {};
     if (courseIdParam) {
       if (courseIdParam.length === 24) {
@@ -110,6 +117,27 @@ export const getAnnouncements = async (req, res) => {
         if (course) { query.courseId = course._id; }
         else { return res.json({ announcements: [], currentPage: 1, totalPages: 0, hasMore: false }); }
       }
+    }
+
+    if (categoryParam) {
+       const lowerCat = categoryParam.toLowerCase();
+       if (['admin', 'teacher', 'student', 'hod'].includes(lowerCat)) {
+          // Map category string from frontend to backend role
+          query.role = lowerCat === 'admin' ? { $in: ['admin', 'hod'] } : lowerCat;
+       } else {
+          query.category = categoryParam;
+       }
+    }
+
+    if (searchParam) {
+      query.$or = [
+        { title: { $regex: searchParam, $options: 'i' } },
+        { content: { $regex: searchParam, $options: 'i' } }
+      ];
+    }
+
+    if (priorityParam) {
+      query.priority = priorityParam.toLowerCase();
     }
 
     const announcements = await Announcement.find(query)
@@ -263,6 +291,113 @@ export const updatePresence = async (req, res) => {
 
     await announcement.save();
     res.json({ onlineNow: announcement.presence.length });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+export const reportAnnouncement = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { reason } = req.body;
+    const userId = req.user._id;
+
+    const announcement = await Announcement.findById(id);
+    if (!announcement) return res.status(404).json({ message: 'Announcement not found' });
+
+    // Prevent duplicate reporting by same user
+    const alreadyReported = announcement.reports.some(r => r.user.toString() === userId.toString());
+    if (alreadyReported) {
+      return res.status(400).json({ message: 'You have already reported this post' });
+    }
+
+    announcement.reports.push({ user: userId, reason: reason || 'Inappropriate content' });
+    announcement.isReported = true;
+    await announcement.save();
+
+    res.json({ message: 'Post reported successfully. Admin will review it shortly.' });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+export const getReportedAnnouncements = async (req, res) => {
+  try {
+    if (!['admin', 'hod'].includes(req.user.role)) {
+      return res.status(403).json({ message: 'Not authorized for moderation' });
+    }
+
+    const announcements = await Announcement.find({ isReported: true })
+      .populate('author', 'name profilePic role')
+      .populate('reports.user', 'name role')
+      .sort({ updatedAt: -1 });
+
+    res.json(announcements.map(mapAnnouncement));
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+export const dismissReport = async (req, res) => {
+  try {
+    if (!['admin', 'hod'].includes(req.user.role)) {
+      return res.status(403).json({ message: 'Not authorized for moderation' });
+    }
+
+    const { id } = req.params;
+    const announcement = await Announcement.findById(id);
+    if (!announcement) return res.status(404).json({ message: 'Not found' });
+
+    announcement.isReported = false;
+    announcement.reports = []; // Clear reports
+    await announcement.save();
+
+    res.json({ message: 'Reports dismissed' });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+export const getUserAnnouncementStats = async (req, res) => {
+  try {
+    const userId = req.user._id;
+    const postsCount = await Announcement.countDocuments({ author: userId });
+    
+    // Sum of all likes and reactions across user's posts
+    const userPosts = await Announcement.find({ author: userId }).select('likes reactions');
+    
+    let totalImpact = 0;
+    userPosts.forEach(post => {
+      totalImpact += (post.likes?.length || 0);
+      if (post.reactions) {
+        Object.values(post.reactions).forEach(uArray => {
+          totalImpact += (uArray?.length || 0);
+        });
+      }
+    });
+
+    res.json({
+      postsCount,
+      impactCount: totalImpact
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+export const getTrendingAnnouncements = async (req, res) => {
+  try {
+    const announcements = await Announcement.find({ isReported: false })
+      .populate('author', 'name profilePic role')
+      .limit(50); // Get recent candidates
+
+    const trending = announcements.map(mapAnnouncement).map(a => {
+      // Trending heat score: Likes(1) + Comments(2) + Views(0.5)
+      const score = (a.likesCount || 0) + (a.commentsCount * 2) + ((a.views || 0) * 0.5);
+      return { ...a, trendingScore: score };
+    }).sort((a, b) => b.trendingScore - a.trendingScore).slice(0, 5);
+
+    res.json(trending);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

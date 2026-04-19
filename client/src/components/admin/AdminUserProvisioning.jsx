@@ -7,11 +7,15 @@ import {
 import AdminTeacherProfileModal from './AdminTeacherProfileModal';
 import AdminStudentProfileModal from './AdminStudentProfileModal';
 
-const AdminUserManagement = ({ user }) => {
+const AdminUserManagement = ({ user, forcedRole }) => {
     const [users, setUsers] = useState([]);
-    const [role, setRole] = useState(() => localStorage.getItem('provision_role') || 'teacher');
+    const [role, setRole] = useState(() => forcedRole || localStorage.getItem('provision_role') || 'teacher');
     const [search, setSearch] = useState('');
     const [isLoading, setIsLoading] = useState(false);
+
+    useEffect(() => {
+        if (forcedRole) setRole(forcedRole);
+    }, [forcedRole]);
     const [selectedTeacherId, setSelectedTeacherId] = useState(null);
     const [selectedStudentId, setSelectedStudentId] = useState(null);
     

@@ -2,9 +2,11 @@ import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'r
 import { useState, useEffect } from 'react';
 import { useSelector } from 'react-redux';
 import axios from 'axios';
+import { motion, AnimatePresence } from 'framer-motion';
 
 // Layout
 import Navbar from './components/Navbar';
+
 import FluidBackground from './components/FluidBackground';
 import AchievementToaster from './components/AchievementToaster';
 import Footer from './components/Footer';
@@ -12,6 +14,7 @@ import Chatbot from './components/Chatbot';
 import ScrollToTop from './components/ScrollToTop';
 import LockedOverlay from './components/LockedOverlay';
 import GlobalAlertMarquee from './components/GlobalAlertMarquee';
+import ActivityTracker from './components/ActivityTracker';
 
 // Auth pages
 import Login from './pages/auth/Login';
@@ -57,6 +60,12 @@ import ResultEntry from './pages/results/ResultEntry';
 import ResultVerification from './pages/results/ResultVerification';
 import StudentResults from './pages/results/StudentResults';
 import ResultsAnalytics from './pages/results/ResultsAnalytics';
+import MasterArena from './pages/student/MasterArena';
+import QuizeWorkspace from './pages/general/QuizeWorkspace';
+import Notifications from './pages/general/Notifications';
+
+
+
 
 
 import NotificationListener from './components/NotificationListener';
@@ -66,9 +75,26 @@ import FaceRegistrationPage from './pages/auth/FaceRegistrationPage';
 import SelfAttendance from './pages/attendance/SelfAttendance';
 import DailyAttendance from './pages/attendance/DailyAttendance';
 import GPSConfigPage from './pages/admin/GPSConfigPage';
+import AdminQuizeArena from './pages/admin/AdminQuizeArena';
 
 // Protected Route Component for Role-based Access Control
+const DashboardRedirect = () => {
+    const { user } = useSelector((state) => state.auth);
+    if (!user) return <Navigate to="/login" replace />;
+    
+    switch (user.role) {
+        case 'admin': return <Navigate to="/admin-dashboard" replace />;
+        case 'teacher': return <Navigate to="/faculty-dashboard" replace />;
+        case 'student': return <Navigate to="/student-dashboard" replace />;
+        case 'hod': return <Navigate to="/hod-dashboard" replace />;
+        case 'librarian': return <Navigate to="/librarian-dashboard" replace />;
+        case 'parent': return <Navigate to="/parent-dashboard" replace />;
+        default: return <Navigate to="/student-dashboard" replace />;
+    }
+};
+
 const ProtectedRoute = ({ children, allowedRoles, checkDept = true }) => {
+
   const { user } = useSelector((state) => state.auth);
   const selectedDept = JSON.parse(localStorage.getItem('selectedDepartment'));
 
@@ -108,6 +134,47 @@ const AppContent = () => {
   const location = useLocation();
   const isAIMode = location.pathname === '/ai-mode';
   const { user } = useSelector((state) => state.auth);
+  const [maintenanceMode, setMaintenanceMode] = useState(false);
+  const [isSettingsLoading, setIsSettingsLoading] = useState(true);
+  const [quizzes, setQuizzes] = useState([]);
+  const [quizGenOpen, setQuizGenOpen] = useState(false);
+
+  useEffect(() => {
+    const fetchSettings = async () => {
+      try {
+        const { data } = await axios.get('http://localhost:5001/api/public/settings');
+        if (data) {
+          if (data.maintenanceMode) {
+            setMaintenanceMode(true);
+          }
+          // Apply background colors to CSS variables
+          if (data.lightModeBgColor) {
+            document.documentElement.style.setProperty('--bg-light', data.lightModeBgColor);
+          }
+          if (data.darkModeBgColor) {
+            document.documentElement.style.setProperty('--bg-dark', data.darkModeBgColor);
+          }
+
+          // Personal Theme Override - Subverts institutional default if user has specified a preference
+          const personalTheme = localStorage.getItem('personal_theme');
+          if (personalTheme) {
+              try {
+                  const theme = JSON.parse(personalTheme);
+                  document.documentElement.style.setProperty('--bg-light', theme.light);
+                  document.documentElement.style.setProperty('--bg-dark', theme.dark);
+              } catch (e) {
+                  console.error("Personal theme corruption detected.");
+              }
+          }
+        }
+      } catch (err) {
+        console.error("Failed to check maintenance status");
+      } finally {
+        setIsSettingsLoading(false);
+      }
+    };
+    fetchSettings();
+  }, []);
 
   const [darkMode, setDarkMode] = useState(
     localStorage.getItem('theme') === 'dark' || 
@@ -146,12 +213,42 @@ const AppContent = () => {
 
   const toggleDarkMode = () => setDarkMode(!darkMode);
 
+  // Maintenance Lockdown Interception
+  if (!isSettingsLoading && maintenanceMode && user && user.role !== 'admin') {
+    return (
+      <div className="h-screen w-full bg-slate-950 flex flex-col items-center justify-center p-10 relative overflow-hidden">
+        <LockedOverlay 
+          title="Institutional Lockdown Active" 
+          message="The digital grid is currently offline for critical administrative maintenance. Service will restore momentarily." 
+        />
+        <div className="absolute top-10 flex items-center gap-3">
+           <div className="w-10 h-1 bg-red-600 rounded-full" />
+           <span className="text-[10px] font-black uppercase tracking-[0.5em] text-red-500 italic">Security Protocol v4.2.0</span>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="h-screen flex flex-col bg-slate-50 dark:bg-[#030712] transition-colors duration-300 overflow-hidden">
+    <div className="h-screen flex flex-col bg-transparent transition-colors duration-300 overflow-hidden">
       <Navbar darkMode={darkMode} toggleDarkMode={toggleDarkMode} />
-      <GlobalAlertMarquee />
+      <ActivityTracker />
+      
+      {/* Restrict Global Marquee to Student and Faculty Dashboards only */}
+      {(location.pathname === '/student-dashboard' || location.pathname === '/dashboard' || location.pathname === '/faculty-dashboard') && (
+        <GlobalAlertMarquee />
+      )}
       <main className="flex-grow flex flex-col relative w-full overflow-y-auto smooth-scroll min-h-0 bg-transparent">
-        <Routes>
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={location.pathname}
+            initial={{ opacity: 0, y: 15 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -15 }}
+            transition={{ duration: 0.3, ease: 'easeOut' }}
+            className="flex-grow flex flex-col"
+          >
+            <Routes location={location} key={location.pathname}>
           <Route path="/" element={<Home />} />
           <Route path="/login" element={<Login />} />
           <Route path="/login/:roleType" element={<RoleLogin />} />
@@ -189,12 +286,19 @@ const AppContent = () => {
             </ProtectedRoute>
           } />
 
-          {/* Secure Isolated Dashboards */}
+          {/* Role-Based Dashboard Redirector */}
           <Route path="/dashboard" element={
+            <ProtectedRoute checkDept={false}>
+              <DashboardRedirect />
+            </ProtectedRoute>
+          } />
+
+          <Route path="/student-dashboard" element={
             <ProtectedRoute allowedRoles={['student']}>
               <StudentDashboard />
             </ProtectedRoute>
           } />
+
 
           <Route path="/admin-dashboard" element={
             <ProtectedRoute allowedRoles={['admin']}>
@@ -261,6 +365,34 @@ const AppContent = () => {
               <Achievements />
             </ProtectedRoute>
           } />
+          
+          <Route path="/notifications" element={
+            <ProtectedRoute>
+              <Notifications />
+            </ProtectedRoute>
+          } />
+
+          <Route path="/quiz-arena" element={<Navigate to="/arena" replace />} />
+          <Route path="/quiz-arena/:quizId" element={<Navigate to="/arena" replace />} />
+
+          <Route path="/arena" element={
+            <ProtectedRoute checkDept={false}>
+              <MasterArena />
+            </ProtectedRoute>
+          } />
+
+          <Route path="/quize-arena" element={<Navigate to="/arena" replace />} />
+          <Route path="/quize-arena/:id" element={
+            <ProtectedRoute checkDept={false}>
+              <QuizeWorkspace />
+            </ProtectedRoute>
+          } />
+
+          {/* Legacy Redirects */}
+          <Route path="/coding-arena" element={<Navigate to="/quize-arena" replace />} />
+          <Route path="/coding-arena/:id" element={<Navigate to="/quize-arena/:id" replace />} />
+
+
 
 
           
@@ -293,6 +425,9 @@ const AppContent = () => {
               <StudentResults />
             </ProtectedRoute>
           } />
+          
+          <Route path="/honor-arena" element={<Navigate to="/arena" replace />} />
+
 
           <Route path="/results/analytics" element={
             <ProtectedRoute allowedRoles={['admin', 'hod']}>
@@ -328,6 +463,8 @@ const AppContent = () => {
             </ProtectedRoute>
           } />
         </Routes>
+          </motion.div>
+        </AnimatePresence>
       </main>
       {!isAIMode && <Footer />}
       <NotificationListener />

@@ -95,7 +95,7 @@ const MonthlyRegister = ({ user, initialSemester, initialCourse, onPersistChange
   }, [selectedDate]);
 
   const isAuthorized = useMemo(() => {
-    if (user.role === 'admin') return true;
+    if (user.role === 'admin' || user.role === 'student') return true;
     if (!selectedCourse) return false;
     const isExplicitlyAssigned = selectedCourse.facultyAssigned?.some(f => 
       (typeof f === 'string' ? f : f._id) === user._id
@@ -163,7 +163,7 @@ const MonthlyRegister = ({ user, initialSemester, initialCourse, onPersistChange
   return (
     <div className="space-y-6">
       <div className="bg-white dark:bg-gray-900 rounded-3xl p-6 shadow-sm border border-gray-100 dark:border-gray-800">
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+        <div className="flex flex-row items-center justify-between gap-4">
             <div className="flex items-center gap-4 shrink-0">
                 <div className="w-10 h-10 lg:w-12 lg:h-12 rounded-2xl bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 flex items-center justify-center shadow-inner shrink-0">
                     <Calendar size={20} className="lg:hidden"/><Calendar size={24} className="hidden lg:block"/>
@@ -174,39 +174,37 @@ const MonthlyRegister = ({ user, initialSemester, initialCourse, onPersistChange
                 </div>
             </div>
 
-            <div className="flex-1 overflow-x-auto custom-scrollbar-hidden pb-1 xl:pb-0">
-               <div className="flex items-center gap-3 min-w-max xl:min-w-0">
-                  <div className="flex items-center gap-3">
-                    <select value={semester} onChange={(e) => { const val = Number(e.target.value); setSemester(val); onPersistChange(val, selectedCourse); }}
-                      className="bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl lg:rounded-2xl px-4 py-3 text-[10px] font-black uppercase tracking-wider focus:ring-2 focus:ring-indigo-500 outline-none cursor-pointer text-gray-900 dark:text-white appearance-none shadow-sm capitalize min-w-[100px]">
-                      {[1,2,3,4,5,6,7,8].map(s => <option key={s} value={s} className="dark:bg-gray-800">Sem {s}</option>)}
-                    </select>
-
-                    <select value={section} onChange={(e) => setSection(e.target.value)}
-                      className="bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl lg:rounded-2xl px-4 py-3 text-[10px] font-black uppercase tracking-wider focus:ring-2 focus:ring-indigo-500 outline-none cursor-pointer text-gray-900 dark:text-white appearance-none shadow-sm min-w-[120px]">
-                      <option value="all">Every Section</option>
-                      <option value="A">Section A</option>
-                      <option value="B">Section B</option>
-                    </select>
-                  </div>
-
-                  <select value={selectedCourse?.code || ''} onChange={(e) => { const course = courses.find(c => c.code === e.target.value); setSelectedCourse(course); onPersistChange(semester, course); }}
-                    className="bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl lg:rounded-2xl px-4 py-3 text-[10px] font-black uppercase tracking-tighter focus:ring-2 focus:ring-indigo-500 outline-none cursor-pointer text-gray-900 dark:text-white appearance-none shadow-sm xl:min-w-[200px] truncate">
-                    {courses.filter(c => c.semester === semester).map(c => <option key={c._id} value={c.code} className="dark:bg-gray-800">{c.code} | {c.name}</option>)}
+            <div className="flex-1 flex flex-row items-center justify-between gap-3 lg:gap-6 overflow-hidden">
+               <div className="flex items-center gap-2 shrink-0">
+                  <select value={semester} onChange={(e) => { const val = Number(e.target.value); setSemester(val); onPersistChange(val, selectedCourse); }}
+                    className="bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl px-3 py-2.5 text-[10px] lg:text-xs font-black uppercase tracking-tight focus:ring-1 focus:ring-indigo-500 outline-none cursor-pointer text-gray-900 dark:text-white appearance-none shadow-sm min-w-[65px] text-center">
+                    {[1,2,3,4,5,6,7,8].map(s => <option key={s} value={s} className="dark:bg-gray-800">Sem {s}</option>)}
                   </select>
 
-                  <div className="flex items-center justify-between md:justify-center bg-gray-50 dark:bg-gray-800 rounded-xl lg:rounded-2xl p-1.5 border border-gray-200 dark:border-gray-700 shadow-sm shrink-0">
-                    <button onClick={() => setSelectedDate(new Date(selectedDate.getFullYear(), selectedDate.getMonth() - 1, 1))} className="p-2.5 hover:bg-white dark:hover:bg-gray-700 rounded-xl transition-all text-gray-400 dark:text-gray-100 active:scale-90"><ChevronLeft size={16}/></button>
-                    <div className="px-4 text-[9px] font-black uppercase tracking-widest min-w-[120px] text-center text-gray-900 dark:text-white italic whitespace-nowrap">{months[selectedDate.getMonth()]} {selectedDate.getFullYear()}</div>
-                    <button onClick={() => setSelectedDate(new Date(selectedDate.getFullYear(), selectedDate.getMonth() + 1, 1))} className="p-2.5 hover:bg-white dark:hover:bg-gray-700 rounded-xl transition-all text-gray-400 dark:text-gray-100 active:scale-90"><ChevronRight size={16}/></button>
-                  </div>
-
-                  {isAuthorized && (
-                    <button onClick={exportPDF} disabled={students.length === 0} className="px-6 py-3.5 rounded-xl lg:rounded-2xl bg-indigo-600 hover:bg-indigo-500 text-white text-[10px] font-black uppercase tracking-[0.2em] transition-all shadow-xl shadow-indigo-600/20 disabled:opacity-50 active:scale-95 flex items-center justify-center gap-3 shrink-0">
-                      <Download size={16}/> Protocol Export
-                    </button>
-                  )}
+                  <select value={section} onChange={(e) => setSection(e.target.value)}
+                    className="bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl px-3 py-2.5 text-[10px] lg:text-xs font-black uppercase tracking-tight focus:ring-1 focus:ring-indigo-500 outline-none cursor-pointer text-gray-900 dark:text-white appearance-none shadow-sm min-w-[75px] text-center">
+                    <option value="all">Sectors</option>
+                    <option value="A">Sec A</option>
+                    <option value="B">Sec B</option>
+                  </select>
                </div>
+
+               <select value={selectedCourse?.code || ''} onChange={(e) => { const course = courses.find(c => c.code === e.target.value); setSelectedCourse(course); onPersistChange(semester, course); }}
+                 className="bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-2.5 text-[11px] lg:text-xs font-black uppercase tracking-tighter focus:ring-1 focus:ring-indigo-500 outline-none cursor-pointer text-gray-900 dark:text-white appearance-none shadow-sm flex-1 min-w-0 max-w-[280px] truncate">
+                 {courses.filter(c => c.semester === semester).map(c => <option key={c._id} value={c.code} className="dark:bg-gray-800">{c.code} | {c.name}</option>)}
+               </select>
+
+               <div className="flex items-center bg-gray-50 dark:bg-gray-800 rounded-xl p-1.5 border border-gray-200 dark:border-gray-700 shadow-sm shrink-0">
+                 <button onClick={() => setSelectedDate(new Date(selectedDate.getFullYear(), selectedDate.getMonth() - 1, 1))} className="p-2 hover:bg-white dark:hover:bg-gray-700 rounded-lg transition-all text-gray-400 dark:text-gray-100 active:scale-90"><ChevronLeft size={16}/></button>
+                 <div className="px-3 text-[10px] font-black uppercase tracking-tighter min-w-[100px] text-center text-gray-900 dark:text-white italic tabular-nums whitespace-nowrap">{months[selectedDate.getMonth()]} {selectedDate.getFullYear()}</div>
+                 <button onClick={() => setSelectedDate(new Date(selectedDate.getFullYear(), selectedDate.getMonth() + 1, 1))} className="p-2 hover:bg-white dark:hover:bg-gray-700 rounded-xl transition-all text-gray-400 dark:text-gray-100 active:scale-90"><ChevronRight size={16}/></button>
+               </div>
+
+               {isAuthorized && (
+                 <button onClick={exportPDF} disabled={students.length === 0} className="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-[10px] lg:text-xs font-black uppercase tracking-widest transition-all shadow-lg shadow-indigo-600/20 disabled:opacity-50 active:scale-95 flex items-center gap-2 shrink-0">
+                   <Download size={16}/> PDF DOWNLOAD
+                 </button>
+               )}
             </div>
         </div>
 
@@ -225,10 +223,10 @@ const MonthlyRegister = ({ user, initialSemester, initialCourse, onPersistChange
         </div>
       </div>
 
-      <div className="bg-white dark:bg-gray-900 rounded-[2.5rem] shadow-xl border border-gray-100 dark:border-gray-800 overflow-hidden relative min-h-[500px]">
+      <div className="bg-white dark:bg-gray-900 rounded-[2.5rem] shadow-xl border border-gray-100 dark:border-gray-800 overflow-hidden relative h-full lg:h-[calc(100vh-320px)]">
         {isLoading && <div className="absolute inset-0 z-20 bg-white/60 dark:bg-black/40 backdrop-blur-sm flex items-center justify-center"><Loader2 size={40} className="text-indigo-600 animate-spin"/></div>}
 
-        <div className="overflow-x-auto custom-scrollbar h-full">
+        <div className="overflow-auto custom-scrollbar h-full">
           <table className="w-full border-collapse">
             <thead className="sticky top-0 z-10 bg-gray-50/90 dark:bg-gray-800/90 backdrop-blur-md border-b border-gray-100 dark:border-gray-700">
               <tr>
@@ -241,7 +239,7 @@ const MonthlyRegister = ({ user, initialSemester, initialCourse, onPersistChange
               {paginatedStudents.map(student => {
                 const gridData = attendanceGrid[student._id] || {};
                 return (
-                  <tr key={student._id} className="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-all border-b border-gray-100 dark:border-gray-800">
+                  <tr key={`reg-${student._id}`} className="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-all border-b border-gray-100 dark:border-gray-800">
                     <td className="px-4 lg:px-6 py-3 sticky left-0 z-10 bg-white/90 dark:bg-gray-900/90 backdrop-blur-md border-r border-gray-100 dark:border-gray-700 font-black text-[10px] lg:text-[11px] text-gray-400">{student.rollNumber}</td>
                     <td className="px-4 lg:px-6 py-3 sticky left-[100px] lg:left-[120px] z-10 bg-white/90 dark:bg-gray-900/90 backdrop-blur-md border-r border-gray-100 dark:border-gray-700 font-black text-[11px] lg:text-xs uppercase cursor-pointer italic truncate max-w-[160px] lg:max-w-none" onClick={() => setViewingStudentId(student._id)}>{student.name}</td>
                     {daysInMonth.map(day => {

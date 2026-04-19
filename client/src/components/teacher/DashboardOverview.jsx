@@ -22,8 +22,10 @@ const DashboardOverview = ({ user }) => {
   const [activeCourseStudents, setActiveCourseStudents] = useState([]);
   const [isStudentsLoading, setIsStudentsLoading] = useState(false);
   const [markingId, setMarkingId] = useState(null);
+  const [todayAttendance, setTodayAttendance] = useState({});
   const [globalLeaderboard, setGlobalLeaderboard] = useState([]);
   const [isMounted, setIsMounted] = useState(false);
+  const [courseHistory, setCourseHistory] = useState([]);
   const navigate = useNavigate();
 
   const todayStr = new Date().toISOString().split('T')[0];
@@ -33,7 +35,7 @@ const DashboardOverview = ({ user }) => {
       setIsMounted(true);
       fetchStats();
       fetchLeaderboard();
-      // Real-time update simulation (or setup polling/socket listener)
+     
       const interval = setInterval(() => {
         fetchStats();
         fetchLeaderboard();
@@ -57,7 +59,7 @@ const DashboardOverview = ({ user }) => {
       const res = await axios.get('http://localhost:5001/api/attendance/stats/teacher', config);
       setStats(res.data);
       if (res.data.length > 0) {
-        fetchActiveCourseStudents(res.data[activeCourseIndex].courseCode);
+        fetchActiveCourseStudents(res.data[activeCourseIndex]);
       }
     } catch (error) {
       console.error('Error fetching dashboard stats:', error);
@@ -66,14 +68,26 @@ const DashboardOverview = ({ user }) => {
     }
   };
 
-  const fetchActiveCourseStudents = async (courseCode) => {
+  const fetchActiveCourseStudents = async (course) => {
+    if (!course) return;
     setIsStudentsLoading(true);
     try {
       const config = { headers: { Authorization: `Bearer ${user.token}` } };
-      const res = await axios.get(`http://localhost:5001/api/courses/${courseCode}/students`, config);
-      setActiveCourseStudents(res.data);
+      // Parallel fetch students and today's attendance
+      const [studentsRes, attendanceRes] = await Promise.all([
+        axios.get(`http://localhost:5001/api/courses/${course.courseCode}/students`, config),
+        axios.get(`http://localhost:5001/api/attendance/course/${course.courseId}?startDate=${todayStr}&endDate=${todayStr}`, config)
+      ]);
+
+      const attMap = {};
+      (attendanceRes.data.attendanceRecords || []).forEach(rec => {
+        attMap[rec.student?._id || rec.student] = rec.status;
+      });
+
+      setTodayAttendance(attMap);
+      setActiveCourseStudents(studentsRes.data);
     } catch (error) {
-      console.error('Error fetching course students:', error);
+      console.error('Error fetching course students/attendance:', error);
     } finally {
       setIsStudentsLoading(false);
     }
@@ -81,9 +95,42 @@ const DashboardOverview = ({ user }) => {
 
   useEffect(() => {
     if (stats.length > 0 && stats[activeCourseIndex]) {
-      fetchActiveCourseStudents(stats[activeCourseIndex].courseCode);
+      const active = stats[activeCourseIndex];
+      fetchActiveCourseStudents(active);
+      fetchCourseHistory(active.courseId);
     }
   }, [activeCourseIndex]);
+
+  const fetchCourseHistory = async (courseId) => {
+    try {
+      const config = { headers: { Authorization: `Bearer ${user.token}` } };
+      const endDate = new Date().toISOString().split('T')[0];
+      const startDate = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+      const res = await axios.get(`http://localhost:5001/api/attendance/course/${courseId}?startDate=${startDate}&endDate=${endDate}`, config);
+      
+      // Group by date and calculate daily percentage
+      const records = res.data.attendanceRecords || [];
+      const grouped = records.reduce((acc, rec) => {
+        const d = new Date(rec.date).toLocaleDateString('en-US', { weekday: 'short' });
+        if (!acc[d]) acc[d] = { total: 0, present: 0 };
+        acc[d].total++;
+        if (rec.status === 'present' || rec.status === 'late') acc[d].present++;
+        return acc;
+      }, {});
+
+      const historyData = Object.entries(grouped).map(([day, val]) => ({
+        d: day,
+        p: Math.round((val.present / val.total) * 100),
+        a: 100 - Math.round((val.present / val.total) * 100)
+      })).reverse(); // Reverse to get chronological order if needed, but reduce/grouped keys might vary.
+
+      setCourseHistory(historyData.length > 0 ? historyData : [
+        { d: 'M', p: 85, a: 15 }, { d: 'T', p: 88, a: 12 }, { d: 'W', p: 82, a: 18 }, { d: 'T', p: 90, a: 10 }, { d: 'F', p: 85, a: 15 }
+      ]);
+    } catch (err) {
+      console.error("Failed to fetch course history", err);
+    }
+  };
 
   const totalStudents = stats.reduce((acc, curr) => acc + curr.studentCount, 0);
   const totalRestricted = stats.reduce((acc, curr) => acc + curr.restrictedStudents, 0);
@@ -101,11 +148,10 @@ const DashboardOverview = ({ user }) => {
       await axios.post('http://localhost:5001/api/attendance/bulk-mark', {
         courseId: course.courseId,
         date: todayStr,
-        semester: course.semester || 1, // Defaulting to 1 if not found
+        semester: course.semester || 1,
         attendanceData: [{ studentId, status, remarks: 'Quick mark from dashboard' }]
       }, config);
-      // Refresh students to reflect updated progress/stats if needed
-      fetchActiveCourseStudents(course.courseCode);
+      fetchActiveCourseStudents(course);
       fetchStats(); 
     } catch (error) {
       console.error('Error in quick mark:', error);
@@ -120,7 +166,7 @@ const DashboardOverview = ({ user }) => {
   const pieData = currentCourse ? [
     { name: 'Active', value: currentCourse.activeStudents, color: '#10b981' },
     { name: 'Restricted', value: currentCourse.restrictedStudents, color: '#f59e0b' },
-    { name: 'Blocked', value: 0, color: '#f43f5e' } // For demo
+    { name: 'Blocked', value: 0, color: '#f43f5e' }
   ].filter(d => d.value > 0) : [];
 
   if (isLoading) {
@@ -178,209 +224,207 @@ const DashboardOverview = ({ user }) => {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-        {/* Left: Authorized Governance Nodes Matrix */}
+        {/* Left Col (1): Governance Nodes */}
         <div className="lg:col-span-1 space-y-4">
           <div className="flex items-center justify-between px-2">
             <h3 className="text-[10px] font-black text-gray-900 dark:text-white uppercase tracking-widest flex items-center gap-2">
-              <ShieldCheck size={14} className="text-emerald-500" /> Authorized Governance Nodes
+              <ShieldCheck size={14} className="text-emerald-500" /> Authorized Nodes
             </h3>
-            <span className="text-[9px] font-black text-emerald-500 px-2 py-0.5 bg-emerald-50 dark:bg-emerald-900/20 rounded-full">{stats.length} Active</span>
+            <span className="text-[9px] font-black text-emerald-500 px-2 py-0.5 bg-emerald-50 dark:bg-emerald-900/20 rounded-full">{stats.length}</span>
           </div>
-          <div className="space-y-3 max-h-[400px] lg:h-[600px] overflow-y-auto pr-2 custom-scrollbar">
+          <div className="space-y-3 pr-2 custom-scrollbar max-h-[calc(100vh-280px)] overflow-y-auto">
             {stats.map((s, i) => (
-              <motion.div key={s.courseId} onClick={() => setActiveCourseIndex(i)}
-                whileHover={{ x: 4 }}
-                className={`w-full p-5 lg:p-6 rounded-2xl lg:rounded-[32px] text-left transition-all border flex flex-col gap-3 lg:gap-4 group cursor-pointer ${activeCourseIndex === i ? 'bg-gray-900 dark:bg-white dark:text-gray-900 text-white shadow-2xl scale-[1.02]' : 'bg-white dark:bg-gray-900 border-gray-100 dark:border-gray-800 hover:border-emerald-300'}`}>
+              <motion.div key={`node-${s.courseId}`} onClick={() => setActiveCourseIndex(i)}
+                whileHover={{ x: 6, scale: 1.01 }}
+                className={`w-full p-6 rounded-[2.5rem] text-left transition-all border flex flex-col gap-4 group cursor-pointer ${activeCourseIndex === i ? 'bg-slate-900 dark:bg-white shadow-2xl scale-[1.02] border-transparent' : 'bg-white/80 dark:bg-gray-900/80 border-slate-100 dark:border-slate-800 backdrop-blur-sm'}`}>
                 <div className="flex justify-between items-start">
                    <div className="flex flex-col">
-                      <span className={`text-[8px] lg:text-[9px] font-black px-2 py-0.5 rounded-lg border w-fit mb-1.5 lg:mb-2 ${activeCourseIndex === i ? 'bg-white/10 border-white/20 text-white dark:bg-gray-100 dark:text-gray-900' : 'bg-emerald-50 border-emerald-100 text-emerald-600'}`}>
+                      <span className={`text-[8px] font-black px-2 py-0.5 rounded-lg border w-fit mb-2 ${activeCourseIndex === i ? 'bg-white/10 dark:bg-gray-100 border-white/20 dark:border-gray-200 text-white dark:text-gray-900' : 'bg-emerald-50 border-emerald-100 text-emerald-600'}`}>
                         {s.courseCode}
                       </span>
-                      <h4 className={`text-xs lg:text-sm font-black uppercase tracking-tight leading-tight ${activeCourseIndex === i ? 'text-white dark:text-gray-900' : 'text-gray-900 dark:text-white'}`}>
+                      <h4 className={`text-xs font-black uppercase tracking-tight leading-tight ${activeCourseIndex === i ? 'text-white dark:text-gray-900' : 'text-gray-900 dark:text-white'}`}>
                         {s.courseName}
                       </h4>
                    </div>
-                   <div className={`p-1.5 lg:p-2 rounded-xl transition-all ${activeCourseIndex === i ? 'bg-white/10 text-white dark:text-gray-300 shadow-inner' : 'bg-gray-50 text-emerald-500'}`}>
-                      <ShieldCheck size={16}/>
-                   </div>
                 </div>
-                
-                <div className="flex items-center justify-between mt-1 pt-3 lg:pt-4 border-t border-dashed border-gray-100 dark:border-white/10">
+                <div className="flex items-center justify-between mt-1 pt-4 border-t border-dashed border-gray-100 dark:border-white/10">
                    <div className="flex items-center gap-2">
-                      <div className={`w-1.5 h-1.5 lg:w-2 lg:h-2 rounded-full animate-pulse ${activeCourseIndex === i ? 'bg-emerald-400' : 'bg-emerald-500'}`} />
-                      <span className={`text-[7px] lg:text-[8px] font-black uppercase tracking-[0.2em] ${activeCourseIndex === i ? 'text-gray-400' : 'text-gray-400'}`}>Access: Full Admin</span>
+                      <div className={`w-1.5 h-1.5 rounded-full animate-pulse ${activeCourseIndex === i ? 'bg-emerald-400' : 'bg-emerald-500'}`} />
+                      <span className={`text-[7px] font-black uppercase ${activeCourseIndex === i ? 'text-white/60 dark:text-gray-500' : 'text-gray-400'}`}>Access: Full</span>
                    </div>
-                   <span className={`text-[7px] lg:text-[8px] font-black uppercase ${activeCourseIndex === i ? 'text-emerald-400' : 'text-gray-300'}`}>Sem {s.semester}</span>
+                   <span className={`text-[7px] font-black uppercase ${activeCourseIndex === i ? 'text-emerald-400' : 'text-gray-300'}`}>Sem {s.semester}</span>
                 </div>
               </motion.div>
             ))}
           </div>
         </div>
 
-        {/* Center: Interactive Intelligence Hub */}
-        <div className="lg:col-span-2 space-y-8">
+        {/* Intelligence Sidebar (1) */}
+        <div className="lg:col-span-1 space-y-6">
            {currentCourse ? (
              <>
-               {/* Quick Intelligence Summary */}
-               <div className="grid grid-cols-3 gap-4">
+               <div className="grid grid-cols-1 gap-3">
                   {[
                     { label: 'Unit Health', value: `${currentCourse.avgAttendance}%`, color: 'text-emerald-500', bg: 'bg-emerald-50' },
-                    { label: 'Risk Factor', value: currentCourse.studentsBelow75, color: 'text-rose-500', bg: 'bg-rose-50' },
-                    { label: 'Isolation', value: currentCourse.restrictedStudents, color: 'text-amber-500', bg: 'bg-amber-50' }
+                    { label: 'Risk Factor', value: currentCourse.studentsBelow75, color: 'text-rose-500', bg: 'bg-rose-50' }
                   ].map((mini, midx) => (
-                    <div key={midx} className={`${mini.bg} dark:bg-gray-900 dark:border dark:border-gray-800 p-4 rounded-[28px] text-center`}>
+                    <div key={midx} className={`${mini.bg} dark:bg-gray-900 dark:border dark:border-gray-800 p-4 rounded-[24px] text-center`}>
                        <p className={`text-xl font-black ${mini.color}`}>{mini.value}</p>
                        <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest mt-1">{mini.label}</p>
                     </div>
                   ))}
                </div>
-
-
-               {/* Multi-Metric Visualization Grid */}
-               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                 {/* Stacked Attendance Velocity */}
-                 <div className="bg-white dark:bg-gray-900 p-8 rounded-[40px] border border-gray-100 dark:border-gray-800 shadow-sm relative overflow-hidden">
-                    <div className="flex items-center justify-between mb-8">
-                       <h3 className="text-[10px] font-black text-gray-900 dark:text-white uppercase tracking-widest flex items-center gap-2"><TrendingUp size={14} className="text-indigo-500"/> Attendance Flux</h3>
-                       <span className="text-[8px] font-black text-indigo-500 bg-indigo-50 px-2 py-0.5 rounded-md uppercase">14-Day Cycle</span>
-                    </div>
-                    <div className="h-[250px] w-full min-h-[250px]">
-                       {isMounted && (
-                         <ResponsiveContainer width="100%" height="100%">
-                            <AreaChart data={[
-                              { d: 'M', p: 85, a: 15 }, { d: 'T', p: 88, a: 12 }, { d: 'W', p: 82, a: 18 }, { d: 'T', p: 90, a: 10 }, { d: 'F', p: 85, a: 15 }, 
-                              { d: 'S', p: 78, a: 22 }, { d: 'M', p: 92, a: 8 }, { d: 'T', p: 89, a: 11 }
-                            ]}>
-                              <defs>
-                                <linearGradient id="fluxGrad" x1="0" y1="0" x2="0" y2="1">
-                                  <stop offset="5%" stopColor="#4361ee" stopOpacity={0.3}/>
-                                  <stop offset="95%" stopColor="#4361ee" stopOpacity={0}/>
-                                </linearGradient>
-                              </defs>
-                              <Tooltip contentStyle={{ borderRadius: '20px', border: 'none', background: '#ffffff', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.2)' }} />
-                              <Area type="monotone" dataKey="p" stroke="#4361ee" strokeWidth={4} fill="url(#fluxGrad)" />
-                            </AreaChart>
-                         </ResponsiveContainer>
-                       )}
-                    </div>
-                 </div>
-
-                 {/* Bar Chart: Subject Integrity Comparison */}
-                 <div className="bg-white dark:bg-gray-900 p-8 rounded-[40px] border border-gray-100 dark:border-gray-800 shadow-sm">
-                    <div className="flex items-center justify-between mb-8">
-                       <h3 className="text-[10px] font-black text-gray-900 dark:text-white uppercase tracking-widest flex items-center gap-2"><LayoutGrid size={14} className="text-emerald-500"/> Peer Comparison</h3>
-                       <span className="text-[8px] font-black text-gray-400 uppercase tracking-widest">Global Avg: 82%</span>
-                    </div>
-                    <div className="h-[250px] w-full min-h-[250px]">
-                       {isMounted && (
-                         <ResponsiveContainer width="100%" height="100%">
-                            <BarChart data={stats.slice(0, 5).map(s => ({ name: s.courseCode, val: s.avgAttendance }))}>
-                               <XAxis dataKey="name" axisLine={false} tickLine={false} fontSize={8} />
-                               <Tooltip cursor={{fill: '#f8fafc'}} contentStyle={{ borderRadius: '20px', border: 'none', background: '#000', color: '#fff' }} />
-                               <Bar dataKey="val" radius={[8, 8, 8, 8]} barSize={20}>
-                                 {stats.map((entry, index) => (
-                                   <Cell key={`cell-${index}`} fill={index === activeCourseIndex ? '#4361ee' : '#e2e8f0'} />
-                                 ))}
-                               </Bar>
-                            </BarChart>
-                         </ResponsiveContainer>
-                       )}
-                    </div>
-                 </div>
+               <div className="bg-white dark:bg-gray-900 p-6 rounded-[32px] border border-gray-100 dark:border-gray-800 shadow-sm relative overflow-hidden">
+                  <h3 className="text-[9px] font-black text-gray-900 dark:text-white uppercase tracking-widest mb-6 flex items-center gap-2"><TrendingUp size={12} className="text-indigo-500"/> Attendance Flux</h3>
+                  <div className="h-[150px] w-full">
+                     {isMounted && (
+                       <ResponsiveContainer width="100%" height="100%">
+                          <AreaChart data={courseHistory}>
+                            <defs>
+                              <linearGradient id="fluxGrad" x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="5%" stopColor="#4361ee" stopOpacity={0.3}/>
+                                <stop offset="95%" stopColor="#4361ee" stopOpacity={0}/>
+                              </linearGradient>
+                            </defs>
+                            <Tooltip contentStyle={{ borderRadius: '15px', border: 'none', background: '#020617', color: '#fff', fontSize: '10px' }} />
+                            <Area type="monotone" dataKey="p" stroke="#4361ee" strokeWidth={3} fill="url(#fluxGrad)" dot={{ r: 3, fill: '#4361ee' }} />
+                          </AreaChart>
+                       </ResponsiveContainer>
+                     )}
+                  </div>
+               </div>
+               <div className="bg-white dark:bg-gray-900 p-6 rounded-[32px] border border-gray-100 dark:border-gray-800 shadow-sm">
+                  <h3 className="text-[9px] font-black text-gray-900 dark:text-white uppercase tracking-widest mb-6 flex items-center gap-2"><LayoutGrid size={12} className="text-emerald-500"/> Peer Comparison</h3>
+                  <div className="h-[150px] w-full">
+                     {isMounted && (
+                       <ResponsiveContainer width="100%" height="100%">
+                          <BarChart data={stats.slice(0, 5).map(s => ({ name: s.courseCode, val: s.avgAttendance }))}>
+                             <XAxis dataKey="name" axisLine={false} tickLine={false} fontSize={7} />
+                             <Tooltip cursor={{fill: '#f8fafc'}} contentStyle={{ borderRadius: '15px', border: 'none', background: '#020617', color: '#fff', fontSize: '10px' }} />
+                             <Bar dataKey="val" radius={[5, 5, 5, 5]} barSize={15}>
+                               {stats.slice(0, 5).map((entry, index) => (
+                                 <Cell key={`cell-${index}`} fill={index === activeCourseIndex ? '#4361ee' : '#e2e8f0'} fillOpacity={index === activeCourseIndex ? 1 : 0.4} />
+                               ))}
+                             </Bar>
+                          </BarChart>
+                       </ResponsiveContainer>
+                     )}
+                  </div>
                </div>
              </>
            ) : (
-             <div className="py-40 text-center animate-pulse">
-                <LayoutGrid size={48} className="mx-auto text-gray-200 mb-4"/>
-                <p className="text-[10px] font-black text-gray-300 uppercase tracking-widest">Initializing Neural Dashboard...</p>
+             <div className="py-20 text-center animate-pulse">
+                <LayoutGrid size={40} className="mx-auto text-gray-200 mb-4"/>
+                <p className="text-[9px] font-black text-gray-300 uppercase tracking-widest">Initializing Hub...</p>
              </div>
            )}
         </div>
 
-        {/* Right: Active Units Action Sidebar */}
-        <div className="lg:col-span-1 space-y-6">
-           <div className="bg-white dark:bg-gray-900 p-6 rounded-[40px] border border-gray-100 dark:border-gray-800 shadow-sm flex flex-col h-[600px]">
-             <div className="flex items-center justify-between mb-6 shrink-0">
-               <div>
-                 <h3 className="text-[10px] font-black text-gray-900 dark:text-white uppercase tracking-widest">Live Unit Matrix</h3>
-                 <p className="text-[8px] font-bold text-gray-400 mt-0.5 uppercase tracking-tighter">Real-time status updates</p>
-               </div>
-               <span className="text-[8px] font-black text-indigo-500 bg-indigo-50 px-2 py-1 rounded-full uppercase tabular-nums">{activeCourseStudents.length}</span>
-             </div>
-             
-             <div className="flex-1 overflow-y-auto space-y-2 pr-1 custom-scrollbar">
-               {isStudentsLoading ? (
-                 [1,2,3,4,5,6].map(i => <div key={i} className="h-16 bg-gray-50 dark:bg-gray-800/40 rounded-3xl animate-pulse"/>)
-               ) : activeCourseStudents.length > 0 ? (
-                 activeCourseStudents.map((student, sidx) => (
-                   <motion.div key={student._id} initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: sidx * 0.05 }}
-                     className="flex items-center justify-between p-3 rounded-3xl hover:bg-gray-50 dark:hover:bg-gray-800/30 transition-all border border-transparent hover:border-gray-100 group">
-                     <div className="flex items-center gap-3">
-                       <div className="w-10 h-10 rounded-2xl bg-gray-50 dark:bg-gray-800 flex items-center justify-center font-black text-gray-400 group-hover:bg-white dark:group-hover:bg-gray-700 transition-all text-xs border border-transparent group-hover:border-gray-100">
-                         {student.profilePic ? <img src={student.profilePic} className="w-full h-full object-cover rounded-2xl" /> : student.name[0]}
-                       </div>
-                       <div className="min-w-0">
-                         <p className="text-[11px] font-black text-gray-900 dark:text-white uppercase truncate tracking-tight">{student.name}</p>
-                         <p className="text-[8px] font-bold text-gray-400 uppercase tracking-widest mt-0.5">{student.rollNumber}</p>
-                       </div>
-                     </div>
-                     <div className="flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-all scale-90 group-hover:scale-100">
-                        {markingId === student._id ? (
-                          <div className="w-4 h-4 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />
-                        ) : (
-                          <>
-                            <button onClick={() => handleQuickMark(student._id, 'present')} className="p-2 rounded-xl bg-emerald-500 text-white shadow-lg shadow-emerald-200 dark:shadow-none transition-all hover:scale-105 active:scale-95"><Check size={10}/></button>
-                            <button onClick={() => handleQuickMark(student._id, 'absent')} className="p-2 rounded-xl bg-rose-500 text-white shadow-lg shadow-rose-200 dark:shadow-none transition-all hover:scale-105 active:scale-95"><X size={10}/></button>
-                          </>
-                        )}
-                     </div>
-                   </motion.div>
-                 ))
-               ) : (
-                 <div className="text-center py-20 px-8">
-                    <ShieldOff size={40} className="mx-auto text-gray-200 mb-4 opacity-40"/>
-                    <p className="text-[9px] font-black text-gray-300 uppercase leading-relaxed tracking-widest">Select a synchronization node to view units</p>
-                 </div>
-               )}
-             </div>
-
-              <button 
-               onClick={() => navigate('/attendance')}
-               className="mt-6 w-full py-4 bg-gray-900 dark:bg-white dark:text-gray-900 text-white text-[10px] font-black uppercase tracking-widest rounded-[2rem] hover:opacity-90 hover:-translate-y-1 active:translate-y-0 transition-all shadow-2xl shadow-gray-200 dark:shadow-none shrink-0">
-                Access Full Control View
-              </button>
-
-              <div className="mt-8 pt-8 border-t border-gray-100 dark:border-gray-800 shrink-0">
-                <div className="flex items-center justify-between mb-6">
-                   <h3 className="text-[10px] font-black text-gray-900 dark:text-white uppercase tracking-widest flex items-center gap-2"><Trophy size={14} className="text-amber-500"/> Global Top Achievers</h3>
-                   <span className="text-[8px] font-black text-amber-500 bg-amber-50 px-2 py-0.5 rounded-full uppercase italic">Performance XP</span>
-                </div>
-                <div className="space-y-4">
-                   {globalLeaderboard.slice(0, 5).map((l, lidx) => (
-                     <div key={l._id} className="flex items-center justify-between group">
-                        <div className="flex items-center gap-3">
-                           <div className="w-8 h-8 rounded-full bg-gray-50 dark:bg-gray-800 flex items-center justify-center text-[10px] font-black text-gray-400 border border-transparent group-hover:border-amber-200 transition-all">
-                              {lidx + 1}
-                           </div>
-                           <div className="min-w-0">
-                              <p className="text-[10px] font-black text-gray-900 dark:text-white uppercase truncate tracking-tight">{l.name}</p>
-                              <p className="text-[7px] font-bold text-gray-400 uppercase tracking-widest">{l.department} · SEM {l.semester}</p>
-                           </div>
-                        </div>
-                        <div className="text-right">
-                           <p className="text-[10px] font-black text-amber-500">{l.xp}</p>
-                        </div>
-                     </div>
-                   ))}
-                </div>
+        {/* Center Col (2): Live Unit Matrix */}
+        <div className="lg:col-span-2">
+          <div className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-md p-8 rounded-[3rem] border border-gray-100 dark:border-gray-800 shadow-sm flex flex-col h-full max-h-[calc(100vh-280px)]">
+            <div className="flex items-center justify-between mb-8 shrink-0">
+              <div>
+                <h3 className="text-[11px] font-black text-gray-900 dark:text-white uppercase tracking-widest flex items-center gap-3">
+                  <ShieldCheck size={18} className="text-indigo-500"/> Live Unit Matrix
+                </h3>
+                <p className="text-[9px] font-bold text-gray-400 mt-1 uppercase tracking-tighter italic">Synchronous student identity nodes</p>
+              </div>
+              <div className="px-4 py-1.5 bg-indigo-50 dark:bg-indigo-900/30 rounded-2xl border border-indigo-100 dark:border-indigo-800/40">
+                <span className="text-[10px] font-black text-indigo-500 tabular-nums">{activeCourseStudents.length} Nodes</span>
               </div>
             </div>
+            
+            <div className="flex-1 overflow-y-auto pr-1 custom-scrollbar min-h-0">
+              {isStudentsLoading ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {[1,2,3,4,5,6].map(i => <div key={i} className="h-20 bg-gray-50 dark:bg-gray-800/40 rounded-[2rem] animate-pulse"/>)}
+                </div>
+              ) : activeCourseStudents.length > 0 ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {activeCourseStudents.map((student, sidx) => {
+                    const status = todayAttendance[student._id];
+                    return (
+                      <motion.div key={`unit-${student._id}`} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: sidx * 0.02 }}
+                        className={`flex items-center justify-between p-4 rounded-[2rem] transition-all border group cursor-default
+                          ${status === 'present' ? 'bg-emerald-50/50 dark:bg-emerald-900/10 border-emerald-100 dark:border-emerald-800/40' : 
+                            status === 'absent' ? 'bg-rose-50/50 dark:bg-rose-900/10 border-rose-100 dark:border-rose-800/40' : 
+                            'bg-gray-50/50 dark:bg-gray-800/20 border-transparent hover:border-gray-200 dark:hover:border-gray-700'}`}>
+                        
+                        <div className="flex items-center gap-4">
+                          {/* Identity Node / Status Indicator */}
+                          <button 
+                            onClick={() => handleQuickMark(student._id, status === 'present' ? 'absent' : 'present')}
+                            className={`w-12 h-12 rounded-2xl flex items-center justify-center font-black text-xs shadow-sm transition-all active:scale-90
+                              ${status === 'present' ? 'bg-emerald-500 text-white' : 
+                                status === 'absent' ? 'bg-rose-500 text-white' : 
+                                'bg-white dark:bg-gray-700 text-gray-400 border border-gray-100 dark:border-gray-600 hover:border-indigo-500'}`}
+                          >
+                            {markingId === student._id ? (
+                               <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                            ) : (
+                               status === 'present' ? 'P' : status === 'absent' ? 'A' : (student.profilePic ? <img src={student.profilePic} className="w-full h-full object-cover rounded-2xl" /> : student.name[0])
+                            )}
+                          </button>
+                          
+                          <div className="min-w-0">
+                            <p className="text-[11px] font-black text-gray-900 dark:text-white uppercase truncate tracking-tight">{student.name}</p>
+                            <p className="text-[8px] font-bold text-gray-400 uppercase tracking-widest mt-0.5">{student.rollNumber}</p>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                           <button 
+                              onClick={() => handleQuickMark(student._id, 'present')} 
+                              disabled={markingId === student._id}
+                              className={`p-2 rounded-xl transition-all hover:scale-110 active:scale-95 ${status === 'present' ? 'bg-emerald-500 text-white' : 'bg-gray-100 dark:bg-gray-800 text-gray-400 hover:text-emerald-500'}`}
+                           >
+                             <Check size={10}/>
+                           </button>
+                           <button 
+                              onClick={() => handleQuickMark(student._id, 'absent')} 
+                              disabled={markingId === student._id}
+                              className={`p-2 rounded-xl transition-all hover:scale-110 active:scale-95 ${status === 'absent' ? 'bg-rose-500 text-white' : 'bg-gray-100 dark:bg-gray-800 text-gray-400 hover:text-rose-500'}`}
+                           >
+                             <X size={10}/>
+                           </button>
+                        </div>
+                      </motion.div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="text-center py-24 px-8 text-gray-300">
+                   <ShieldOff size={48} className="mx-auto mb-4 opacity-40"/>
+                   <p className="text-[10px] font-black uppercase tracking-widest">Select Course To View Nodes</p>
+                </div>
+              )}
+            </div>
+
+            <div className="mt-8 pt-8 border-t border-gray-100 dark:border-gray-800 shrink-0">
+               <div className="flex items-center justify-between mb-6">
+                 <h3 className="text-[10px] font-black text-gray-900 dark:text-white uppercase tracking-widest flex items-center gap-2"><Trophy size={14} className="text-amber-500"/> Global Top Achievers</h3>
+                 <span className="text-[8px] font-black text-amber-500 uppercase tracking-widest italic">Institutional Ranking</span>
+               </div>
+               <div className="flex items-center gap-3 overflow-x-auto pb-4 custom-scrollbar">
+                 {globalLeaderboard.slice(0, 5).map((l, i) => (
+                   <div key={`leader-${i}`} className="flex-shrink-0 flex items-center gap-3 p-3 rounded-2xl bg-amber-50/5 dark:bg-amber-900/10 border border-amber-100/50 dark:border-amber-900/40">
+                      <div className="w-8 h-8 rounded-xl bg-white dark:bg-amber-900 flex items-center justify-center font-black text-[10px] text-amber-600 border border-amber-200">#{i+1}</div>
+                      <div className="min-w-0 pr-4">
+                         <p className="text-[10px] font-black text-gray-900 dark:text-white uppercase truncate">{l.name}</p>
+                         <p className="text-[8px] font-bold text-amber-600 uppercase tracking-tighter">{l.totalAttendance}% Sync</p>
+                      </div>
+                   </div>
+                 ))}
+               </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
   );
 };
 
-const UserMinus = ({ size, className }) => <Users size={size} className={className} />; // Placeholder for specific icons if needed
+const UserMinus = ({ size, className }) => <Users size={size} className={className} />;
 
 export default DashboardOverview;

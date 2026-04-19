@@ -40,12 +40,12 @@ const GlobalEducationNews = () => {
             <div className="relative z-10 flex flex-col gap-6">
                 <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-2xl bg-indigo-50 dark:bg-indigo-900/20 flex items-center justify-center text-indigo-600">
+                        <div className="w-10 h-10 rounded-2xl bg-rose-50 dark:bg-rose-900/20 flex items-center justify-center text-rose-600">
                             <Newspaper size={18} />
                         </div>
                         <div>
-                            <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-gray-400">Global Pulse</h3>
-                            <h4 className="text-sm font-black text-gray-900 dark:text-white uppercase tracking-tight">Engineering & Market</h4>
+                            <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-gray-400">Governance Pulse</h3>
+                            <h4 className="text-sm font-black text-gray-900 dark:text-white uppercase tracking-tight">UPSC & SSC Strategic News</h4>
                         </div>
                     </div>
                     <button 

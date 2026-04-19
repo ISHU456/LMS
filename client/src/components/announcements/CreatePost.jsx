@@ -24,6 +24,8 @@ const CreatePost = ({ user, onPostCreated }) => {
   const [isExpanded, setIsExpanded] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [attachments, setAttachments] = useState([]);
+  const [tags, setTags] = useState([]);
+  const [tagInput, setTagInput] = useState('');
 
   const fileInputRef = useRef(null);
   const isAdmin = user?.role === 'admin' || user?.role === 'hod';
@@ -37,6 +39,23 @@ const CreatePost = ({ user, onPostCreated }) => {
     setType('text');
     setIsExpanded(false);
     setAttachments([]);
+    setTags([]);
+    setTagInput('');
+  };
+
+  const handleAddTag = (e) => {
+    if (e.key === 'Enter' || e.key === ',') {
+      e.preventDefault();
+      const newTag = tagInput.trim().replace(/^#/, '');
+      if (newTag && !tags.includes(newTag) && tags.length < 5) {
+        setTags([...tags, newTag]);
+      }
+      setTagInput('');
+    }
+  };
+
+  const removeTag = (tagToRemove) => {
+    setTags(tags.filter(t => t !== tagToRemove));
   };
 
   const handlePost = async () => {
@@ -51,6 +70,7 @@ const CreatePost = ({ user, onPostCreated }) => {
         priority,
         pinned: isPinned,
         important,
+        tags,
         attachments: type === 'image' || type === 'file' ? attachments : [],
         videoUrl: type === 'video' ? videoUrl : undefined,
         externalLink: type === 'link' ? externalLink : undefined,
@@ -103,46 +123,74 @@ const CreatePost = ({ user, onPostCreated }) => {
   ];
 
   return (
-    <div className={`bg-white dark:bg-gray-900 shadow-2xl shadow-gray-200/50 dark:shadow-none rounded-[2.5rem] border border-gray-100 dark:border-gray-800 transition-all ${isExpanded ? 'p-8' : 'p-4'}`}>
+    <div className={`w-full bg-white dark:bg-[#0b0f1a] shadow-2xl shadow-slate-200/50 dark:shadow-none rounded-[3rem] border border-slate-100 dark:border-white/5 transition-all relative z-30 overflow-visible ${isExpanded ? 'p-10' : 'p-6'}`}>
+      
+      {/* Terminal Pulse Background */}
+      {isExpanded && (
+        <div className="absolute top-0 right-0 w-64 h-64 bg-primary-500/5 rounded-full blur-[100px] pointer-events-none" />
+      )}
+
       {!isExpanded ? (
-        <div className="flex items-center gap-4">
-          <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-primary-500 to-indigo-600 flex items-center justify-center overflow-hidden">
-            {user?.profilePic ? (
-              <img src={user.profilePic} alt={user.name} className="w-full h-full object-cover" />
-            ) : (
-              <span className="text-sm font-black text-white">{user?.name?.charAt(0) || 'U'}</span>
-            )}
+        <div className="w-full flex items-center justify-between gap-6">
+          <div className="flex items-center gap-5 flex-1">
+            <div className="relative group cursor-pointer shrink-0" onClick={() => setIsExpanded(true)}>
+              <div className="w-14 h-14 rounded-[1.2rem] p-[2px] bg-gradient-to-tr from-slate-200 to-slate-300 dark:from-white/10 dark:to-white/5">
+                <div className="w-full h-full rounded-[1.1rem] bg-white dark:bg-[#0b0f19] overflow-hidden flex items-center justify-center">
+                   {user?.profilePic ? (
+                     <img src={user.profilePic} alt={user.name} className="w-full h-full object-cover" />
+                   ) : (
+                     <span className="text-xl font-black text-slate-300">{user?.name?.charAt(0) || 'U'}</span>
+                   )}
+                </div>
+              </div>
+              <div className="absolute -bottom-1 -right-1 w-4 h-4 rounded-full bg-emerald-500 border-2 border-white dark:border-[#0b0f1a] animate-pulse" />
+            </div>
+            
+            <button 
+              onClick={() => setIsExpanded(true)}
+              className="flex-1 h-14 text-left px-8 rounded-[1.5rem] bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/5 text-slate-400 font-bold hover:bg-slate-100 dark:hover:bg-white/10 transition-all text-sm tracking-tight"
+            >
+              Initiate academic broadcast...
+            </button>
           </div>
-          <button 
-            onClick={() => setIsExpanded(true)}
-            className="flex-1 text-left px-5 py-3 rounded-2xl bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-700 text-gray-400 font-bold hover:bg-gray-100 dark:hover:bg-gray-800 transition-all"
-          >
-            What's on your mind?
-          </button>
-          <div className="hidden sm:flex gap-2">
-            <button onClick={() => { setType('image'); setIsExpanded(true); }} className="p-3 rounded-2xl bg-rose-50 dark:bg-rose-900/20 text-rose-500 hover:bg-rose-100 transition-all">
-              <Image size={20} />
-            </button>
-            <button onClick={() => { setType('video'); setIsExpanded(true); }} className="p-3 rounded-2xl bg-amber-50 dark:bg-amber-900/20 text-amber-500 hover:bg-amber-100 transition-all">
-              <Video size={20} />
-            </button>
+          
+          <div className="hidden sm:flex items-center gap-3 shrink-0">
+            {[
+              { icon: <Image size={20} />, action: () => { setType('image'); setIsExpanded(true); }, color: 'text-rose-500', bg: 'bg-rose-50' },
+              { icon: <Video size={20} />, action: () => { setType('video'); setIsExpanded(true); }, color: 'text-amber-500', bg: 'bg-amber-50' },
+              { icon: <Paperclip size={20} />, action: () => { setType('file'); setIsExpanded(true); }, color: 'text-emerald-500', bg: 'bg-emerald-50' },
+            ].map((tool, i) => (
+              <button 
+                key={i}
+                onClick={tool.action}
+                className={`p-4 rounded-2xl ${tool.bg} dark:bg-white/5 ${tool.color} hover:scale-110 active:scale-95 transition-all shadow-sm`}
+              >
+                {tool.icon}
+              </button>
+            ))}
           </div>
         </div>
       ) : (
-        <div className="space-y-6">
+        <div className="space-y-8 relative z-10">
           {/* Header */}
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-2xl bg-primary-600 flex items-center justify-center text-white">
-                <Sparkles size={20} />
+            <div className="flex items-center gap-5">
+              <div className="w-14 h-14 rounded-2xl bg-indigo-600 flex items-center justify-center text-white shadow-xl shadow-indigo-500/20">
+                <Sparkles size={24} />
               </div>
               <div>
-                <h3 className="text-lg font-black text-gray-900 dark:text-white">Create Announcement</h3>
-                <p className="text-[10px] font-black uppercase text-gray-400 tracking-widest">Post to academic feed</p>
+                <h3 className="text-xl font-black text-slate-900 dark:text-white tracking-tight uppercase">Broadcast Terminal</h3>
+                <div className="flex items-center gap-2 mt-1">
+                   <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                   <p className="text-[10px] font-black uppercase text-emerald-500 tracking-[0.2em]">Institutional Connection Synchronized</p>
+                </div>
               </div>
             </div>
-            <button onClick={() => setIsExpanded(false)} className="p-2 rounded-xl text-gray-400 hover:bg-gray-100/10 transition">
-              <X size={20} />
+            <button 
+              onClick={() => setIsExpanded(false)} 
+              className="p-3 rounded-2xl text-slate-400 hover:bg-slate-100 dark:hover:bg-white/5 transition-all"
+            >
+              <X size={24} />
             </button>
           </div>
 
@@ -175,6 +223,31 @@ const CreatePost = ({ user, onPostCreated }) => {
               placeholder="What would you like to announce?"
               className="w-full px-5 py-4 rounded-3xl bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-700 outline-none font-bold text-gray-900 dark:text-white placeholder:text-gray-400 focus:bg-white dark:focus:bg-gray-900 focus:border-primary-500/50 transition-all resize-none"
             />
+            
+            <div className="space-y-2">
+              <div className="relative">
+                <span className="absolute left-5 top-1/2 -translate-y-1/2 font-black text-gray-400">#</span>
+                <input 
+                  value={tagInput}
+                  onChange={(e) => setTagInput(e.target.value)}
+                  onKeyDown={handleAddTag}
+                  placeholder="Add tags (press Enter or comma)"
+                  className="w-full pl-10 pr-5 py-3 rounded-2xl bg-gray-50 dark:bg-gray-800/20 border border-gray-100 dark:border-gray-700 outline-none text-sm font-bold text-gray-900 dark:text-white placeholder:text-gray-400 focus:bg-white dark:focus:bg-gray-900 focus:border-indigo-500/50 transition-all"
+                />
+              </div>
+              {tags.length > 0 && (
+                <div className="flex flex-wrap gap-2 pt-1">
+                  {tags.map((tag, idx) => (
+                    <span key={idx} className="flex items-center gap-1.5 px-3 py-1 rounded-xl bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 font-bold text-xs">
+                      #{tag}
+                      <button onClick={() => removeTag(tag)} className="text-indigo-400 hover:text-rose-500 transition-colors">
+                        <X size={12} />
+                      </button>
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
             
             <AnimatePresence mode="wait">
               {type === 'video' && (
