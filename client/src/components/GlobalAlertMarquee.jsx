@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom';
 import axios from 'axios';
 import { motion } from 'framer-motion';
 import { AlertTriangle, ChevronRight } from 'lucide-react';
-import { io } from 'socket.io-client';
+import socket from '../utils/socket';
 
 const GlobalAlertMarquee = () => {
     const [alert, setAlert] = useState('');
@@ -59,17 +59,9 @@ const GlobalAlertMarquee = () => {
         };
         fetchAlert();
         
-        const socket = io('http://localhost:5001');
-
-        socket.on('global-class-started', (data) => {
+        const onGlobalClassStarted = (data) => {
             if (data.roomId && user) {
-                // Determine Eligibility
                 const isTeacherRole = user.role === 'teacher' || user.role === 'admin' || user.role === 'hod';
-                
-                // Student Eligibility Logic:
-                // 1. Department must match (Code or Full Name)
-                // 2. Student's current semester must be equal to or greater than course semester (to allow repeating or advanced viewing, or strictly equal - user said 'those that are having access')
-                // Usually access is based on enrollment.
                 const isDeptMatch = user.department === data.department || user.department === data.deptCode;
                 const isSemMatch = Number(user.semester) >= Number(data.semester);
                 
@@ -79,7 +71,6 @@ const GlobalAlertMarquee = () => {
                     setIsDismissed(false);
                     playNotificationSound();
 
-                    // Dispatch Popup Notification
                     const popupEvent = new CustomEvent('smartlms:achievement', {
                         detail: {
                             title: 'Protocol Initialized',
@@ -92,7 +83,8 @@ const GlobalAlertMarquee = () => {
                     window.dispatchEvent(popupEvent);
                 }
             }
-        });
+        };
+        socket.on('global-class-started', onGlobalClassStarted);
         
         const handleCustomAlert = (e) => {
             if (e.detail?.message) {
@@ -108,7 +100,7 @@ const GlobalAlertMarquee = () => {
         const interval = setInterval(fetchAlert, 300000);
         return () => {
             clearInterval(interval);
-            socket.disconnect();
+            socket.off('global-class-started', onGlobalClassStarted);
             window.removeEventListener('smartlms:marquee_alert', handleCustomAlert);
         };
     }, [user]);

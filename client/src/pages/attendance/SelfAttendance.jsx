@@ -62,7 +62,8 @@ const SelfAttendance = () => {
                 <ArrowLeft className="w-4 h-4" /> Back to Dashboard
             </button>
 
-            <div className="w-full max-w-md bg-white dark:bg-slate-800 rounded-3xl shadow-2xl p-8 border border-slate-100 dark:border-slate-700">
+            <div className="w-full max-w-md bg-white/80 dark:bg-[#080c14]/80 backdrop-blur-3xl rounded-[3.5rem] shadow-2xl p-8 sm:p-10 border border-slate-200 dark:border-slate-800/60 overflow-hidden relative group">
+                <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-600 to-indigo-600" />
                 <header className="text-center mb-8">
                     <div className="mx-auto w-16 h-16 bg-blue-100 dark:bg-blue-900/30 text-blue-600 rounded-2xl flex items-center justify-center mb-4 shadow-inner">
                         <ClipboardCheck className="w-8 h-8" />

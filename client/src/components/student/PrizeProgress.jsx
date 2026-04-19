@@ -190,7 +190,7 @@ const PrizeProgress = ({ isCompact = false }) => {
         </div>
       )}
 
-      <div className={isCompact ? "space-y-4" : "grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8"}>
+      <div className={isCompact ? "space-y-4" : "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8"}>
         {data.prizes.map((prize, idx) => {
           const studentPrize = data.myPrizes.find(mp => mp.prize._id === prize._id);
           const isUnlocked = !!studentPrize;

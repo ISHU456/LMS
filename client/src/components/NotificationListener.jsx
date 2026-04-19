@@ -1,22 +1,22 @@
 import { useEffect } from 'react';
 import { useSelector } from 'react-redux';
-import { io } from 'socket.io-client';
+import socket from '../utils/socket';
+import { useDispatch } from 'react-redux';
+import { updateProfile } from '../features/auth/authSlice';
 
 const NotificationListener = () => {
   const { user } = useSelector((state) => state.auth);
+  const dispatch = useDispatch();
 
   useEffect(() => {
     if (!user) return;
 
-    const socket = io('http://localhost:5001');
-    
     // Join a private room for the user
     socket.emit('join-room', `user_${user._id}`, user._id);
 
     // Listen for course access updates
     socket.on('access-update', (data) => {
       if (data.studentId === user._id) {
-        // Dispatch custom event for AchievementToaster
         const event = new CustomEvent('smartlms:achievement', {
           detail: {
             title: `Access ${data.state}`,
@@ -27,6 +27,21 @@ const NotificationListener = () => {
         });
         window.dispatchEvent(event);
       }
+    });
+
+    // Listen for real-time profile updates (credits, coins, etc.)
+    socket.on('profile-update', (data) => {
+       dispatch(updateProfile(data));
+       
+       const event = new CustomEvent('smartlms:achievement', {
+         detail: {
+           title: 'Balance Synchronized',
+           subtitle: 'Your institutional assets have been updated.',
+           icon: 'zap',
+           color: 'bg-indigo-600/90',
+         }
+       });
+       window.dispatchEvent(event);
     });
 
     // Listen for low attendance alerts
@@ -45,7 +60,8 @@ const NotificationListener = () => {
     });
 
     return () => {
-      socket.disconnect();
+      socket.off('access-update');
+      socket.off('attendance-alert');
     };
   }, [user]);
 

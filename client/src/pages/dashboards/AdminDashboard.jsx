@@ -50,6 +50,9 @@ const AdminDashboard = () => {
   const [quizGenOpen, setQuizGenOpen] = useState(false);
 
 
+  const [recentOrders, setRecentOrders] = useState([]);
+
+
   const [searchParams] = useSearchParams();
 
   useEffect(() => {
@@ -83,16 +86,30 @@ const AdminDashboard = () => {
     }
   }, [user.token]);
 
-  useEffect(() => {
-    fetchStats();
-    const timer = setTimeout(() => setIsLoading(false), 500);
-    return () => clearTimeout(timer);
-  }, [fetchStats]);
+  const fetchRecentOrders = useCallback(async () => {
+    try {
+      const config = { headers: { Authorization: `Bearer ${user.token}` } };
+      const res = await axios.get('http://localhost:5001/api/gamification/orders', config);
+      setRecentOrders(res.data.slice(0, 5));
+    } catch (err) {
+      console.error("Failed to fetch recent orders");
+    }
+  }, [user.token]);
 
   useEffect(() => {
-    const interval = setInterval(fetchStats, 60000);
+    fetchStats();
+    fetchRecentOrders();
+    const timer = setTimeout(() => setIsLoading(false), 500);
+    return () => clearTimeout(timer);
+  }, [fetchStats, fetchRecentOrders]);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      fetchStats();
+      fetchRecentOrders();
+    }, 60000);
     return () => clearInterval(interval);
-  }, [activeTab, fetchStats]);
+  }, [activeTab, fetchStats, fetchRecentOrders]);
 
   useEffect(() => {
     if (activeTab === 'quizzes') {
@@ -274,7 +291,7 @@ const AdminDashboard = () => {
              <motion.div key="overview" initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} transition={{ duration: 0.5, ease: "easeOut" }} className="space-y-6 lg:space-y-10 max-w-[1600px] mx-auto">
                
                {/* Dashboard Stats Deck */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 lg:gap-6">
                   {[
                     { label: 'Total Identities', value: stats.users, icon: Users, theme: CHART_GRADIENTS.indigo, detail: 'Across all vectors' },
                     { label: 'Academic Sectors', value: stats.departments, icon: Building, theme: CHART_GRADIENTS.violet, detail: 'Departmental nodes' },
@@ -309,9 +326,9 @@ const AdminDashboard = () => {
                 </div>
 
                {/* Analytic Visualization Hub */}
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                   <motion.div initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.4 }}
-                    className="bg-white dark:bg-[#080c14] p-10 rounded-[3rem] shadow-xl border border-slate-200 dark:border-slate-800/60 relative overflow-hidden group">
+                    className="bg-white dark:bg-[#080c14] p-10 rounded-[3rem] shadow-xl border border-slate-200 dark:border-slate-800/60 relative overflow-hidden group md:col-span-1 lg:col-span-1">
                     <div className="absolute top-0 right-0 p-8 opacity-5">
                        <LayoutGrid size={120} className="text-indigo-500" />
                     </div>
@@ -349,7 +366,7 @@ const AdminDashboard = () => {
                   </motion.div>
 
                   <motion.div initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.5 }}
-                    className="bg-white dark:bg-[#080c14] p-10 rounded-[3rem] shadow-xl border border-slate-200 dark:border-slate-800/60 lg:col-span-2 group relative overflow-hidden">
+                    className="bg-white dark:bg-[#080c14] p-10 rounded-[3rem] shadow-xl border border-slate-200 dark:border-slate-800/60 md:col-span-1 lg:col-span-2 group relative overflow-hidden">
                     <div className="absolute top-0 right-0 p-4 opacity-[0.02]">
                        <TrendingUp size={240} className="text-indigo-500" />
                     </div>
@@ -448,111 +465,120 @@ const AdminDashboard = () => {
                       <div className="h-full w-full flex items-center justify-center opacity-30 text-[10px] font-black uppercase tracking-[0.5em] italic tabular-nums">Tracing Institutional Vectors...</div>
                     )}
                   </div>
-               </motion.div>
-
-                {/* Analytic Interaction Grid */}
-
-                {/* Analytic Interaction Grid */}
-                <div className="grid grid-cols-1 xl:grid-cols-3 gap-8 pb-12">
-                   {/* Ecosystem Equilibrium Chart */}
-                   <motion.div initial={{ opacity: 0, x: -30 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.6 }}
-                     className="bg-white/70 dark:bg-[#080c14]/70 backdrop-blur-xl p-10 rounded-[3.5rem] border border-slate-200 dark:border-slate-800/60 shadow-xl group relative overflow-hidden">
+                 <div className="grid grid-cols-1 xl:grid-cols-12 gap-8 pb-12">
+                   {/* Institutional Growth Pulse */}
+                   <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.6 }}
+                     className="xl:col-span-8 bg-white/70 dark:bg-[#080c14]/70 backdrop-blur-xl p-8 sm:p-10 rounded-[3.5rem] shadow-xl border border-slate-200 dark:border-slate-800/60 overflow-hidden relative group">
                       <div className="flex items-center justify-between mb-8">
                          <h3 className="text-sm font-black uppercase tracking-[0.3em] dark:text-white flex items-center gap-3 italic">
-                           <Wind size={20} className="text-teal-500" /> Ecosystem Equilibrium
+                           <Activity size={20} className="text-teal-500" /> Growth Pulse
                          </h3>
                       </div>
-                      <div className="h-[300px] w-full">
+                      <div className="h-[250px] w-full">
                          {isMounted ? (
-                           <ResponsiveContainer width="100%" height="100%">
-                             <RadarChart cx="50%" cy="50%" outerRadius="80%" data={[
-                               { subject: 'Identity', A: 120, B: 110, fullMark: 150 },
-                               { subject: 'Synergy', A: 98, B: 130, fullMark: 150 },
-                               { subject: 'Growth', A: 86, B: 130, fullMark: 150 },
-                               { subject: 'Uptime', A: 99, B: 100, fullMark: 150 },
-                               { subject: 'Security', A: 85, B: 90, fullMark: 150 },
-                               { subject: 'Neural', A: 65, B: 85, fullMark: 150 },
-                             ]}>
-                               <PolarGrid stroke="#64748b" opacity={0.1} />
-                               <PolarAngleAxis dataKey="subject" tick={{ fontSize: 8, fontBold: 900, fill: '#64748b' }} />
-                               <Radar name="Active Matrix" dataKey="A" stroke="#14b8a6" fill="#14b8a6" fillOpacity={0.6} />
-                               <Radar name="Neural Vector" dataKey="B" stroke="#6366f1" fill="#6366f1" fillOpacity={0.3} />
-                               <RechartsTooltip />
-                             </RadarChart>
-                           </ResponsiveContainer>
+                            <ResponsiveContainer width="100%" height="100%">
+                              <AreaChart data={[
+                                { name: 'Sun', value: 65 }, { name: 'Mon', value: 85 }, { name: 'Tue', value: 78 },
+                                { name: 'Wed', value: 92 }, { name: 'Thu', value: 88 }, { name: 'Fri', value: 96 }, { name: 'Sat', value: 74 },
+                              ]}>
+                                <defs>
+                                  <linearGradient id="colorPulse" x1="0" y1="0" x2="0" y2="1">
+                                    <stop offset="5%" stopColor="#14b8a6" stopOpacity={0.4}/>
+                                    <stop offset="95%" stopColor="#6366f1" stopOpacity={0}/>
+                                  </linearGradient>
+                                </defs>
+                                <XAxis dataKey="name" hide />
+                                <YAxis hide />
+                                <Area type="monotone" dataKey="value" stroke="#14b8a6" strokeWidth={4} fillOpacity={1} fill="url(#colorPulse)" />
+                              </AreaChart>
+                            </ResponsiveContainer>
                          ) : null}
                       </div>
-                      <div className="mt-6 flex justify-around">
-                         <div className="text-center">
-                            <p className="text-[10px] font-black text-teal-500">94.2%</p>
-                            <p className="text-[7px] font-black uppercase text-slate-400 tracking-widest">Stability</p>
-                         </div>
-                         <div className="text-center">
-                            <p className="text-[10px] font-black text-indigo-500">88.5%</p>
-                            <p className="text-[7px] font-black uppercase text-slate-400 tracking-widest">Cohesion</p>
-                         </div>
+                   </motion.div>
+
+                   {/* Strategic Quick-Links */}
+                   <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.65 }}
+                     className="xl:col-span-4 bg-white/70 dark:bg-[#080c14]/70 backdrop-blur-xl p-8 sm:p-10 rounded-[3.5rem] border border-slate-200 dark:border-slate-800/60 shadow-xl group">
+                      <h3 className="text-sm font-black uppercase tracking-[0.3em] dark:text-white mb-8 italic flex items-center gap-3">
+                         <Zap size={20} className="text-amber-500" /> Quick Actions
+                      </h3>
+                      <div className="grid grid-cols-2 gap-4">
+                         {[
+                           { label: 'Users', icon: Users, theme: CHART_GRADIENTS.indigo, action: () => setActiveTab('users') },
+                           { label: 'Faculty', icon: Leaf, theme: CHART_GRADIENTS.emerald, action: () => setActiveTab('faculty-attendance') },
+                           { label: 'Courses', icon: Droplets, theme: CHART_GRADIENTS.teal, action: () => setActiveTab('courses') },
+                           { label: 'Alerts', icon: Megaphone, theme: CHART_GRADIENTS.rose, action: () => setActiveTab('global-alerts') },
+                         ].map(btn => (
+                            <button key={btn.label} onClick={btn.action} className="h-20 flex flex-col items-center justify-center bg-slate-50 dark:bg-white/5 rounded-2xl border border-slate-100 dark:border-slate-800/60 hover:border-teal-500/30 hover:bg-white dark:hover:bg-teal-500/10 transition-all">
+                               <btn.icon size={18} style={{ color: btn.theme.from }} className="mb-2" />
+                               <span className="text-[7px] font-black uppercase tracking-widest text-slate-500">{btn.label}</span>
+                            </button>
+                         ))}
                       </div>
                    </motion.div>
 
-                   <motion.div initial={{ opacity: 0, x: 0 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.65 }}
-                     className="bg-white/70 dark:bg-[#080c14]/70 backdrop-blur-xl p-10 rounded-[3.5rem] border border-slate-200 dark:border-slate-800/60 shadow-xl group">
-                     <div className="flex items-center justify-between mb-8">
-                        <h3 className="text-sm font-black uppercase tracking-[0.3em] dark:text-white flex items-center gap-3 italic">
-                         <Zap size={20} className="text-amber-500" /> Strategic Quick-Links
-                        </h3>
-                     </div>
-                     <div className="grid grid-cols-2 gap-4">
-                        {[
-                          { label: 'Induct Node', icon: Users, theme: CHART_GRADIENTS.indigo, action: () => { localStorage.setItem('provision_role', 'student'); setActiveTab('users'); } },
-                          { label: 'Faculty Pulse', icon: Leaf, theme: CHART_GRADIENTS.emerald, action: () => setActiveTab('faculty-attendance') },
-                          { label: 'Lattice Protocol', icon: Droplets, theme: CHART_GRADIENTS.teal, action: () => setActiveTab('courses') },
-                          { label: 'Broadcast', icon: Megaphone, theme: CHART_GRADIENTS.rose, action: () => setActiveTab('global-alerts') },
-                        ].map(btn => (
-                           <button 
-                              key={btn.label}
-                              onClick={btn.action}
-                              className="group/btn relative h-28 flex flex-col items-center justify-center bg-slate-50 dark:bg-white/5 rounded-3xl border border-slate-100 dark:border-slate-800/60 hover:border-teal-500/30 hover:bg-white dark:hover:bg-teal-500/10 transition-all duration-500"
-                           >
-                              <btn.icon size={22} style={{ color: btn.theme.from }} className="mb-2 group-hover/btn:scale-110 transition-transform duration-500" />
-                              <span className="text-[8px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400">{btn.label}</span>
-                           </button>
-                        ))}
-                        <button className="col-span-2 py-4 bg-gradient-to-r from-teal-600 to-indigo-600 text-white rounded-[2rem] font-black uppercase tracking-[0.3em] text-[10px] hover:scale-[1.02] transition-all shadow-xl shadow-teal-500/20 italic">
-                           Deploy Neural Synthesis
-                        </button>
-                     </div>
-                   </motion.div>
-
-                   <motion.div initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.7 }}
-                     className="bg-white/70 dark:bg-[#080c14]/70 backdrop-blur-xl p-10 rounded-[3.5rem] border border-slate-200 dark:border-slate-800/60 shadow-xl relative overflow-hidden group">
-                      <div className="absolute top-0 right-0 p-8 opacity-0 group-hover:opacity-5 transition-opacity">
-                         <Leaf size={120} className="text-emerald-500" />
+                   {/* Bottom Full-Width Section: Redemption Ledger */}
+                   <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.7 }}
+                     className="xl:col-span-12 bg-white/70 dark:bg-[#080c14]/70 backdrop-blur-xl p-8 sm:p-10 rounded-[4rem] border border-slate-200 dark:border-slate-800/60 shadow-2xl relative overflow-hidden group">
+                      <div className="flex items-center justify-between mb-10">
+                         <div>
+                            <h3 className="text-sm font-black uppercase tracking-[0.3em] dark:text-white flex items-center gap-3 italic">
+                               <Gift size={20} className="text-indigo-500" /> Institutional Redemption Ledger
+                            </h3>
+                            <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest mt-1 italic">Real-time prize fulfillment stream</p>
+                         </div>
+                         <button onClick={() => setActiveTab('rewards')} className="px-6 py-2 bg-indigo-600/10 text-indigo-600 dark:text-indigo-400 rounded-full text-[8px] font-black uppercase tracking-widest border border-indigo-500/20 hover:bg-indigo-600 hover:text-white transition-all">Manage All Orders</button>
                       </div>
-                      <h3 className="text-sm font-black uppercase tracking-[0.3em] dark:text-white mb-8 italic">Identity Ignition</h3>
-                      <div className="space-y-4 relative z-10">
-                         {stats.recentUsers && stats.recentUsers.length > 0 ? stats.recentUsers.slice(0, 5).map((item, i) => (
-                           <motion.div 
-                              key={i} 
-                              className="flex items-center gap-4 p-3 bg-slate-50 dark:bg-white/5 rounded-2xl border border-slate-100 dark:border-slate-800/60 hover:bg-white dark:hover:bg-white/10 transition-all group/item"
-                           >
-                             <div className="w-10 h-10 rounded-xl bg-teal-500/10 flex items-center justify-center border border-teal-500/20 text-teal-500 group-hover/item:scale-110 transition-transform">
-                                {item.profilePic ? <img src={item.profilePic} className="w-full h-full object-cover rounded-xl" alt="ID"/> : <Users size={18}/>}
-                             </div>
-                             <div className="truncate">
-                                <p className="text-[10px] font-black dark:text-white text-slate-900 truncate tracking-tight">{item.name}</p>
-                                <p className="text-[7px] font-black uppercase text-slate-400 tracking-widest">{item.role}</p>
-                             </div>
-                             <div className="ml-auto flex flex-col items-end">
-                                <span className="text-[9px] font-black tabular-nums dark:text-teal-400 text-teal-600">{new Date(item.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}</span>
-                                <div className="w-1 h-1 rounded-full bg-teal-500" />
-                             </div>
-                           </motion.div>
-                         )) : (
-                            <div className="py-12 text-center opacity-30">
-                               <Wind size={32} className="mx-auto mb-2 animate-bounce-subtle" />
-                               <p className="text-[8px] font-black uppercase tracking-widest italic">Awaiting Ignition...</p>
-                            </div>
-                         )}
+                      
+                      <div className="overflow-x-auto">
+                         <table className="w-full text-left">
+                            <thead className="border-b border-slate-100 dark:border-white/5">
+                               <tr className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em]">
+                                  <th className="pb-4">Scholar Identity</th>
+                                  <th className="pb-4">Asset Acquired</th>
+                                  <th className="pb-4">Fulfillment Status</th>
+                                  <th className="pb-4 text-right">Action</th>
+                               </tr>
+                            </thead>
+                            <tbody className="divide-y divide-slate-50 dark:divide-white/5">
+                               {recentOrders.map((order, i) => (
+                                 <tr key={i} className="group/row hover:bg-white/50 dark:hover:bg-white/5 transition-all">
+                                    <td className="py-5">
+                                       <div className="flex items-center gap-3">
+                                          <div className="w-8 h-8 rounded-full bg-indigo-500/10 flex items-center justify-center font-black text-xs text-indigo-500 border border-indigo-500/20">
+                                             {order.student?.name?.[0]}
+                                          </div>
+                                          <div>
+                                             <p className="text-[10px] font-black dark:text-white text-slate-900 uppercase italic">{order.student?.name}</p>
+                                             <p className="text-[7px] font-black text-slate-400 uppercase tracking-widest">{order.student?.rollNumber || 'N/A'}</p>
+                                          </div>
+                                       </div>
+                                    </td>
+                                    <td className="py-5">
+                                       <span className="text-[10px] font-black text-slate-600 dark:text-slate-300 uppercase italic bg-slate-100 dark:bg-white/5 px-3 py-1 rounded-lg">
+                                          {order.prize?.name || order.monthlyPrize?.rewardName}
+                                       </span>
+                                    </td>
+                                    <td className="py-5">
+                                       <div className="flex items-center gap-2">
+                                          <div className={`w-1.5 h-1.5 rounded-full ${order.status === 'delivered' ? 'bg-emerald-500' : 'bg-amber-500'} animate-pulse`} />
+                                          <span className={`text-[8px] font-black uppercase tracking-widest ${order.status === 'delivered' ? 'text-emerald-500' : 'text-amber-500'}`}>{order.status || 'pending'}</span>
+                                       </div>
+                                    </td>
+                                    <td className="py-5 text-right">
+                                       <button onClick={() => setActiveTab('rewards')} className="p-2 text-slate-400 hover:text-indigo-500 transition-colors">
+                                          <ChevronRight size={16} />
+                                       </button>
+                                    </td>
+                                 </tr>
+                               ))}
+                               {recentOrders.length === 0 && (
+                                 <tr>
+                                    <td colSpan="4" className="py-12 text-center opacity-30 italic font-black uppercase tracking-[0.3em] text-slate-400 text-[10px]">Order Stream is currently Null</td>
+                                 </tr>
+                               )}
+                            </tbody>
+                         </table>
                       </div>
                    </motion.div>
                 </div>

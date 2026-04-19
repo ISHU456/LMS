@@ -279,19 +279,21 @@ export const analyzeFile = async (req, res) => {
     });
 
     // Auto-save session
-    let chatSession = await Chat.findOne({ user: userId, sessionId: `file_${Date.now()}` });
+    const { sessionId } = req.body;
+    let chatSession = await Chat.findOne({ user: userId, sessionId: sessionId || 'default' });
     if (!chatSession) {
       chatSession = new Chat({
         user: userId,
-        sessionId: `file_${Date.now()}`,
+        sessionId: sessionId || 'default',
         title: `Analysis: ${file.originalname}`,
-        messages: [
-          { role: 'user', content: `[Uploaded File: ${file.originalname}]` },
-          { role: 'assistant', content: botResponseText }
-        ]
+        messages: []
       });
-      await chatSession.save();
     }
+    
+    chatSession.messages.push({ role: 'user', content: `[Uploaded File: ${file.originalname}]` });
+    chatSession.messages.push({ role: 'assistant', content: botResponseText });
+    chatSession.lastActive = Date.now();
+    await chatSession.save();
 
     res.json({ 
       response: botResponseText, 

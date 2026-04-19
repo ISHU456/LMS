@@ -733,7 +733,7 @@ const StudentDashboard = () => {
                 )}
               </div>
 
-              <div className="w-full grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-3">
+              <div className="w-full grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3">
                 <div className="p-4 rounded-2xl border border-amber-100 dark:border-amber-900/10 bg-amber-50/20 dark:bg-amber-500/5 group hover:bg-amber-500/10 transition-all">
                   <div className="flex items-center justify-between">
                     <div className="text-[10px] font-black uppercase tracking-widest text-amber-600 dark:text-amber-500">Scholar Coins</div>
@@ -770,14 +770,14 @@ const StudentDashboard = () => {
                   <div className="text-2xl font-extrabold text-gray-900 dark:text-white mt-1">{pendingTasksCount}</div>
                   <div className="mt-3 text-[10px] font-black uppercase tracking-widest text-primary-600 dark:text-primary-400">Tasks assigned</div>
                 </div>
-                <div className="sm:col-span-2 xl:col-span-2 p-6 rounded-[2.5rem] border border-gray-100 dark:border-gray-800 bg-white/40 dark:bg-gray-900/30 backdrop-blur-3xl relative overflow-hidden group">
+                <div className="sm:col-span-2 lg:col-span-3 xl:col-span-2 p-5 sm:p-6 rounded-[2.5rem] border border-gray-100 dark:border-gray-800 bg-white/40 dark:bg-gray-900/30 backdrop-blur-3xl relative overflow-hidden group">
                   {/* Decorative Background Flame */}
                   <div className="absolute top-[-20%] right-[-10%] opacity-5 scale-150 rotate-12 group-hover:rotate-0 transition-transform duration-1000">
                     <Flame size={200} className="text-orange-500 fill-current" />
                   </div>
                   
-                  <div className="relative z-10 flex flex-col sm:flex-row items-center justify-between gap-6 sm:gap-8">
-                    <div className="w-full sm:w-auto">
+                  <div className="relative z-10 flex flex-col sm:flex-row items-center justify-between gap-8 sm:gap-6">
+                    <div className="w-full sm:w-auto text-center sm:text-left flex flex-col items-center sm:items-start">
                         <div className="flex items-center gap-3 mb-2">
                            <div className="p-2 bg-orange-500/20 rounded-xl text-orange-500 animate-pulse">
                               <Flame size={20} className="fill-current" />
@@ -797,40 +797,45 @@ const StudentDashboard = () => {
                               return (
                                 <div className="mt-2 flex items-center gap-1.5 px-3 py-1 bg-emerald-500/10 rounded-full border border-emerald-500/20 w-fit">
                                    <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                                   <span className="text-[8px] font-black text-emerald-500 uppercase tracking-widest">Daily Reward Claimed</span>
+                                   <span className="text-[8px] font-black text-emerald-500 uppercase tracking-widest whitespace-nowrap">Daily Reward Claimed</span>
                                 </div>
                               );
                            }
                            return null;
                         })()}
 
-                        <p className="text-[10px] font-black uppercase tracking-widest text-gray-500 mt-2">
+                        <p className="text-[10px] font-black uppercase tracking-widest text-gray-500 mt-3 whitespace-nowrap overflow-hidden text-ellipsis max-w-full">
                            {streakDays >= 7 ? 'Legendary Consistency!' : `${7 - (streakDays % 7)} days to next major badge`}
                         </p>
                     </div>
 
-                    <div className="w-full sm:flex-1 max-w-[350px]">
-                        <div className="flex justify-between mb-4 gap-1">
+                    <div className="w-full sm:flex-1">
+                        <div className="flex justify-between mb-4 gap-1 sm:gap-2">
                            {last7Keys.map((k, i) => {
                               const attended = new Set(gamification?.attendanceDates || []).has(k);
                               return (
-                                 <div key={k} className="flex flex-col items-center gap-1.5 flex-1">
-                                    <div className={`w-full aspect-square rounded-lg flex items-center justify-center border-2 transition-all duration-500 max-w-[32px] ${attended ? 'bg-orange-500 border-orange-400 shadow-lg shadow-orange-500/40 text-white' : 'bg-gray-100 dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-400 opacity-40'}`}>
+                                 <div key={k} className="flex flex-col items-center gap-1.5 flex-1 min-w-0">
+                                    <div className={`w-full aspect-square rounded-lg flex items-center justify-center border-2 transition-all duration-500 max-w-[36px] ${attended ? 'bg-orange-500 border-orange-400 shadow-lg shadow-orange-500/40 text-white' : 'bg-gray-100 dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-400 opacity-40'}`}>
                                        {attended ? <CheckCircle2 size={12} /> : <div className="w-1 h-1 rounded-full bg-current" />}
                                     </div>
-                                    <span className="text-[7px] font-black uppercase tracking-tighter text-gray-500 h-2">D{i+1}</span>
+                                    <span className="text-[7px] font-black uppercase tracking-tighter text-gray-400 mt-1">D{i+1}</span>
                                  </div>
                               );
                            })}
                         </div>
-                        <div className="h-2 bg-gray-200/50 dark:bg-gray-800 rounded-full overflow-hidden border border-gray-100 dark:border-gray-700/50">
+                        <div className="h-2 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden border border-white/5">
                            <motion.div
                              initial={{ width: 0 }}
                              animate={{ width: `${Math.min(100, ((streakDays % 7) || (streakDays > 0 ? 7 : 0)) / 7 * 100)}%` }}
                              className="h-full bg-gradient-to-r from-orange-600 via-orange-400 to-amber-300 shadow-[0_0_15px_rgba(249,115,22,0.5)]"
                            />
                         </div>
+                        <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest mt-2 flex justify-between">
+                           <span>Weekly Matrix</span>
+                           <span>{Math.round(streakProgressPercent)}% Complete</span>
+                        </p>
                     </div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -978,9 +983,9 @@ const StudentDashboard = () => {
 
                   <div className="mt-6">
                     <div className="text-xs font-black uppercase tracking-widest text-gray-500 dark:text-gray-400 mb-3">Weekly Result</div>
-                    <div className="w-full relative" style={{ height: '220px' }}>
+                    <div className="w-full relative" style={{ height: '220px', minWidth: '0' }}>
                       {isMounted && (
-                        <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={220}>
+                        <ResponsiveContainer width="100%" height="100%" debounce={50}>
                         <AreaChart data={weeklyPerformance}>
                           <defs>
                             <linearGradient id="perfGrad" x1="0" y1="0" x2="0" y2="1">
@@ -1655,25 +1660,28 @@ const StudentDashboard = () => {
                         </button>
                         
                         <div className="flex items-center gap-1">
-                           {[...Array(Math.min(5, totalPages))].map((_, i) => {
-                             let pageNum = currentPage;
-                             if (totalPages > 5) {
-                                pageNum = Math.max(1, Math.min(currentPage - 2 + i, totalPages - 4 + i));
-                             } else {
-                                pageNum = i + 1;
-                             }
-                             if (pageNum > totalPages) return null;
-                             
-                             return (
-                               <button 
-                                 key={pageNum}
-                                 onClick={() => setCurrentPage(pageNum)}
-                                 className={`w-9 h-9 rounded-xl font-black text-[10px] transition-all ${currentPage === pageNum ? 'bg-primary-600 text-white shadow-lg shadow-primary-500/30' : 'bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 text-gray-500 hover:border-primary-500 hover:text-primary-600'}`}
-                               >
-                                 {pageNum}
-                               </button>
-                             );
-                           })}
+                           {(() => {
+                              let startPage = Math.max(1, currentPage - 2);
+                              let endPage = Math.min(totalPages, startPage + 4);
+                              if (endPage - startPage < 4) {
+                                 startPage = Math.max(1, endPage - 4);
+                              }
+                              
+                              const pages = [];
+                              for (let p = startPage; p <= endPage; p++) {
+                                 pages.push(p);
+                              }
+                              
+                              return pages.map(pageNum => (
+                                <button 
+                                  key={`pg-${pageNum}`}
+                                  onClick={() => setCurrentPage(pageNum)}
+                                  className={`w-9 h-9 rounded-xl font-black text-[10px] transition-all ${currentPage === pageNum ? 'bg-primary-600 text-white shadow-lg shadow-primary-500/30' : 'bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 text-gray-500 hover:border-primary-500 hover:text-primary-600'}`}
+                                >
+                                  {pageNum}
+                                </button>
+                              ));
+                           })()}
                         </div>
 
                         <button 

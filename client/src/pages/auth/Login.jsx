@@ -36,7 +36,7 @@ const LoginPortal = () => {
            <p className="text-gray-500 dark:text-gray-400 text-lg md:text-xl max-w-2xl mx-auto">Please select your official college access portal. Unauthorized access attempts are monitored and logged.</p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
            {portals.map((portal, index) => (
              <Link to={`/login/${portal.id}`} key={portal.id}>
                <motion.div 

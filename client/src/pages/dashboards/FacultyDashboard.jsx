@@ -588,7 +588,7 @@ const FacultyDashboard = () => {
             <motion.div 
                initial={{ opacity:0, scale:0.98 }} 
                animate={{ opacity:1, scale:1 }} 
-               className="relative overflow-hidden rounded-[4rem] p-12 lg:p-16 mb-12 shadow-2xl group cursor-default min-h-[450px] lg:min-h-[550px] flex flex-col justify-end border border-slate-200/50 dark:border-white/5 backdrop-blur-md"
+               className="relative overflow-hidden rounded-[3rem] lg:rounded-[4rem] p-8 lg:p-16 mb-8 lg:mb-12 shadow-2xl group cursor-default min-h-[350px] lg:min-h-[550px] flex flex-col justify-end border border-slate-200/50 dark:border-white/5 backdrop-blur-md"
             >
               <div 
                 className="absolute inset-0 z-0 scale-105 group-hover:scale-100 transition-transform duration-[4s] ease-out brightness-[0.9] dark:brightness-[0.45] saturate-[1.2]"

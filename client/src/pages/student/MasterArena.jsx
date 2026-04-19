@@ -79,7 +79,7 @@ const MasterArena = () => {
                 </div>
 
                 {/* Achievement Quick Stats */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-12">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mt-12">
                     <div className="p-8 bg-gradient-to-br from-indigo-600 to-violet-700 rounded-[2.5rem] text-white relative overflow-hidden group shadow-xl shadow-indigo-600/20">
                         <div className="relative z-10">
                             <p className="text-[10px] font-black uppercase tracking-[0.2em] text-indigo-100 mb-2">Weekly Activity</p>

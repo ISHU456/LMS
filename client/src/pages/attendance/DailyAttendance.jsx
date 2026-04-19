@@ -82,11 +82,11 @@ const DailyAttendance = () => {
     if (loading) return <div className="flex-1 flex items-center justify-center"><div className="animate-spin rounded-full h-12 w-12 border-4 border-primary-500 border-t-transparent"></div></div>;
 
     return (
-        <div className="flex-grow flex flex-col p-6 bg-slate-50 dark:bg-[#030712] overflow-y-auto min-h-0">
+        <div className="flex-grow flex flex-col p-4 sm:p-6 bg-[var(--bg-light)] dark:bg-[var(--bg-dark)] overflow-y-auto min-h-0 transition-colors duration-500">
             <div className="max-w-4xl mx-auto w-full space-y-8 py-8">
                 
                 {/* Header Card */}
-                <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] p-8 shadow-xl border border-gray-100 dark:border-gray-800 relative overflow-hidden group">
+                <div className="bg-white/70 dark:bg-[#080c14]/70 backdrop-blur-xl rounded-[2.5rem] sm:rounded-[3rem] p-6 sm:p-10 shadow-xl border border-slate-200 dark:border-slate-800/60 relative overflow-hidden group">
                     <div className="absolute top-0 right-0 w-64 h-64 bg-primary-500/5 rounded-full -mr-32 -mt-32 blur-3xl transition-all group-hover:bg-primary-500/10" />
                     <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
                         <div>
@@ -105,7 +105,7 @@ const DailyAttendance = () => {
                         </div>
                         
                         <div className="flex gap-4">
-                            <div className="px-6 py-4 bg-gray-50 dark:bg-slate-800/50 rounded-3xl border border-gray-100 dark:border-gray-700">
+                            <div className="px-6 py-4 bg-slate-50/50 dark:bg-white/5 rounded-3xl border border-slate-100 dark:border-slate-800/60">
                                 <p className="text-[10px] font-black uppercase text-gray-400 tracking-widest mb-1">Status Today</p>
                                 <p className={`text-lg font-black uppercase ${status?.attendance?.status === 'present' ? 'text-emerald-500' : 'text-amber-500'}`}>
                                     {status?.attendance?.status || 'Not Started'}
@@ -118,7 +118,7 @@ const DailyAttendance = () => {
                 {!showVerification ? (
                   <div className="grid md:grid-cols-2 gap-8">
                     {/* Entry Card */}
-                    <div className={`p-8 rounded-[2.5rem] border transition-all duration-500 ${status?.attendance?.entry?.time ? 'bg-emerald-50/50 dark:bg-emerald-900/10 border-emerald-100 dark:border-emerald-900/30' : 'bg-white dark:bg-slate-900 border-gray-100 dark:border-gray-800 hover:shadow-2xl'}`}>
+                    <div className={`p-6 sm:p-8 rounded-[2.5rem] sm:rounded-[3rem] border transition-all duration-500 backdrop-blur-xl ${status?.attendance?.entry?.time ? 'bg-emerald-500/10 border-emerald-500/30' : 'bg-white/70 dark:bg-[#080c14]/70 border-slate-200 dark:border-slate-800/60 hover:shadow-2xl'}`}>
                         <div className="flex flex-col h-full">
                             <div className="flex items-center justify-between mb-8">
                                 <div className={`w-16 h-16 rounded-2xl flex items-center justify-center ${status?.attendance?.entry?.time ? 'bg-emerald-500 text-white' : 'bg-primary-500 text-white'}`}>
@@ -154,7 +154,7 @@ const DailyAttendance = () => {
                     </div>
 
                     {/* Exit Card */}
-                    <div className={`p-8 rounded-[2.5rem] border transition-all duration-500 ${status?.attendance?.exit?.time ? 'bg-emerald-50/50 dark:bg-emerald-900/10 border-emerald-100 dark:border-emerald-900/30' : 'bg-white dark:bg-slate-900 border-gray-100 dark:border-gray-800 hover:shadow-2xl'}`}>
+                    <div className={`p-6 sm:p-8 rounded-[2.5rem] sm:rounded-[3rem] border transition-all duration-500 backdrop-blur-xl ${status?.attendance?.exit?.time ? 'bg-emerald-500/10 border-emerald-500/30' : 'bg-white/70 dark:bg-[#080c14]/70 border-slate-200 dark:border-slate-800/60 hover:shadow-2xl'}`}>
                         <div className="flex flex-col h-full">
                             <div className="flex items-center justify-between mb-8">
                                 <div className={`w-16 h-16 rounded-2xl flex items-center justify-center ${status?.attendance?.exit?.time ? 'bg-emerald-500 text-white' : 'bg-gray-200 dark:bg-slate-800 text-gray-400'}`}>

@@ -100,7 +100,7 @@ const Navbar = ({ darkMode, toggleDarkMode }) => {
 
     ...(user ? [
       ...(user.role === 'student' ? [
-        { name: 'Performance', path: '/results/my', icon: <FileText size={18} /> },
+        { name: 'Result Page', path: '/results/my', icon: <FileText size={18} /> },
         { name: 'Attendance', path: '/daily-attendance', icon: <ShieldCheck size={18} /> }
       ] : []),
 

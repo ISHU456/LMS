@@ -97,7 +97,7 @@ const Announcements = ({ isEmbedded = false }) => {
   };
 
   return (
-    <div className={`${isEmbedded ? 'h-auto' : 'h-[calc(100vh-5rem)]'} bg-transparent transition-colors duration-500`}>
+    <div className={`${isEmbedded ? 'h-auto' : 'h-[calc(100vh-5rem)]'} bg-[var(--bg-light)] dark:bg-[var(--bg-dark)] transition-colors duration-500`}>
       <div className={`h-full max-w-[1800px] mx-auto ${isEmbedded ? 'px-0' : 'px-4 sm:px-6 lg:px-8'} py-6 flex flex-col`}>
         
         {/* Institutional News Ticker */}

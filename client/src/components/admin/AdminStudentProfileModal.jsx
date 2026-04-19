@@ -3,7 +3,8 @@ import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { 
     X, Shield, GraduationCap, Award, Building, 
-    CheckCircle2, AlertCircle, Save, Calendar, TrendingUp, Book, Plus, Target
+    CheckCircle2, AlertCircle, Save, Calendar, TrendingUp, Book, Plus, Target,
+    Zap, Brain, Database, History
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import AdminAttendanceInsight from './AdminAttendanceInsight';
@@ -245,6 +246,49 @@ const AdminStudentProfileModal = ({ studentId, user, onClose }) => {
                             ) : (
                                 <div className="p-10 text-center text-[10px] font-black uppercase tracking-widest text-gray-400 italic">No historical data records found for this identity.</div>
                             )}
+                        </div>
+                    </section>
+
+                    <section className="space-y-6">
+                         <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-indigo-500 mb-6 flex items-center gap-2 italic">
+                            <Zap size={14} /> Neural Balance & Metrics
+                        </h3>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div className="bg-indigo-600/5 border border-indigo-500/10 p-8 rounded-[2rem] flex items-center justify-between group relative overflow-hidden">
+                                <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+                                    <Zap className="text-indigo-500" size={40} />
+                                </div>
+                                <div className="relative z-10">
+                                    <p className="text-[8px] font-black text-indigo-500 uppercase tracking-[0.2em] mb-1">Active Neural Credits</p>
+                                    <p className="text-3xl font-black text-gray-900 dark:text-white tabular-nums">{details.credits || 0}</p>
+                                </div>
+                                <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-all relative z-10">
+                                    <button 
+                                        onClick={async () => {
+                                            try {
+                                                const newCredits = (details.credits || 0) + 10;
+                                                await axios.put(`http://localhost:5001/api/admin/users/${studentId}`, { credits: newCredits }, {
+                                                    headers: { Authorization: `Bearer ${user.token}` }
+                                                });
+                                                setDetails({...details, credits: newCredits});
+                                                alert('Neural link recalibrated: +10 Credits assigned.');
+                                            } catch (err) { alert('Sync Failure.'); }
+                                        }}
+                                        className="w-12 h-12 rounded-2xl bg-indigo-600 text-white flex items-center justify-center hover:scale-110 active:scale-95 transition-all shadow-xl shadow-indigo-600/20"
+                                    >
+                                        <Plus size={24} />
+                                    </button>
+                                </div>
+                            </div>
+                            <div className="bg-slate-50 dark:bg-gray-800/50 p-8 rounded-[2rem] flex items-center justify-between group">
+                                <div>
+                                    <p className="text-[8px] font-black text-gray-400 uppercase tracking-[0.2em] mb-1">Scholar Coins Balance</p>
+                                    <p className="text-3xl font-black text-gray-900 dark:text-white tabular-nums">{details.coins || 0}</p>
+                                </div>
+                                <div className="w-12 h-12 rounded-2xl bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 flex items-center justify-center">
+                                    <Database size={20} className="text-gray-400" />
+                                </div>
+                            </div>
                         </div>
                     </section>
 

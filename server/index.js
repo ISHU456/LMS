@@ -133,6 +133,11 @@ const roomParticipants = {}; // roomId -> [{ id, name, email }]
 
 // Socket.io for Real-time features
 io.on('connection', (socket) => {
+  // Join a private room for specific notifications
+  socket.on('join-room', (roomId) => {
+    socket.join(roomId);
+  });
+  
   // WebRTC Broadcaster Logic (Teacher)
   socket.on('broadcaster-join', async (roomId, name) => {
     broadcasters[roomId] = { id: socket.id, name };

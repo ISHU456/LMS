@@ -223,9 +223,9 @@ const DashboardOverview = ({ user }) => {
         ))}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
         {/* Left Col (1): Governance Nodes */}
-        <div className="lg:col-span-1 space-y-4">
+        <div className="md:col-span-1 lg:col-span-1 space-y-4">
           <div className="flex items-center justify-between px-2">
             <h3 className="text-[10px] font-black text-gray-900 dark:text-white uppercase tracking-widest flex items-center gap-2">
               <ShieldCheck size={14} className="text-emerald-500" /> Authorized Nodes
@@ -260,7 +260,7 @@ const DashboardOverview = ({ user }) => {
         </div>
 
         {/* Intelligence Sidebar (1) */}
-        <div className="lg:col-span-1 space-y-6">
+        <div className="md:col-span-1 lg:col-span-1 space-y-6">
            {currentCourse ? (
              <>
                <div className="grid grid-cols-1 gap-3">
@@ -321,7 +321,7 @@ const DashboardOverview = ({ user }) => {
         </div>
 
         {/* Center Col (2): Live Unit Matrix */}
-        <div className="lg:col-span-2">
+        <div className="md:col-span-2 lg:col-span-2">
           <div className="bg-white/80 dark:bg-white/5 backdrop-blur-2xl p-8 rounded-[3rem] border border-gray-100 dark:border-gray-800 shadow-sm flex flex-col h-full max-h-[calc(100vh-280px)]">
             <div className="flex items-center justify-between mb-8 shrink-0">
               <div>

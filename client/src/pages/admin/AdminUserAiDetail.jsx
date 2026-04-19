@@ -80,9 +80,25 @@ const AdminUserAiDetail = () => {
         </div>
 
         <div className="flex items-center gap-4">
-           <div className="p-6 rounded-[2rem] bg-indigo-600/10 border border-indigo-500/20 text-center min-w-[140px]">
+           <div className="p-6 rounded-[2rem] bg-indigo-600/10 border border-indigo-500/20 text-center min-w-[140px] group relative overflow-hidden">
               <p className="text-[10px] font-black text-indigo-400 uppercase tracking-widest mb-1">Current Balance</p>
               <p className="text-3xl font-black text-gray-900 dark:text-white">{data.user.credits}</p>
+              <motion.div 
+                whileHover={{ y: 0 }}
+                className="absolute inset-0 bg-indigo-600 flex flex-col items-center justify-center translate-y-full group-hover:translate-y-0 transition-transform duration-300 cursor-pointer"
+                onClick={async () => {
+                    try {
+                        const newCredits = (data.user.credits || 0) + 10;
+                        await axios.put(`http://localhost:5001/api/admin/users/${userId}`, { credits: newCredits }, {
+                            headers: { Authorization: `Bearer ${adminUser.token}` }
+                        });
+                        setData({ ...data, user: { ...data.user, credits: newCredits }});
+                    } catch (err) { alert("Critical Sync Failure."); }
+                }}
+              >
+                 <Zap className="text-white mb-1" size={20} />
+                 <span className="text-[8px] font-black text-white uppercase tracking-widest italic">+10 Pulse</span>
+              </motion.div>
            </div>
         </div>
       </header>

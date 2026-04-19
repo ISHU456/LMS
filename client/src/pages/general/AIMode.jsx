@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Bot, Send, X, Sparkles, BrainCircuit, 
   Zap, Rocket, MessageSquare, ArrowLeft,
-  Loader2, User, Shield, Mic, Paperclip, 
+  Loader2, User, Shield, Mic, 
   Trash2, History, AlertCircle, CheckCircle2,
   Lock, Key, ZapOff, Database, Cpu
 } from 'lucide-react';
@@ -32,15 +32,25 @@ const AIMode = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(false);
   const [chatHistory, setChatHistory] = useState([]);
-  const [credits, setCredits] = useState(user?.credits || 10);
+  const [credits, setCredits] = useState(user?.credits || 0);
   const [limitReached, setLimitReached] = useState(false);
   const [requestSent, setRequestSent] = useState(user?.aiCreditsRequested || false);
   const [sessionId, setSessionId] = useState(`session_${Date.now()}`);
   
   const [isListening, setIsListening] = useState(false);
   const scrollRef = useRef(null);
-  const fileInputRef = useRef(null);
   const recognitionRef = useRef(null);
+
+  // Sync credits when user profile updates (e.g., after admin grant)
+  useEffect(() => {
+    if (user?.credits !== undefined) {
+      setCredits(user.credits);
+      if (user.credits > 0) setLimitReached(false);
+    }
+    if (user?.aiCreditsRequested !== undefined) {
+      setRequestSent(user.aiCreditsRequested);
+    }
+  }, [user?.credits, user?.aiCreditsRequested]);
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -66,24 +76,25 @@ const AIMode = () => {
     }
   };
 
-  const handleSend = async (e) => {
-    e.preventDefault();
-    if (!input.trim() || !user || isLoading || credits <= 0) return;
-
-    const userMsg = { id: Date.now(), text: input, sender: 'user', timestamp: new Date() };
+  const handleSend = async (e, messageOverride = null) => {
+    if (e) e.preventDefault();
+    const finalInput = messageOverride || input;
+    if (!finalInput.trim() || !user || isLoading || credits <= 0) return;
+ 
+    const userMsg = { id: Date.now(), text: finalInput, sender: 'user', timestamp: new Date() };
     setMessages(prev => [...prev, userMsg]);
-    setInput('');
+    if (!messageOverride) setInput('');
     setIsLoading(true);
-
+ 
     try {
       const res = await axios.post('http://localhost:5001/api/chatbot/ask', {
-        message: input,
+        message: finalInput,
         sessionId: sessionId,
         history: messages.map(m => ({ role: m.sender === 'bot' ? 'model' : 'user', parts: [{ text: m.text }] }))
       }, {
         headers: { Authorization: `Bearer ${user.token}` }
       });
-
+ 
       const botMsg = { 
         id: Date.now() + 1, 
         text: res.data.response, 
@@ -112,51 +123,6 @@ const AIMode = () => {
     }
   };
 
-  const handleFileUpload = async (e) => {
-    const file = e.target.files[0];
-    if (!file || !user || isLoading) return;
-
-    if (credits < 2) {
-      alert("Neural Bank Depleted: File analysis requires at least 2 Neural Credits.");
-      e.target.value = '';
-      return;
-    }
-
-    const userMsg = { id: Date.now(), text: `[Identity Scan: Protocol Analyze "${file.name}"]`, sender: 'user', timestamp: new Date() };
-    setMessages(prev => [...prev, userMsg]);
-    setIsLoading(true);
-
-    const formData = new FormData();
-    formData.append('file', file);
-
-    try {
-      const res = await axios.post('http://localhost:5001/api/chatbot/analyze', formData, {
-        headers: { 
-          Authorization: `Bearer ${user.token}`,
-          'Content-Type': 'multipart/form-data'
-        }
-      });
-
-      const botMsg = { 
-        id: Date.now() + 1, 
-        text: res.data.response, 
-        sender: 'bot', 
-        timestamp: new Date() 
-      };
-      setMessages(prev => [...prev, botMsg]);
-      setCredits(res.data.remainingCredits);
-      dispatch(updateProfile({ credits: res.data.remainingCredits }));
-      
-      playNotificationSound();
-    } catch (err) {
-      console.error(err);
-      alert(err.response?.data?.response || "Neural scan failed. Check connection or file compatibility.");
-    } finally {
-      setIsLoading(false);
-      if (e.target) e.target.value = '';
-    }
-  };
-
   const toggleVoiceRecognition = () => {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SpeechRecognition) {
@@ -181,8 +147,12 @@ const AIMode = () => {
     
     recognition.onresult = (event) => {
       const transcript = event.results[0][0].transcript;
-      setInput(prev => prev + (prev.length > 0 ? ' ' : '') + transcript);
-      setIsListening(false);
+      if (transcript.trim()) {
+        setInput(transcript);
+        setIsListening(false);
+        // Direct dispatch for zero-latency voice interaction
+        handleSend(null, transcript);
+      }
     };
 
     recognitionRef.current = recognition;
@@ -481,21 +451,7 @@ const AIMode = () => {
 
             <div className="p-4 md:px-12 md:pb-6">
                <div className="max-w-4xl mx-auto bg-white rounded-2xl p-2 shadow-[0_0_30px_rgba(255,255,255,0.1)]">
-                 <form onSubmit={handleSend} className="flex items-center gap-2">
-                  <input 
-                    type="file" 
-                    ref={fileInputRef} 
-                    className="hidden" 
-                    onChange={handleFileUpload} 
-                    accept=".pdf,.txt,.docx,.doc,.png,.jpg,.jpeg" 
-                  />
-                  <button 
-                    type="button" 
-                    onClick={() => fileInputRef.current.click()}
-                    className="pl-3 pr-2 py-2 text-gray-800 hover:text-orange-600 transition-colors"
-                  >
-                    <Paperclip size={20} />
-                  </button>
+                 <form onSubmit={handleSend} className="flex items-center gap-2 pl-4">
                    <input 
                      type="text"
                      value={input}

@@ -174,6 +174,15 @@ export const updateUser = async (req, res) => {
     }
 
     const updatedUser = await user.save();
+    
+    // Notify user via socket for real-time credit/coin sync
+    if (req.io) {
+        req.io.to(`user_${updatedUser._id}`).emit('profile-update', {
+            credits: updatedUser.credits,
+            coins: updatedUser.coins
+        });
+    }
+
     res.json(updatedUser);
   } catch (error) {
     res.status(500).json({ message: error.message });
