@@ -194,7 +194,7 @@ const CourseAccessManager = ({ user, initialSemester, initialCourse, onPersistCh
       </AnimatePresence>
 
       {/* Header Controls */}
-      <div className="flex flex-wrap items-center justify-between gap-4 bg-white dark:bg-gray-900 p-6 rounded-3xl border border-gray-100 dark:border-gray-800 shadow-sm">
+      <div className="flex flex-wrap items-center justify-between gap-4 bg-white/80 dark:bg-white/5 backdrop-blur-2xl p-6 rounded-3xl border border-gray-100 dark:border-gray-800 shadow-sm">
         <div className="flex items-center gap-4">
           <div className="p-3 bg-rose-50 dark:bg-rose-900/30 rounded-2xl text-rose-600">
             <ShieldCheck size={24} />
@@ -255,7 +255,7 @@ const CourseAccessManager = ({ user, initialSemester, initialCourse, onPersistCh
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
         {/* Sidebar: Course Selection */}
         <div className="lg:col-span-1 space-y-4">
-          <div className="bg-white dark:bg-gray-900 p-5 rounded-3xl border border-gray-100 dark:border-gray-800 shadow-sm flex flex-col h-[600px]">
+          <div className="bg-white/80 dark:bg-white/5 backdrop-blur-2xl p-5 rounded-3xl border border-gray-100 dark:border-gray-800 shadow-sm flex flex-col h-[600px]">
             <div className="flex items-center justify-between mb-4 shrink-0">
                <h3 className="text-[10px] font-black text-gray-400 dark:text-gray-200 uppercase tracking-widest">Select Subject</h3>
                <span className="text-[9px] font-black px-2 py-0.5 rounded-full bg-rose-50 dark:bg-rose-900/30 text-rose-500">{sidebarFilteredCourses.length}</span>
@@ -298,7 +298,7 @@ const CourseAccessManager = ({ user, initialSemester, initialCourse, onPersistCh
         {/* Main Content */}
         <div className="lg:col-span-3 space-y-6">
           {!selectedCourse ? (
-             <div className="bg-white dark:bg-gray-900 border border-dashed border-gray-200 dark:border-gray-800 rounded-[2.5rem] flex flex-col items-center justify-center p-20 text-center h-[600px]">
+             <div className="bg-white/80 dark:bg-white/5 backdrop-blur-2xl border border-dashed border-gray-200 dark:border-gray-800 rounded-[2.5rem] flex flex-col items-center justify-center p-20 text-center h-[600px]">
                 <div className="w-20 h-20 rounded-3xl bg-rose-50 dark:bg-rose-900/10 flex items-center justify-center mb-6">
                    <ShieldCheck size={40} className="text-rose-500 opacity-40" />
                 </div>
@@ -306,7 +306,7 @@ const CourseAccessManager = ({ user, initialSemester, initialCourse, onPersistCh
                 <p className="text-xs font-black text-gray-400 uppercase tracking-widest max-w-[280px] leading-relaxed">Please select a course from the subject list on the left to manage student enrollment and restrictions.</p>
              </div>
           ) : (
-            <div className="bg-white dark:bg-gray-900 rounded-3xl border border-gray-100 dark:border-gray-800 shadow-sm overflow-y-auto h-[600px] flex flex-col animate-in fade-in slide-in-from-bottom-2 duration-500 custom-scrollbar">
+            <div className="bg-white/80 dark:bg-white/5 backdrop-blur-2xl rounded-3xl border border-gray-100 dark:border-gray-800 shadow-sm overflow-y-auto h-[600px] flex flex-col animate-in fade-in slide-in-from-bottom-2 duration-500 custom-scrollbar">
               <div className="p-6 border-b border-gray-50 dark:border-gray-800 flex flex-wrap items-center justify-between gap-4">
                 <div className="relative w-full max-w-xs">
                   <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={16} />

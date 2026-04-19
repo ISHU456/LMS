@@ -162,7 +162,7 @@ const MonthlyRegister = ({ user, initialSemester, initialCourse, onPersistChange
 
   return (
     <div className="space-y-6">
-      <div className="bg-white dark:bg-gray-900 rounded-3xl p-6 shadow-sm border border-gray-100 dark:border-gray-800">
+      <div className="bg-white/80 dark:bg-white/5 backdrop-blur-2xl rounded-3xl p-6 shadow-sm border border-gray-100 dark:border-gray-800">
         <div className="flex flex-row items-center justify-between gap-4">
             <div className="flex items-center gap-4 shrink-0">
                 <div className="w-10 h-10 lg:w-12 lg:h-12 rounded-2xl bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 flex items-center justify-center shadow-inner shrink-0">
@@ -223,7 +223,7 @@ const MonthlyRegister = ({ user, initialSemester, initialCourse, onPersistChange
         </div>
       </div>
 
-      <div className="bg-white dark:bg-gray-900 rounded-[2.5rem] shadow-xl border border-gray-100 dark:border-gray-800 overflow-hidden relative h-full lg:h-[calc(100vh-320px)]">
+      <div className="bg-white/80 dark:bg-white/5 backdrop-blur-2xl rounded-[2.5rem] shadow-xl border border-gray-100 dark:border-gray-800 overflow-hidden relative h-full lg:h-[calc(100vh-320px)]">
         {isLoading && <div className="absolute inset-0 z-20 bg-white/60 dark:bg-black/40 backdrop-blur-sm flex items-center justify-center"><Loader2 size={40} className="text-indigo-600 animate-spin"/></div>}
 
         <div className="overflow-auto custom-scrollbar h-full">

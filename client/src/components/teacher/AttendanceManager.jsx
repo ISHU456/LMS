@@ -288,7 +288,7 @@ const AttendanceManager = ({ user, initialSemester, initialCourse, onPersistChan
         )}
       </AnimatePresence>
 
-      <div className="flex flex-col xl:flex-row items-center justify-between gap-6 bg-white dark:bg-gray-900 p-6 lg:p-8 rounded-[2.5rem] lg:rounded-[3rem] border border-gray-100 dark:border-gray-700 shadow-sm relative">
+      <div className="flex flex-col xl:flex-row items-center justify-between gap-6 bg-white/80 dark:bg-white/5 backdrop-blur-2xl p-6 lg:p-8 rounded-[2.5rem] lg:rounded-[3rem] border border-gray-100 dark:border-gray-700/50 shadow-sm relative">
         <div className="flex items-center gap-4 w-full xl:w-auto">
           <div className="w-14 h-14 bg-indigo-50 dark:bg-indigo-900/40 rounded-2xl flex items-center justify-center text-indigo-600 shadow-inner">
             <CalendarDays size={28} />
@@ -369,7 +369,7 @@ const AttendanceManager = ({ user, initialSemester, initialCourse, onPersistChan
 
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
         <div className="lg:col-span-1 space-y-4">
-          <div className="bg-white dark:bg-gray-900 p-5 rounded-3xl border border-gray-100 dark:border-gray-800 shadow-sm flex flex-col h-full lg:h-[calc(100vh-280px)] overflow-hidden">
+          <div className="bg-white/80 dark:bg-white/5 backdrop-blur-2xl p-5 rounded-3xl border border-gray-100 dark:border-gray-800 shadow-sm flex flex-col h-full lg:h-[calc(100vh-280px)] overflow-hidden">
             <div className="flex items-center justify-between mb-4 shrink-0">
                <h3 className="text-[10px] font-black text-gray-400 dark:text-gray-200 uppercase tracking-widest">Select Subject</h3>
                <span className="text-[9px] font-black px-2 py-0.5 rounded-full bg-indigo-50 dark:bg-indigo-900/30 text-indigo-500">{sidebarFilteredCourses.length}</span>
@@ -407,7 +407,7 @@ const AttendanceManager = ({ user, initialSemester, initialCourse, onPersistChan
 
         <div className="lg:col-span-3 space-y-6">
           {viewMode === 'mark' ? (
-            <div className="bg-white dark:bg-[#080c14] rounded-[2.5rem] border border-slate-200 dark:border-slate-800/60 shadow-xl overflow-hidden relative h-full lg:h-[calc(100vh-280px)]">
+            <div className="bg-white/80 dark:bg-white/5 backdrop-blur-2xl rounded-[2.5rem] border border-slate-200 dark:border-slate-800/60 shadow-xl overflow-hidden relative h-full lg:h-[calc(100vh-280px)]">
               <div className="overflow-auto custom-scrollbar h-full">
                 <table className="w-full text-left border-collapse">
                   <thead className="bg-slate-50/80 dark:bg-slate-900/50 backdrop-blur-md sticky top-0 z-10">
@@ -521,7 +521,7 @@ const AttendanceManager = ({ user, initialSemester, initialCourse, onPersistChan
               )}
             </div>
           ) : (
-             <div className="bg-white dark:bg-gray-900 rounded-3xl border border-gray-100 dark:border-gray-800 shadow-sm overflow-hidden flex flex-col min-h-[500px]">
+             <div className="bg-white/80 dark:bg-white/5 backdrop-blur-2xl rounded-3xl border border-gray-100 dark:border-gray-800 shadow-sm overflow-hidden flex flex-col min-h-[500px]">
                <div className="p-6 border-b border-gray-50 dark:border-gray-800 flex items-center justify-between">
                  <h3 className="text-sm font-black text-gray-900 dark:text-white uppercase tracking-widest">Historical Logs</h3>
                </div>

@@ -97,11 +97,11 @@ const Announcements = ({ isEmbedded = false }) => {
   };
 
   return (
-    <div className={`${isEmbedded ? 'h-auto' : 'h-[calc(100vh-5rem)]'} bg-[#f8fafc] dark:bg-[#030712] transition-colors duration-500`}>
+    <div className={`${isEmbedded ? 'h-auto' : 'h-[calc(100vh-5rem)]'} bg-transparent transition-colors duration-500`}>
       <div className={`h-full max-w-[1800px] mx-auto ${isEmbedded ? 'px-0' : 'px-4 sm:px-6 lg:px-8'} py-6 flex flex-col`}>
         
         {/* Institutional News Ticker */}
-        <div className="shrink-0 mb-6 h-12 bg-white/40 dark:bg-white/5 border-y border-slate-200 dark:border-white/5 backdrop-blur-xl overflow-hidden flex items-center relative group">
+        <div className="shrink-0 mb-6 h-12 bg-white/40 dark:bg-white/5 border-y border-slate-200/50 dark:border-white/5 backdrop-blur-xl overflow-hidden flex items-center relative group">
            <div className="absolute left-0 top-0 bottom-0 bg-emerald-600 px-8 flex items-center z-10 shadow-2xl">
               <div className="flex items-center gap-3">
                  <div className="w-2 h-2 rounded-full bg-white animate-ping" />
@@ -135,12 +135,12 @@ const Announcements = ({ isEmbedded = false }) => {
           <aside className={`${isEmbedded ? 'hidden' : 'hidden lg:block'} w-[340px] shrink-0 h-full overflow-y-auto overflow-x-hidden custom-scrollbar pr-2`}>
             <div className="flex flex-col gap-6 pt-8 pb-32">
               {/* Profile Card - LinkedIn Style */}
-              <div className="bg-white dark:bg-[#0b0f1a] rounded-[3rem] border border-slate-100 dark:border-white/5 shadow-2xl shadow-slate-200/50 dark:shadow-none overflow-hidden relative group">
+              <div className="bg-white/80 dark:bg-white/5 rounded-[3rem] border border-slate-200/50 dark:border-white/5 shadow-2xl backdrop-blur-2xl overflow-hidden relative group">
                 <div className="absolute top-0 left-0 w-full h-32 bg-gradient-to-br from-indigo-600 via-purple-600 to-rose-600 z-0 opacity-90" />
                 <div className="relative z-10 pt-10 flex flex-col items-center">
                   <motion.div 
                     whileHover={{ scale: 1.05, rotate: 2 }}
-                    className="w-28 h-28 rounded-[2rem] bg-white dark:bg-[#0b0f1a] p-1.5 shadow-2xl mb-4 border border-white/20"
+                    className="w-28 h-28 rounded-[2rem] bg-white dark:bg-white/10 p-1.5 shadow-2xl mb-4 border border-white/20"
                   >
                     <div className="w-full h-full rounded-[1.8rem] bg-slate-100 dark:bg-slate-800 overflow-hidden flex items-center justify-center">
                       {user?.profilePic ? (
@@ -242,7 +242,7 @@ const Announcements = ({ isEmbedded = false }) => {
           <aside className="hidden xl:block w-[350px] shrink-0 h-full overflow-y-auto overflow-x-hidden custom-scrollbar pl-2">
             <div className="flex flex-col gap-6 pt-8 pb-24">
               {/* Trending Hub - Reimagined as Pulse Matrix */}
-              <div className="bg-white/70 dark:bg-[#080c14]/70 backdrop-blur-3xl rounded-[3rem] border border-slate-200/60 dark:border-white/5 p-8 shadow-2xl shadow-indigo-500/5 relative overflow-hidden group">
+              <div className="bg-white/70 dark:bg-white/5 backdrop-blur-3xl rounded-[3rem] border border-slate-200/60 dark:border-white/5 p-8 shadow-2xl shadow-indigo-500/5 relative overflow-hidden group">
                 {/* Background Decor */}
                 <div className="absolute -top-24 -right-24 w-48 h-48 bg-indigo-500/10 rounded-full blur-3xl group-hover:scale-150 transition-transform duration-1000" />
                 

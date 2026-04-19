@@ -206,8 +206,8 @@ const DashboardOverview = ({ user }) => {
           { label: 'Access Barriers', value: totalBlocked + totalRestricted, trend: '+2', icon: ShieldAlert, accent: 'bg-amber-50 text-amber-600', color: '#f59e0b' },
           { label: 'Synergy Score', value: '88%', trend: '+5.2%', icon: Sparkles, accent: 'bg-purple-50 text-purple-600', color: '#7209b7' }
         ].map((s, i) => (
-          <motion.div key={i} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.1 }}
-            className="bg-white dark:bg-gray-900 p-5 lg:p-6 rounded-3xl lg:rounded-[32px] border border-gray-100 dark:border-gray-800 shadow-sm relative overflow-hidden group">
+          <motion.div key={i} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1 }} transition={{ delay: i * 0.1 }}
+            className="bg-white/80 dark:bg-white/5 backdrop-blur-2xl p-5 lg:p-6 rounded-3xl lg:rounded-[32px] border border-gray-100 dark:border-gray-800 shadow-sm relative overflow-hidden group">
             <div className="flex items-center justify-between mb-4 lg:mb-6">
               <div className={`p-2.5 lg:p-3 rounded-2xl ${s.accent}`}><s.icon size={18}/></div>
               <span className={`text-[8px] lg:text-[9px] font-black uppercase px-2 py-0.5 lg:py-1 rounded-full ${s.trend.startsWith('+') ? 'bg-emerald-50 text-emerald-500' : 'bg-rose-50 text-rose-500'}`}>
@@ -265,16 +265,16 @@ const DashboardOverview = ({ user }) => {
              <>
                <div className="grid grid-cols-1 gap-3">
                   {[
-                    { label: 'Unit Health', value: `${currentCourse.avgAttendance}%`, color: 'text-emerald-500', bg: 'bg-emerald-50' },
-                    { label: 'Risk Factor', value: currentCourse.studentsBelow75, color: 'text-rose-500', bg: 'bg-rose-50' }
+                    { label: 'Unit Health', value: `${currentCourse.avgAttendance}%`, color: 'text-emerald-500', bg: 'bg-emerald-50/50' },
+                    { label: 'Risk Factor', value: currentCourse.studentsBelow75, color: 'text-rose-500', bg: 'bg-rose-50/50' }
                   ].map((mini, midx) => (
-                    <div key={midx} className={`${mini.bg} dark:bg-gray-900 dark:border dark:border-gray-800 p-4 rounded-[24px] text-center`}>
+                    <div key={midx} className={`${mini.bg} dark:bg-white/5 backdrop-blur-xl border border-gray-100 dark:border-gray-800 p-4 rounded-[24px] text-center`}>
                        <p className={`text-xl font-black ${mini.color}`}>{mini.value}</p>
                        <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest mt-1">{mini.label}</p>
                     </div>
                   ))}
                </div>
-               <div className="bg-white dark:bg-gray-900 p-6 rounded-[32px] border border-gray-100 dark:border-gray-800 shadow-sm relative overflow-hidden">
+               <div className="bg-white/80 dark:bg-white/5 backdrop-blur-2xl p-6 rounded-[32px] border border-gray-100 dark:border-gray-800 shadow-sm relative overflow-hidden">
                   <h3 className="text-[9px] font-black text-gray-900 dark:text-white uppercase tracking-widest mb-6 flex items-center gap-2"><TrendingUp size={12} className="text-indigo-500"/> Attendance Flux</h3>
                   <div className="h-[150px] w-full">
                      {isMounted && (
@@ -293,7 +293,7 @@ const DashboardOverview = ({ user }) => {
                      )}
                   </div>
                </div>
-               <div className="bg-white dark:bg-gray-900 p-6 rounded-[32px] border border-gray-100 dark:border-gray-800 shadow-sm">
+               <div className="bg-white/80 dark:bg-white/5 backdrop-blur-2xl p-6 rounded-[32px] border border-gray-100 dark:border-gray-800 shadow-sm">
                   <h3 className="text-[9px] font-black text-gray-900 dark:text-white uppercase tracking-widest mb-6 flex items-center gap-2"><LayoutGrid size={12} className="text-emerald-500"/> Peer Comparison</h3>
                   <div className="h-[150px] w-full">
                      {isMounted && (
@@ -322,7 +322,7 @@ const DashboardOverview = ({ user }) => {
 
         {/* Center Col (2): Live Unit Matrix */}
         <div className="lg:col-span-2">
-          <div className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-md p-8 rounded-[3rem] border border-gray-100 dark:border-gray-800 shadow-sm flex flex-col h-full max-h-[calc(100vh-280px)]">
+          <div className="bg-white/80 dark:bg-white/5 backdrop-blur-2xl p-8 rounded-[3rem] border border-gray-100 dark:border-gray-800 shadow-sm flex flex-col h-full max-h-[calc(100vh-280px)]">
             <div className="flex items-center justify-between mb-8 shrink-0">
               <div>
                 <h3 className="text-[11px] font-black text-gray-900 dark:text-white uppercase tracking-widest flex items-center gap-3">
