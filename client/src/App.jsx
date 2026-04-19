@@ -238,7 +238,7 @@ const AppContent = () => {
       {(location.pathname === '/student-dashboard' || location.pathname === '/dashboard' || location.pathname === '/faculty-dashboard') && (
         <GlobalAlertMarquee />
       )}
-      <main className="flex-grow flex flex-col relative w-full overflow-y-auto smooth-scroll min-h-0 bg-transparent">
+      <main className="flex-grow flex flex-col relative w-full overflow-hidden smooth-scroll min-h-0 bg-transparent">
         <AnimatePresence mode="wait">
           <motion.div
             key={location.pathname}

@@ -662,7 +662,7 @@ const StudentDashboard = () => {
         </div>
       </aside>
 
-      <main className="flex-1 p-3 md:p-8 overflow-y-auto">
+      <main className="flex-1 p-3 md:p-8 overflow-y-auto no-scrollbar">
         <header className="mb-8">
           <motion.div
             initial={{ opacity: 0, y: 10 }}
@@ -732,6 +732,7 @@ const StudentDashboard = () => {
                   </div>
                 )}
               </div>
+            </div>
 
               <div className="w-full grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3">
                 <div className="p-4 rounded-2xl border border-amber-100 dark:border-amber-900/10 bg-amber-50/20 dark:bg-amber-500/5 group hover:bg-amber-500/10 transition-all">
@@ -838,8 +839,6 @@ const StudentDashboard = () => {
                   </div>
                 </div>
               </div>
-            </div>
-          </div>
 
             <div className="mt-4 flex flex-wrap gap-3 items-center justify-between">
               <div className="flex items-center gap-3 text-sm font-bold text-gray-700 dark:text-gray-200">
@@ -1732,7 +1731,7 @@ const StudentDashboard = () => {
                   </button>
                </div>
 
-               <div className="flex-1 overflow-y-auto custom-scrollbar pr-2 space-y-3">
+               <div className="flex-1 overflow-y-auto no-scrollbar pr-2 space-y-3">
                   {quizLeaderboardData.map((entry, idx) => (
                     <div key={entry._id} className={`p-5 rounded-[1.75rem] border flex items-center justify-between gap-4 transition-all ${entry._id === user?._id ? 'bg-primary-600 border-primary-500 text-white' : 'bg-gray-50/50 dark:bg-white/5 border-gray-100 dark:border-white/5 text-gray-900 dark:text-white hover:border-primary-500/30'}`}>
                        <div className="flex items-center gap-4">

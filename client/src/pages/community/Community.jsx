@@ -329,7 +329,7 @@ const Community = () => {
   ];
 
   return (
-    <div className="flex-1 bg-[#f9fafb] dark:bg-[#0b0f19] overflow-auto" style={{ fontFamily: "'Inter', sans-serif" }}>
+    <div className="flex-1 bg-[var(--bg-light)] dark:bg-[var(--bg-dark)] overflow-auto transition-colors duration-500" style={{ fontFamily: "'Inter', sans-serif" }}>
 
       {/* ── New Announcement Banner ── */}
       <AnimatePresence>
@@ -345,7 +345,7 @@ const Community = () => {
       <div className="max-w-7xl mx-auto px-4 md:px-8 py-6">
 
         {/* ── Hero Header ── */}
-        <div className="relative rounded-3xl overflow-hidden mb-8" style={{ background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' }}>
+        <div className="relative rounded-3xl overflow-hidden mb-8 bg-gradient-to-br from-primary-600 to-indigo-700 dark:from-primary-600/20 dark:to-indigo-900/20 shadow-xl border border-white/10">
           <div className="absolute inset-0 opacity-20">
             {[...Array(8)].map((_, i) => (
               <motion.div key={i} className="absolute rounded-full bg-white/30"
@@ -480,7 +480,7 @@ const Community = () => {
           <div ref={feedRef} className="flex-1 min-w-0 space-y-4 max-h-[calc(100vh-100px)] overflow-y-auto pr-2 custom-scrollbar">
             {/* Mobile Filter Toggle */}
             <div className="lg:hidden flex items-center gap-2 mb-2">
-              <button onClick={() => setMobileFilters(!mobileFilters)} className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 text-xs font-black uppercase text-gray-600 dark:text-gray-300 shadow-sm">
+              <button onClick={() => setMobileFilters(!mobileFilters)} className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[var(--surface-light)] dark:bg-[var(--surface-dark)] border border-gray-100 dark:border-gray-800 text-xs font-black uppercase text-gray-600 dark:text-gray-300 shadow-sm transition-colors">
                 <Filter size={13}/> Filters {activeCategory !== 'All' || activePriority !== 'All' ? '•' : ''}
               </button>
               <span className="text-xs text-gray-400 font-bold">{filtered.length} results</span>

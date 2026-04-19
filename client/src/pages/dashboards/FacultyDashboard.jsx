@@ -91,7 +91,7 @@ const ScheduleModal = ({ form, setForm, onSave, onClose, isEdit, courses, allSch
           </button>
         </div>
 
-        <div className="p-10 space-y-8 overflow-y-auto custom-scrollbar flex-1">
+        <div className="p-10 space-y-8 overflow-y-auto no-scrollbar flex-1">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="space-y-3">
               <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2 px-1">
@@ -524,7 +524,7 @@ const FacultyDashboard = () => {
         </AnimatePresence>
 
         <aside 
-          className={`fixed lg:relative z-[60] h-full bg-white dark:bg-[#080c14] border-r border-slate-200 dark:border-slate-800/60 shadow-2xl lg:shadow-none transition-all duration-300 ease-in-out flex flex-col ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}
+          className={`fixed lg:relative z-[60] h-full glass border-r border-slate-200 dark:border-slate-800/60 shadow-2xl lg:shadow-none transition-all duration-300 ease-in-out flex flex-col ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}
           style={{ width: window.innerWidth < 1024 ? '280px' : (isSidebarOpen ? sidebarWidth : 0) }}
         >
           <div className="p-6 flex flex-col h-full">
@@ -539,7 +539,7 @@ const FacultyDashboard = () => {
                 <button onClick={() => setIsSidebarOpen(false)} className="lg:hidden ml-auto p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-slate-500"><X size={20}/></button>
              </div>
 
-             <nav className="flex-1 space-y-1 overflow-y-auto pr-2 custom-scrollbar">
+             <nav className="flex-1 space-y-1 overflow-y-auto pr-2 no-scrollbar">
                 {navItems.map(item => (
                    <button 
                      key={item.id} 
@@ -572,7 +572,7 @@ const FacultyDashboard = () => {
           </div>
         </aside>
 
-        <main className="flex-1 p-4 lg:p-8 overflow-y-auto custom-scrollbar min-w-0">
+        <main className="flex-1 p-4 lg:p-8 overflow-y-auto no-scrollbar min-w-0">
           <div className="flex lg:hidden items-center justify-between mb-6">
              <button 
                onClick={() => setIsSidebarOpen(true)}
@@ -591,7 +591,7 @@ const FacultyDashboard = () => {
                className="relative overflow-hidden rounded-[3rem] lg:rounded-[4rem] p-8 lg:p-16 mb-8 lg:mb-12 shadow-2xl group cursor-default min-h-[350px] lg:min-h-[550px] flex flex-col justify-end border border-slate-200/50 dark:border-white/5 backdrop-blur-md"
             >
               <div 
-                className="absolute inset-0 z-0 scale-105 group-hover:scale-100 transition-transform duration-[4s] ease-out brightness-[0.9] dark:brightness-[0.45] saturate-[1.2]"
+                className="absolute inset-0 z-0 scale-105 brightness-[0.9] dark:brightness-[0.45] saturate-[1.2]"
                 style={{ 
                   backgroundImage: `url('/images/dashboard/teacher_banner.png')`,
                   backgroundSize: 'cover',

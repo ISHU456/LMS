@@ -206,7 +206,7 @@ const AdminDashboard = () => {
               <button onClick={() => setIsSidebarOpen(false)} className="lg:hidden ml-auto p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-slate-500"><X size={20}/></button>
            </div>
 
-           <nav className="flex-1 space-y-1 overflow-y-auto pr-2 custom-scrollbar">
+           <nav className="flex-1 space-y-1 overflow-y-auto pr-2 no-scrollbar">
               {menuItems.map(item => (
                  <button 
                    key={item.id} 
@@ -285,7 +285,7 @@ const AdminDashboard = () => {
         </header>
         
         {/* Dynamic Content Core */}
-        <main className="flex-1 overflow-y-auto p-4 lg:p-10 custom-scrollbar">
+        <main className="flex-1 overflow-y-auto p-4 lg:p-10 no-scrollbar">
            <AnimatePresence mode="wait">
            {activeTab === 'overview' ? (
              <motion.div key="overview" initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} transition={{ duration: 0.5, ease: "easeOut" }} className="space-y-6 lg:space-y-10 max-w-[1600px] mx-auto">
@@ -582,6 +582,7 @@ const AdminDashboard = () => {
                       </div>
                    </motion.div>
                 </div>
+               </motion.div>
              </motion.div>
             ) : activeTab === 'users' ? (
                <motion.div key="users" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
@@ -672,8 +673,8 @@ const AdminDashboard = () => {
                 <AdminSystemSettings user={user} />
               </motion.div>
             ) : (
-              <div className="flex bg-white dark:bg-[#080c14] h-[60vh] items-center justify-center text-slate-400 rounded-[3rem] border border-slate-100 dark:border-slate-800/60 italic font-black uppercase tracking-[0.5em] shadow-xl">
-                Secure Implementation Area: {activeTab}
+              <div key="fallback" className="flex bg-white dark:bg-[#080c14] h-[60vh] items-center justify-center text-slate-400 rounded-[3rem] border border-slate-100 dark:border-slate-800/60 italic font-black uppercase tracking-[0.5em] shadow-xl">
+                <span>Secure Implementation Area: {activeTab}</span>
               </div>
             )}
            </AnimatePresence>
