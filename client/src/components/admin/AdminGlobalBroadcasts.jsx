@@ -62,7 +62,7 @@ const AdminGlobalBroadcasts = ({ user }) => {
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
                 {/* TRANSMISSION MODULE */}
-                <section className="glass p-10 rounded-[40px] border border-gray-100 dark:border-gray-800 shadow-xl space-y-8 h-fit">
+                <section className="bg-white dark:bg-gray-900 p-10 rounded-[40px] border border-gray-100 dark:border-gray-800 shadow-sm space-y-8 h-fit">
                     <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-400 flex items-center gap-2 italic">
                         <Send size={14} /> New Transmission
                     </h3>
@@ -146,10 +146,9 @@ const AdminGlobalBroadcasts = ({ user }) => {
                             {broadcasts.length > 0 ? broadcasts.map((b, idx) => (
                                 <motion.div 
                                     key={b._id}
-                                    initial={{ opacity: 0, x: 20 }}
-                                    animate={{ opacity: 1, x: 0 }}
-                                    transition={{ delay: idx * 0.1 }}
-                                    className="glass p-8 rounded-[40px] border border-gray-100 dark:border-gray-800 hover:shadow-2xl transition-all group relative overflow-hidden"
+                                    initial={{ opacity: 0, y: 10 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    className="bg-white dark:bg-gray-800 p-8 rounded-[40px] border border-gray-100 dark:border-gray-800 hover:shadow-lg transition-all group relative overflow-hidden"
                                 >
                                     {b.important && (
                                         <div className="absolute top-0 left-0 w-1 h-full bg-red-500 shadow-[2px_0_10px_rgba(239,68,68,0.5)]" />

@@ -573,7 +573,7 @@ const StudentDashboard = () => {
   }
 
   return (
-    <div className="flex h-[calc(100vh-73px)] flex-col lg:flex-row bg-transparent overflow-hidden relative">
+    <div className="flex h-[calc(100vh-5rem)] flex-col lg:flex-row bg-transparent overflow-hidden relative">
       <AnimatePresence>
         {isSidebarOpen && (
           <motion.div

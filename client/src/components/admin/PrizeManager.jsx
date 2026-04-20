@@ -296,20 +296,22 @@ const PrizeManager = ({ isCompact = false }) => {
                     </h3>
                     <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Real-time Transaction Stream</p>
                 </div>
-                <div className="overflow-x-auto">
-                    <table className="w-full text-left">
+                <div className="relative min-h-[500px]">
+                    <table className="w-full text-left border-separate border-spacing-0">
                         <thead>
                             <tr className="bg-slate-50 dark:bg-black/20 border-b border-slate-100 dark:border-white/5">
-                                <th className="px-10 py-6 text-[10px] font-black text-slate-500 uppercase tracking-widest">Scholar Identity</th>
-                                <th className="px-10 py-6 text-[10px] font-black text-slate-500 uppercase tracking-widest">Acquired Asset</th>
-                                <th className="px-10 py-6 text-[10px] font-black text-slate-500 uppercase tracking-widest">Capital Exhausted</th>
-                                <th className="px-10 py-6 text-[10px] font-black text-slate-500 uppercase tracking-widest">Temporal Log</th>
-                                <th className="px-10 py-6 text-[10px] font-black text-slate-500 uppercase tracking-widest text-right">Clearance Status</th>
+                                <th className="sticky top-0 z-20 bg-gray-50 dark:bg-gray-950 px-10 py-6 text-[10px] font-black text-slate-500 uppercase tracking-widest border-b border-slate-200 dark:border-slate-800">#</th>
+                                <th className="sticky top-0 z-20 bg-gray-50 dark:bg-gray-950 px-10 py-6 text-[10px] font-black text-slate-500 uppercase tracking-widest border-b border-slate-200 dark:border-slate-800">Scholar Identity</th>
+                                <th className="sticky top-0 z-20 bg-gray-50 dark:bg-gray-950 px-10 py-6 text-[10px] font-black text-slate-500 uppercase tracking-widest border-b border-slate-200 dark:border-slate-800">Acquired Asset</th>
+                                <th className="sticky top-0 z-20 bg-gray-50 dark:bg-gray-950 px-10 py-6 text-[10px] font-black text-slate-500 uppercase tracking-widest border-b border-slate-200 dark:border-slate-800">Capital Exhausted</th>
+                                <th className="sticky top-0 z-20 bg-gray-50 dark:bg-gray-950 px-10 py-6 text-[10px] font-black text-slate-500 uppercase tracking-widest border-b border-slate-200 dark:border-slate-800">Temporal Log</th>
+                                <th className="sticky top-0 z-20 bg-gray-50 dark:bg-gray-950 px-10 py-6 text-[10px] font-black text-slate-500 uppercase tracking-widest text-right border-b border-slate-200 dark:border-slate-800">Clearance Status</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-50 dark:divide-white/5">
-                            {orders.map(order => (
+                            {orders.map((order, idx) => (
                                 <tr key={order._id} className="group hover:bg-slate-50 dark:hover:bg-white/5 transition-all">
+                                    <td className="px-10 py-6 text-[10px] font-black text-slate-400 tabular-nums">{idx + 1}</td>
                                     <td className="px-10 py-6">
                                         <div className="flex items-center gap-4">
                                             <div className="w-10 h-10 rounded-full border-2 border-white dark:border-white/10 overflow-hidden shrink-0">
@@ -362,7 +364,7 @@ const PrizeManager = ({ isCompact = false }) => {
                             ))}
                             {orders.length === 0 && (
                                 <tr>
-                                    <td colSpan="5" className="py-20 text-center opacity-30 italic font-black uppercase tracking-[0.3em] text-slate-400">Order Ledger is currently null</td>
+                                    <td colSpan="6" className="py-20 text-center opacity-30 italic font-black uppercase tracking-[0.3em] text-slate-400">Order Ledger is currently null</td>
                                 </tr>
                             )}
                         </tbody>

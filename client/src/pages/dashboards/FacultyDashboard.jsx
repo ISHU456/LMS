@@ -3,6 +3,7 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import axios from 'axios';
 import { motion, AnimatePresence } from 'framer-motion';
+
 import {
   BookOpen, Users, Calendar, CheckSquare, Radio, BarChart2,
   Bell, ChevronRight, FileText, ArrowUpRight, PlusCircle,
@@ -12,7 +13,6 @@ import {
   Plus, CalendarDays, LayoutList, LayoutGrid, Gift,
   ShieldCheck, FileCheck, Settings, Search, Megaphone, ClipboardCheck, Terminal, ClipboardList, Wind, Leaf, Droplets, Zap, Palette, RefreshCw, Building
 } from 'lucide-react';
-import FluidBackground from '../../components/FluidBackground';
 
 import DashboardOverview from '../../components/teacher/DashboardOverview';
 import AttendanceManager from '../../components/teacher/AttendanceManager';
@@ -71,8 +71,8 @@ const ScheduleModal = ({ form, setForm, onSave, onClose, isEdit, courses, allSch
   };
 
   return (
-    <motion.div initial={{ opacity:0 }} animate={{ opacity:1 }} exit={{ opacity:0 }} className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-md" onClick={onClose}>
-      <motion.div initial={{ scale:0.95, y:20 }} animate={{ scale:1, y:0 }} exit={{ scale:0.95, y:20 }} className="bg-white/90 dark:bg-[#080c14]/90 backdrop-blur-2xl rounded-[3rem] shadow-2xl w-full max-w-2xl border border-slate-200 dark:border-white/5 overflow-hidden flex flex-col max-h-[90vh]" onClick={e => e.stopPropagation()}>
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-md" onClick={onClose}>
+      <div className="bg-white/90 dark:bg-[#080c14]/90 backdrop-blur-2xl rounded-[3rem] shadow-2xl w-full max-w-2xl border border-slate-200 dark:border-white/5 overflow-hidden flex flex-col max-h-[90vh]" onClick={e => e.stopPropagation()}>
         
         <div className="px-10 py-8 flex items-center justify-between border-b border-slate-100 dark:border-white/5 shrink-0">
           <div className="flex items-center gap-5">
@@ -209,8 +209,8 @@ const ScheduleModal = ({ form, setForm, onSave, onClose, isEdit, courses, allSch
             <Save size={16}/> {isEdit ? 'Authorize Changes' : 'Confirm Reservation'}
           </button>
         </div>
-      </motion.div>
-    </motion.div>
+      </div>
+    </div>
   );
 };
 
@@ -298,7 +298,6 @@ const FacultyDashboard = () => {
   const [searchParams] = useSearchParams();
 
   useEffect(() => {
-    // Deep linking logic
     const tabParam = searchParams.get('tab');
     if (tabParam) {
       setActiveTab(tabParam);
@@ -319,7 +318,6 @@ const FacultyDashboard = () => {
     };
   }, []);
 
-  // Resizable Sidebar Logic
   const startResizing = useCallback(() => setIsResizing(true), []);
   const stopResizing = useCallback(() => setIsResizing(false), []);
   const resize = useCallback((e) => {
@@ -422,7 +420,6 @@ const FacultyDashboard = () => {
       }, config);
 
       setModalOpen(false);
-      // Trigger re-fetch
       window.location.reload(); 
     } catch (err) {
       console.error("Authorization sync failed:", err);
@@ -488,7 +485,6 @@ const FacultyDashboard = () => {
 
   return (
     <div className="flex h-[calc(100vh-5rem)] flex-col bg-transparent font-sans selection:bg-teal-500 selection:text-white transition-colors duration-500 overflow-hidden relative">
-      <AnimatePresence mode="wait">
         {modalOpen && (
           <ScheduleModal 
             key="schedule-modal"
@@ -501,36 +497,27 @@ const FacultyDashboard = () => {
             allSchedules={schedule} 
           />
         )}
-      </AnimatePresence>
-      {/* Redundant FluidBackground removed - managed by App.jsx */}
       
-      {/* Organic Background Blobs */}
-      <div className="fixed inset-0 overflow-hidden pointer-events-none opacity-20 dark:opacity-40">
-        <div className="absolute top-[15%] right-[25%] w-[550px] h-[550px] bg-teal-500/15 rounded-full blur-[130px] animate-pulse" />
-        <div className="absolute bottom-[25%] left-[10%] w-[650px] h-[650px] bg-indigo-500/10 rounded-full blur-[160px] animate-bounce-subtle" />
+      <div className="fixed inset-0 overflow-hidden pointer-events-none opacity-5">
+         <div className="absolute top-[15%] right-[25%] w-[550px] h-[550px] bg-teal-500/5 rounded-full" />
       </div>
 
       <div className="flex flex-1 overflow-hidden relative">
-        <AnimatePresence>
-          {isSidebarOpen && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
+        {isSidebarOpen && (
+            <div
               onClick={() => setIsSidebarOpen(false)}
               className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] lg:hidden"
             />
           )}
-        </AnimatePresence>
 
         <aside 
-          className={`fixed lg:relative z-[60] h-full glass border-r border-slate-200 dark:border-slate-800/60 shadow-2xl lg:shadow-none transition-all duration-300 ease-in-out flex flex-col ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}
+          className={`fixed lg:relative z-[60] h-full bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800/60 shadow-lg lg:shadow-none transition-all duration-300 ease-in-out flex flex-col ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}
           style={{ width: window.innerWidth < 1024 ? '280px' : (isSidebarOpen ? sidebarWidth : 0) }}
         >
           <div className="p-6 flex flex-col h-full">
              <div className="flex items-center gap-3 mb-10 px-2 overflow-hidden">
                 <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-600 to-violet-600 flex items-center justify-center text-white shadow-lg shadow-indigo-600/20 shrink-0">
-                   <Terminal size={20} className="animate-pulse" />
+                   <Terminal size={20} />
                 </div>
                 <div className="truncate">
                    <h2 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-tighter">Faculty Node</h2>
@@ -541,15 +528,15 @@ const FacultyDashboard = () => {
 
              <nav className="flex-1 space-y-1 overflow-y-auto pr-2 no-scrollbar">
                 {navItems.map(item => (
-                   <button 
-                     key={item.id} 
-                     onClick={() => handleLinkNavigation(item.id)} 
-                     className={`group w-full flex items-center gap-4 px-5 py-4 rounded-[1.25rem] transition-all duration-300 relative overflow-hidden ${activeTab === item.id ? 'bg-slate-100/80 dark:bg-white/5 text-indigo-600 dark:text-indigo-400 shadow-[inset_0_1px_1px_rgba(255,255,255,0.1)]' : 'text-slate-500 dark:text-slate-500 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-50 dark:hover:bg-white/5'}`}
-                   >
-                      {activeTab === item.id && <motion.div layoutId="activePill" className="absolute left-0 w-1.5 h-6 bg-indigo-600 dark:bg-indigo-500 rounded-r-full" />}
-                      <item.icon size={20} className={`shrink-0 transition-transform duration-500 group-hover:scale-110 ${activeTab === item.id ? 'scale-110' : ''}`} />
-                      <span className="text-[11px] font-black uppercase tracking-widest truncate">{item.label}</span>
-                   </button>
+                  <button 
+                    key={item.id} 
+                    onClick={() => handleLinkNavigation(item.id)} 
+                    className={`group w-full flex items-center gap-4 px-5 py-4 rounded-[1.25rem] transition-all duration-300 relative overflow-hidden ${activeTab === item.id ? 'bg-slate-100/80 dark:bg-white/5 text-indigo-600 dark:text-indigo-400 shadow-[inset_0_1px_1px_rgba(255,255,255,0.1)]' : 'text-slate-500 dark:text-slate-500 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-50 dark:hover:bg-white/5'}`}
+                  >
+                     {activeTab === item.id && <div className="absolute left-0 w-1.5 h-6 bg-indigo-600 dark:bg-indigo-500 rounded-r-full" />}
+                     <item.icon size={20} className={`shrink-0 transition-transform duration-500 group-hover:scale-110 ${activeTab === item.id ? 'scale-110' : ''}`} />
+                     <span className="text-[11px] font-black uppercase tracking-widest truncate">{item.label}</span>
+                  </button>
                 ))}
              </nav>
 
@@ -560,7 +547,7 @@ const FacultyDashboard = () => {
                       <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Node Health</p>
                    </div>
                    <div className="w-full bg-slate-200 dark:bg-slate-800 h-1.5 rounded-full overflow-hidden">
-                      <motion.div initial={{ width: 0 }} animate={{ width: '96%' }} className="h-full bg-gradient-to-r from-emerald-500 to-indigo-500" />
+                      <div className="h-full bg-gradient-to-r from-emerald-500 to-indigo-500 w-[96%]" />
                    </div>
                    <p className="text-[8px] font-black text-indigo-500 uppercase tracking-widest mt-2">Operational: 100%</p>
                 </div>
@@ -586,8 +573,6 @@ const FacultyDashboard = () => {
           
           {activeTab === 'overview' && (
             <motion.div 
-               initial={{ opacity:0, scale:0.98 }} 
-               animate={{ opacity:1, scale:1 }} 
                className="relative overflow-hidden rounded-[3rem] lg:rounded-[4rem] p-8 lg:p-16 mb-8 lg:mb-12 shadow-2xl group cursor-default min-h-[350px] lg:min-h-[550px] flex flex-col justify-end border border-slate-200/50 dark:border-white/5 backdrop-blur-md"
             >
               <div 
@@ -638,7 +623,6 @@ const FacultyDashboard = () => {
                 </div>
               </div>
               
-              {/* Neural Sync Indicator */}
               <div className="absolute top-12 right-12 z-30 hidden lg:flex items-center gap-3 px-5 py-2.5 bg-white/40 dark:bg-white/5 backdrop-blur-2xl rounded-2xl border border-white/20 dark:border-white/10 shadow-xl">
                  <div className="relative">
                     <div className="w-2 h-2 rounded-full bg-emerald-500 animate-ping absolute inset-0" />

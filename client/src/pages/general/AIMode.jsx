@@ -234,29 +234,13 @@ const AIMode = () => {
         exit={{ opacity: 0 }}
         className="fixed inset-0 z-[5000] bg-[#030712] flex flex-col overflow-hidden text-gray-100"
       >
-        {/* --- BEAST MODE AMBIENT BACKGROUND --- */}
+        {/* --- BEAST MODE AMBIENT BACKGROUND - OPTIMIZED --- */}
         <div className="absolute inset-0 pointer-events-none z-0">
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,#1e1b4b_0%,#030712_100%)]" />
           
-          {/* Neon Pulses */}
-          <motion.div 
-            animate={{ 
-              scale: [1, 1.2, 1],
-              opacity: [0.1, 0.3, 0.1],
-              rotate: [0, 90, 180, 270, 360]
-            }}
-            transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
-            className="absolute top-1/4 left-1/4 w-[60vw] h-[60vw] rounded-full bg-orange-600/10 blur-[150px]"
-          />
-          <motion.div 
-            animate={{ 
-              scale: [1.2, 1, 1.2],
-              opacity: [0.1, 0.2, 0.1],
-              rotate: [360, 270, 180, 90, 0]
-            }}
-            transition={{ duration: 15, repeat: Infinity, ease: "linear" }}
-            className="absolute bottom-1/4 right-1/4 w-[50vw] h-[50vw] rounded-full bg-indigo-600/10 blur-[150px]"
-          />
+          {/* Static Ambient Glows (Non-Animated for Performance) */}
+          <div className="absolute top-1/4 left-1/4 w-[60vw] h-[60vw] rounded-full bg-orange-600/5 blur-[120px]" />
+          <div className="absolute bottom-1/4 right-1/4 w-[50vw] h-[50vw] rounded-full bg-indigo-600/5 blur-[120px]" />
 
           {/* Grid Overlay */}
           <div className="absolute inset-0 opacity-[0.03] bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] pointer-events-none" />

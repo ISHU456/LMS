@@ -26,8 +26,10 @@ const AdminResultHub = ({ user }) => {
   const [syncingId, setSyncingId] = useState(null);
   const [batchSyncing, setBatchSyncing] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
-  const [sortConfig, setSortConfig] = useState({ key: 'rollNumber', direction: 'asc' });
   const [publishing, setPublishing] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 12;
+  const [sortConfig, setSortConfig] = useState({ key: 'rollNumber', direction: 'asc' });
 
   const fetchDepartments = async () => {
     try {
@@ -278,7 +280,6 @@ const AdminResultHub = ({ user }) => {
     });
 
     // Final Node
-    const totalObtained = courses.reduce((sum, c) => sum + (results[c._id]?.totalMarks || 0), 0);
     doc.rect(20, doc.lastAutoTable.finalY + 10, 170, 30);
     doc.text(`SGPA: ${final.sgpa || 'COMM-SYNC'}`, 30, doc.lastAutoTable.finalY + 20);
     doc.text(`PERCENTAGE: ${final.percentage || 'N/A'}% | OFFICIAL RECORD`, 30, doc.lastAutoTable.finalY + 30);
@@ -349,14 +350,19 @@ const AdminResultHub = ({ user }) => {
     s.rollNumber.toLowerCase().includes(searchTerm.toLowerCase())
   ).sort((a, b) => {
     // Primary sort by section if viewing all sections
-    if (section === 'all' && a.section !== b.section) {
+    if (section === 'all' && (a.section !== b.section)) {
       return (a.section || '').localeCompare(b.section || '');
     }
     // Secondary sort by user's choice
-    if (a[sortConfig.key] < b[sortConfig.key]) return sortConfig.direction === 'asc' ? -1 : 1;
-    if (a[sortConfig.key] > b[sortConfig.key]) return sortConfig.direction === 'asc' ? 1 : -1;
+    const valA = a[sortConfig.key] || '';
+    const valB = b[sortConfig.key] || '';
+    if (valA < valB) return sortConfig.direction === 'asc' ? -1 : 1;
+    if (valA > valB) return sortConfig.direction === 'asc' ? 1 : -1;
     return 0;
   });
+
+  const totalPages = Math.ceil(filteredStudents.length / itemsPerPage);
+  const paginatedStudents = filteredStudents.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
   const getStatusColor = (status) => {
     switch(status) {
@@ -485,62 +491,41 @@ const AdminResultHub = ({ user }) => {
       </div>
 
       {/* Main Grid View */}
-      <div className="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-[2.5rem] overflow-hidden shadow-sm">
+      <div className="bg-white dark:bg-[#080c14] border border-gray-100 dark:border-gray-800 rounded-[2.5rem] shadow-sm min-h-[500px]">
         <div className="overflow-x-auto custom-scrollbar">
-          <table className="w-full text-left border-collapse">
+          <table className="w-full text-left border-separate border-spacing-0">
             <thead>
-              <tr className="bg-gray-50/50 dark:bg-gray-800/50 border-b border-gray-100 dark:border-gray-800">
-                <th className="p-6 sticky left-0 bg-gray-50 dark:bg-gray-800 z-10 min-w-[200px]">
+              <tr className="bg-slate-900 dark:bg-black border-b border-white/10 text-white">
+                <th className="sticky top-0 left-0 z-50 bg-slate-900 dark:bg-black p-6 border-b border-r border-white/10 w-16">
+                    <span className="text-[9px] font-black uppercase tracking-widest text-white">#</span>
+                </th>
+                <th className="sticky top-0 left-16 z-50 bg-slate-900 dark:bg-black p-6 border-b border-r border-white/10 min-w-[220px]">
                   <div className="flex items-center gap-2 cursor-pointer group" onClick={() => setSortConfig({ key: 'name', direction: sortConfig.direction === 'asc' ? 'desc' : 'asc' })}>
-                    <span className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Student Identity</span>
-                    <ArrowUpDown size={10} className="text-gray-300 group-hover:text-red-500 transition-colors" />
+                    <span className="text-[9px] font-black uppercase tracking-widest text-white">Student Identity</span>
+                    <ArrowUpDown size={10} className="text-white/40 group-hover:text-red-500 transition-colors" />
                   </div>
                 </th>
                 {data.courses.map(course => (
-                  <th key={course._id} className="p-6 min-w-[160px] text-center relative group/th border-r border-gray-100 dark:border-gray-800">
-                    <p className="text-[10px] font-black dark:text-white uppercase tracking-tighter truncate max-w-[140px]">{course.name}</p>
+                  <th key={course._id} className="sticky top-0 z-30 bg-slate-900 dark:bg-black p-6 min-w-[160px] text-center border-b border-r border-white/10">
+                    <p className="text-[10px] font-black uppercase tracking-tighter truncate max-w-[140px] text-white">{course.name}</p>
                     <div className="flex items-center justify-center gap-2 mt-1">
                       <p className="text-[8px] font-black text-red-500 uppercase tracking-widest">{course.code}</p>
-                      
-                      <div className="flex items-center gap-1 opacity-0 group-hover/th:opacity-100 transition-all">
-                        <button 
-                          onClick={() => handleUnlockCourse(course._id, course.name)}
-                          className="p-1 bg-gray-100 dark:bg-gray-800 text-gray-500 rounded-md hover:bg-red-600 hover:text-white transition-all"
-                          title="Override Lock"
-                        >
-                          <Unlock size={10} />
-                        </button>
-                        <button 
-                           onClick={() => handleApproveCourse(course._id, course.name)}
-                           className="p-1 bg-emerald-50 text-emerald-600 rounded-md hover:bg-emerald-600 hover:text-white transition-all"
-                           title="Certify Module"
-                        >
-                          <CheckCircle2 size={10} />
-                        </button>
-                        <button 
-                           onClick={() => handleRejectCourse(course._id, course.name)}
-                           className="p-1 bg-rose-50 text-rose-600 rounded-md hover:bg-rose-600 hover:text-white transition-all"
-                           title="Reject Mapping"
-                        >
-                          <XCircle size={10} />
-                        </button>
-                      </div>
                     </div>
                   </th>
                 ))}
-                <th className="p-6 text-center min-w-[120px] bg-red-50/30 dark:bg-red-900/10">
+                <th className="sticky top-0 z-30 bg-slate-900 dark:bg-black p-6 text-center min-w-[120px] border-b border-white/10">
                    <div className="flex items-center justify-center gap-2">
-                      <span className="text-[9px] font-black text-red-600 uppercase tracking-widest">Completion</span>
+                      <span className="text-[9px] font-black uppercase tracking-widest text-red-500">Completion</span>
                    </div>
                 </th>
-                <th className="p-6 text-center min-w-[200px] bg-indigo-50/30 dark:bg-indigo-900/10">
+                <th className="sticky top-0 z-30 bg-slate-900 dark:bg-black p-6 text-center min-w-[200px] border-b border-white/10">
                    <div className="flex items-center justify-center gap-2">
-                       <Download className="text-indigo-600" size={14} />
-                      <span className="text-[9px] font-black text-indigo-600 uppercase tracking-widest">Official Transcript</span>
+                       <Download className="text-indigo-400" size={14} />
+                      <span className="text-[9px] font-black uppercase tracking-widest text-indigo-400">Transcript</span>
                    </div>
                 </th>
-                <th className="p-6 text-center min-w-[100px] bg-slate-50 dark:bg-slate-800">
-                    <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Pub. Status</span>
+                <th className="sticky top-0 z-30 bg-slate-900 dark:bg-black p-6 text-center min-w-[100px] border-b border-white/10">
+                    <span className="text-[9px] font-black uppercase tracking-widest text-white/50">Status</span>
                 </th>
               </tr>
             </thead>
@@ -552,15 +537,18 @@ const AdminResultHub = ({ user }) => {
                     <p className="text-xs font-black uppercase tracking-widest text-gray-400">Synchronizing Local Records...</p>
                   </td>
                 </tr>
-              ) : filteredStudents.length > 0 ? filteredStudents.map(student => {
+              ) : paginatedStudents.length > 0 ? paginatedStudents.map((student, idx) => {
                 const resultsCount = Object.values(data.matrix[student._id] || {}).filter(v => v !== null).length;
                 const totalPossible = data.courses.length;
                 const percent = Math.round((resultsCount / totalPossible) * 100);
 
                 return (
-                  <tr key={student._id} className="hover:bg-gray-50/50 dark:hover:bg-gray-800/30 transition-all group">
-                    <td className="p-6 sticky left-0 bg-white dark:bg-gray-900 z-10 border-r border-gray-100 dark:border-gray-800 group-hover:bg-gray-50 dark:group-hover:bg-gray-800 transition-all">
-                      <div className="flex items-center gap-4">
+                  <tr key={student._id} className="hover:bg-gray-50/50 dark:hover:bg-gray-800/30 group">
+                    <td className="sticky left-0 z-20 bg-white dark:bg-gray-900 p-6 border-r border-gray-100 dark:border-gray-800 text-[10px] font-black text-gray-400 tabular-nums">
+                       {(currentPage - 1) * itemsPerPage + idx + 1}
+                    </td>
+                    <td className="p-6 sticky left-16 z-20 bg-white dark:bg-gray-900 border-r border-gray-100 dark:border-gray-800 group-hover:bg-gray-50 dark:group-hover:bg-gray-800 transition-all">
+                       <div className="flex items-center gap-4">
                         <div className="w-10 h-10 rounded-xl bg-gray-100 dark:bg-gray-800 flex items-center justify-center font-black text-xs text-gray-400">
                            {student.name[0]}
                         </div>
@@ -657,6 +645,31 @@ const AdminResultHub = ({ user }) => {
             </tbody>
           </table>
         </div>
+
+        {/* Global Pagination Deck */}
+        {totalPages > 1 && (
+          <div className="px-8 py-6 border-t border-gray-100 dark:border-gray-800 flex items-center justify-between">
+            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest italic">
+              Registry Block {currentPage} of {totalPages}
+            </p>
+            <div className="flex gap-2">
+              <button 
+                disabled={currentPage === 1}
+                onClick={() => { setCurrentPage(prev => prev - 1); window.scrollTo({ top: 300, behavior: 'smooth' }); }}
+                className="p-3 rounded-xl border border-gray-100 dark:border-gray-800 disabled:opacity-20 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+              >
+                <RefreshCw className="rotate-180" size={16} />
+              </button>
+              <button 
+                disabled={currentPage === totalPages}
+                onClick={() => { setCurrentPage(prev => prev + 1); window.scrollTo({ top: 300, behavior: 'smooth' }); }}
+                className="p-3 rounded-xl border border-gray-100 dark:border-gray-800 disabled:opacity-20 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+              >
+                <RefreshCw size={16} />
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

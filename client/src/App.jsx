@@ -7,7 +7,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 // Layout
 import Navbar from './components/Navbar';
 
-import FluidBackground from './components/FluidBackground';
+
 import AchievementToaster from './components/AchievementToaster';
 import Footer from './components/Footer';
 import Chatbot from './components/Chatbot';
@@ -229,6 +229,8 @@ const AppContent = () => {
     );
   }
 
+  const isAuthPage = location.pathname.startsWith('/login') || location.pathname === '/face-registration' || location.pathname === '/verify-mfa' || location.pathname === '/select-department';
+
   return (
     <div className="h-screen flex flex-col bg-transparent transition-colors duration-300 overflow-hidden">
       <Navbar darkMode={darkMode} toggleDarkMode={toggleDarkMode} />
@@ -238,14 +240,14 @@ const AppContent = () => {
       {(location.pathname === '/student-dashboard' || location.pathname === '/dashboard' || location.pathname === '/faculty-dashboard') && (
         <GlobalAlertMarquee />
       )}
-      <main className="flex-grow flex flex-col relative w-full overflow-hidden smooth-scroll min-h-0 bg-transparent">
+      <main className="flex-grow relative w-full smooth-scroll custom-scrollbar bg-transparent">
         <AnimatePresence mode="wait">
           <motion.div
             key={location.pathname}
-            initial={{ opacity: 0, y: 15 }}
+            initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -15 }}
-            transition={{ duration: 0.3, ease: 'easeOut' }}
+            exit={{ opacity: 0, y: -8 }}
+            transition={{ duration: 0.2, ease: [0.23, 1, 0.32, 1] }}
             className="flex-grow flex flex-col"
           >
             <Routes location={location} key={location.pathname}>
@@ -438,7 +440,7 @@ const AppContent = () => {
           <Route path="/unauthorized" element={
              <div className="flex-1 flex items-center justify-center">
                <h1 className="text-3xl font-bold uppercase">
-403 - Unauthorized Access</h1>
+ 403 - Unauthorized Access</h1>
              </div>
           } />
           <Route path="/verify-mfa" element={<MFAVerify />} />
@@ -466,10 +468,10 @@ const AppContent = () => {
           </motion.div>
         </AnimatePresence>
       </main>
-      {!isAIMode && <Footer />}
+      {(!isAIMode && !isAuthPage) && <Footer />}
       <NotificationListener />
       <AchievementToaster />
-      {!isAIMode && <Chatbot />}
+      {(!isAIMode && !isAuthPage) && <Chatbot />}
     </div>
   );
 };
@@ -479,7 +481,7 @@ function App() {
     <Router>
       <MFAProvider>
         <ScrollToTop />
-        <FluidBackground />
+
         <AppContent />
       </MFAProvider>
     </Router>

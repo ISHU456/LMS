@@ -1,64 +1,161 @@
-import { motion } from 'framer-motion';
-import { Shield, BookOpen, GraduationCap, Users } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Shield, BookOpen, GraduationCap, Users, Lock, ChevronRight, Fingerprint, Activity } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 
 const LoginPortal = () => {
   const { user } = useSelector((state) => state.auth);
   const navigate = useNavigate();
+  const [hoveredRole, setHoveredRole] = useState(null);
 
   useEffect(() => {
     if (user) {
         if (user.role === 'admin') navigate('/admin-dashboard');
         else if (user.role === 'student') navigate('/dashboard');
-        else if (user.role === 'librarian') navigate('/librarian-dashboard');
         else if (user.role === 'hod') navigate('/hod-dashboard');
-        else if (user.role === 'parent') navigate('/parent-dashboard');
         else if (user.role === 'teacher') navigate('/faculty-dashboard');
     }
   }, [user, navigate]);
 
   const portals = [
-    { id: 'student', title: 'Student Portal', icon: GraduationCap, color: 'text-blue-600', bg: 'bg-blue-50 dark:bg-blue-900/30', border: 'hover:border-blue-500/50 hover:shadow-blue-500/20' },
-    { id: 'faculty', title: 'Faculty Portal', icon: Users, color: 'text-indigo-600', bg: 'bg-indigo-50 dark:bg-indigo-900/30', border: 'hover:border-indigo-500/50 hover:shadow-indigo-500/20' },
-    { id: 'admin', title: 'Admin Portal', icon: Shield, color: 'text-rose-600', bg: 'bg-rose-50 dark:bg-rose-900/30', border: 'hover:border-rose-500/50 hover:shadow-rose-500/20' },
-    { id: 'librarian', title: 'Library Portal', icon: BookOpen, color: 'text-amber-600', bg: 'bg-amber-50 dark:bg-amber-900/30', border: 'hover:border-amber-500/50 hover:shadow-amber-500/20' },
-    { id: 'parent', title: 'Parent Portal', icon: Users, color: 'text-emerald-600', bg: 'bg-emerald-50 dark:bg-emerald-900/30', border: 'hover:border-emerald-500/50 hover:shadow-emerald-500/20' },
+    { 
+      id: 'student', 
+      title: 'Student Portal', 
+      subtitle: 'Knowledge Gateway',
+      icon: GraduationCap, 
+      color: 'from-blue-500 to-cyan-400',
+      shadow: 'shadow-blue-500/20',
+      description: 'Access your academic journey, courses, and progress tracking.'
+    },
+    { 
+      id: 'faculty', 
+      title: 'Faculty Portal', 
+      subtitle: 'Educator Suite',
+      icon: Users, 
+      color: 'from-indigo-600 to-purple-500',
+      shadow: 'shadow-indigo-500/20',
+      description: 'Manage curriculum, evaluate students, and coordinate lectures.'
+    },
+    { 
+      id: 'admin', 
+      title: 'Admin Portal', 
+      subtitle: 'System Control',
+      icon: Shield, 
+      color: 'from-rose-600 to-orange-500',
+      shadow: 'shadow-rose-500/20',
+      description: 'Full institutional management and security infrastructure control.'
+    },
   ];
 
   return (
-    <div className="min-h-[calc(100vh-73px)] w-full flex items-center justify-center p-6 bg-gradient-to-br from-gray-50 to-gray-200 dark:from-dark-bg dark:to-[#0f172a]">
-      <div className="max-w-4xl w-full">
-        <div className="text-center mb-12">
-           <h1 className="text-4xl md:text-5xl font-extrabold text-gray-900 dark:text-white tracking-tight mb-4">Select Identity Protocol</h1>
-           <p className="text-gray-500 dark:text-gray-400 text-lg md:text-xl max-w-2xl mx-auto">Please select your official college access portal. Unauthorized access attempts are monitored and logged.</p>
+    <div className="relative min-h-[calc(100vh-80px)] w-full flex items-center justify-center p-4 md:p-12 bg-[#020617]">
+      {/* Dynamic Background Elements */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none transform-gpu">
+        <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] rounded-full bg-blue-600/10 blur-[80px] transform-gpu" />
+        <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] rounded-full bg-purple-600/10 blur-[80px] transform-gpu" />
+        
+        {/* Animated grid background */}
+        <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 mix-blend-overlay"></div>
+        <div className="absolute inset-0 opacity-[0.03]" 
+             style={{ backgroundImage: 'radial-gradient(circle at 1px 1px, white 1px, transparent 0)', backgroundSize: '40px 40px' }}>
+        </div>
+      </div>
+
+      <div className="max-w-6xl w-full relative z-10 py-12">
+        {/* Header Section */}
+        <motion.div 
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="text-center mb-16 space-y-4"
+        >
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/5 border border-white/10 text-blue-400 text-xs font-mono mb-2 uppercase tracking-widest">
+            <Lock size={12} className="animate-pulse" />
+            Security Protocol Active
+          </div>
+          <h1 className="text-4xl md:text-6xl font-black text-transparent bg-clip-text bg-gradient-to-b from-white to-white/60 tracking-tighter mb-2">
+            Select Identity Protocol
+          </h1>
+          <p className="text-gray-400 text-base md:text-lg max-w-2xl mx-auto leading-relaxed">
+            Please select your official college access portal. 
+            <span className="block text-blue-400/80 font-mono text-sm mt-2 tracking-wide">
+              UNAUTHORIZED ACCESS ATTEMPTS ARE MONITORED AND LOGGED.
+            </span>
+          </p>
+        </motion.div>
+
+        {/* Portals Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8">
+          {portals.map((portal, index) => (
+            <Link 
+              to={`/login/${portal.id}`} 
+              key={portal.id}
+              onMouseEnter={() => setHoveredRole(portal.id)}
+              onMouseLeave={() => setHoveredRole(null)}
+            >
+              <motion.div 
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ delay: index * 0.05, duration: 0.4, ease: [0.23, 1, 0.32, 1] }}
+                className="group relative h-full"
+              >
+                {/* Card Glow Effect */}
+                <div className={`absolute -inset-0.5 bg-gradient-to-br ${portal.color} rounded-[2rem] opacity-0 group-hover:opacity-20 blur-xl transition-opacity duration-500`} />
+                
+                <div className="relative h-full flex flex-col p-8 rounded-[2rem] bg-white/[0.03] border border-white/10 backdrop-blur-lg hover:bg-white/[0.05] transition-all duration-300 hover:border-white/20 transform-gpu shadow-2xl">
+                  <div className="flex items-start justify-between mb-8">
+                    <div className={`p-4 rounded-2xl bg-gradient-to-br ${portal.color} shadow-lg ${portal.shadow} transition-transform duration-500 group-hover:scale-110 group-hover:rotate-3`}>
+                       <portal.icon size={32} className="text-white" />
+                    </div>
+                    <div className="flex gap-1">
+                      {[1, 2, 3].map((i) => (
+                        <div key={i} className={`h-1 w-1 rounded-full ${hoveredRole === portal.id ? 'bg-white/40' : 'bg-white/10'}`} />
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="flex-grow">
+                    <p className={`text-xs font-mono mb-1 uppercase tracking-[0.2em] bg-clip-text text-transparent bg-gradient-to-r ${portal.color} font-bold`}>
+                      {portal.subtitle}
+                    </p>
+                    <h2 className="text-3xl font-bold text-white mb-3 group-hover:translate-x-1 transition-transform">{portal.title}</h2>
+                    <p className="text-gray-400 text-sm leading-relaxed mb-6">
+                      {portal.description}
+                    </p>
+                  </div>
+
+                  <div className="flex items-center gap-2 text-white font-semibold text-sm group-hover:gap-3 transition-all">
+                    Initialize Authentication 
+                    <ChevronRight size={18} className="text-blue-400" />
+                  </div>
+
+                  {/* Decorative Elements */}
+                  <div className="absolute bottom-4 right-6 opacity-5 group-hover:opacity-10 transition-opacity">
+                    <Fingerprint size={80} className="text-white" />
+                  </div>
+                </div>
+              </motion.div>
+            </Link>
+          ))}
+          
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-           {portals.map((portal, index) => (
-             <Link to={`/login/${portal.id}`} key={portal.id}>
-               <motion.div 
-                 initial={{ opacity: 0, y: 20 }}
-                 animate={{ opacity: 1, y: 0 }}
-                 transition={{ delay: index * 0.1 }}
-                 className={`group flex items-center p-8 glass rounded-3xl border-2 border-transparent transition-all duration-300 hover:-translate-y-2 cursor-pointer shadow-xl ${portal.border}`}
-               >
-                 <div className={`p-5 rounded-2xl ${portal.bg} ${portal.color} transition-transform group-hover:scale-110 group-hover:rotate-3`}>
-                    <portal.icon size={48} />
-                 </div>
-                 <div className="ml-8">
-                    <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">{portal.title}</h2>
-                    <p className="text-gray-500 dark:text-gray-400 font-medium">Access your secure {portal.id} dashboard.</p>
-                 </div>
-               </motion.div>
-             </Link>
-           ))}
-        </div>
+        {/* Footer Info */}
+        <motion.div 
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.8 }}
+          className="mt-16 text-center"
+        >
+          <p className="text-gray-600 text-xs font-mono tracking-wider">
+            © {new Date().getFullYear()} INSTITUTIONAL RESOURCE PLANNING SYSTEM • VERSION 4.0.2-STABLE
+          </p>
+        </motion.div>
       </div>
     </div>
   );
 };
 
 export default LoginPortal;
+

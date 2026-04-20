@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useSelector } from 'react-redux';
-import { motion, AnimatePresence } from 'framer-motion';
+
 import { 
   Sparkles, Trophy, Bell, Settings, Search, Megaphone, 
   Newspaper, LayoutGrid, TrendingUp, Users, Calendar, 
-  Star, Briefcase, GraduationCap, ArrowRight, ShieldCheck, Heart, MessageSquare, ShieldAlert, Shield
+  Star, Briefcase, GraduationCap, ArrowRight, ShieldCheck, Heart, MessageSquare, ShieldAlert, Shield, User
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
@@ -96,274 +96,195 @@ const Announcements = ({ isEmbedded = false }) => {
     fetchTrendingData();
   };
 
-  return (
-    <div className={`${isEmbedded ? 'h-auto' : 'h-[calc(100vh-5rem)]'} bg-[var(--bg-light)] dark:bg-[var(--bg-dark)] transition-colors duration-500`}>
-      <div className={`h-full max-w-[1800px] mx-auto ${isEmbedded ? 'px-0' : 'px-4 sm:px-6 lg:px-8'} py-6 flex flex-col`}>
-        
-        {/* Institutional News Ticker */}
-        <div className="shrink-0 mb-6 h-12 bg-white/40 dark:bg-white/5 border-y border-slate-200/50 dark:border-white/5 backdrop-blur-xl overflow-hidden flex items-center relative group">
-           <div className="absolute left-0 top-0 bottom-0 bg-emerald-600 px-8 flex items-center z-10 shadow-2xl">
-              <div className="flex items-center gap-3">
-                 <div className="w-2 h-2 rounded-full bg-white animate-ping" />
-                 <span className="text-[10px] font-black text-emerald-50 px-1 uppercase tracking-[0.3em] italic">Neural Pulse</span>
-              </div>
-           </div>
-           <div className="flex-1 overflow-hidden">
-              <div className="whitespace-nowrap animate-marquee flex items-center gap-12 pl-[180px]">
-                 {(tickerPosts.length > 0 ? tickerPosts.concat(tickerPosts) : [
-                    { category: 'Motivation', title: 'The Architecture of Innovation', createdAt: '2026-03-28' },
-                    { category: 'Motivation', title: 'Recursive Success Protocol', createdAt: '2026-03-28' },
-                    { category: 'Motivation', title: 'The Power of Neural Networks', createdAt: '2026-03-28' }
-                 ].concat([
-                    { category: 'Motivation', title: 'The Architecture of Innovation', createdAt: '2026-03-28' },
-                    { category: 'Motivation', title: 'Recursive Success Protocol', createdAt: '2026-03-28' },
-                    { category: 'Motivation', title: 'The Power of Neural Networks', createdAt: '2026-03-28' }
-                 ])).map((post, i) => (
-                    <div key={i} className="flex items-center gap-4 cursor-pointer hover:text-amber-500 transition-colors">
-                       <span className="text-[10px] font-black text-amber-500 uppercase tracking-widest">• {post.category || 'URGENT'}</span>
-                       <span className="text-xs font-bold text-slate-700 dark:text-gray-300">{post.title || post.content?.substring(0, 60)}</span>
-                       <span className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em]">{safeFormatDate(post.createdAt)}</span>
-                    </div>
-                 ))}
-              </div>
-           </div>
-        </div>
+  const roleConfigs = {
+    admin: { color: 'text-rose-500', bg: 'bg-rose-500', from: 'from-rose-600', to: 'to-orange-500', lightBg: 'bg-rose-500/10' },
+    teacher: { color: 'text-indigo-500', bg: 'bg-indigo-500', from: 'from-indigo-600', to: 'to-purple-500', lightBg: 'bg-indigo-500/10' },
+    faculty: { color: 'text-indigo-500', bg: 'bg-indigo-500', from: 'from-indigo-600', to: 'to-purple-500', lightBg: 'bg-indigo-500/10' },
+    student: { color: 'text-blue-500', bg: 'bg-blue-500', from: 'from-blue-600', to: 'to-cyan-500', lightBg: 'bg-blue-500/10' },
+  };
 
-        <div className="flex-1 min-h-0 flex flex-col lg:flex-row gap-8">
+  const config = roleConfigs[user?.role] || roleConfigs.student;
+
+  return (
+    <div className={`${isEmbedded ? 'h-auto' : 'h-[calc(100vh-5rem)]'} bg-[#f8fafc] dark:bg-[#020617] transition-colors duration-500 overflow-hidden relative`}>
+      {/* Dynamic Background Elements for Dark Mode */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none opacity-0 dark:opacity-100 transition-opacity duration-1000">
+        <div className={`absolute top-[-10%] left-[-10%] w-[40%] h-[40%] rounded-full opacity-5 blur-[100px] transform-gpu bg-gradient-to-br ${config.from} ${config.to}`} />
+        <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] rounded-full bg-blue-600/5 blur-[100px] transform-gpu" />
+        <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-[0.15] mix-blend-overlay"></div>
+      </div>
+
+      <div className={`h-full max-w-[1250px] mx-auto relative z-10 ${isEmbedded ? 'px-0' : 'px-4 sm:px-6 lg:px-8'} lg:pt-6`}>
+        
+        <div className="flex flex-col lg:flex-row gap-6 h-full">
           
           {/* LEFT SIDEBAR - User Profile & Navigation */}
-          <aside className={`${isEmbedded ? 'hidden' : 'hidden lg:block'} w-[340px] shrink-0 h-full overflow-y-auto overflow-x-hidden custom-scrollbar pr-2`}>
-            <div className="flex flex-col gap-6 pt-8 pb-32">
-              {/* Profile Card - LinkedIn Style */}
-              <div className="bg-white/80 dark:bg-white/5 rounded-[3rem] border border-slate-200/50 dark:border-white/5 shadow-2xl backdrop-blur-2xl overflow-hidden relative group">
-                <div className="absolute top-0 left-0 w-full h-32 bg-gradient-to-br from-indigo-600 via-purple-600 to-rose-600 z-0 opacity-90" />
-                <div className="relative z-10 pt-10 flex flex-col items-center">
-                  <motion.div 
-                    whileHover={{ scale: 1.05, rotate: 2 }}
-                    className="w-28 h-28 rounded-[2rem] bg-white dark:bg-white/10 p-1.5 shadow-2xl mb-4 border border-white/20"
-                  >
-                    <div className="w-full h-full rounded-[1.8rem] bg-slate-100 dark:bg-slate-800 overflow-hidden flex items-center justify-center">
-                      {user?.profilePic ? (
-                        <img src={user.profilePic} alt={user.name} className="w-full h-full object-cover" />
-                      ) : (
-                        <span className="text-4xl font-black text-slate-300 dark:text-gray-600">
-                          {user?.name?.charAt(0) || 'U'}
-                        </span>
-                      )}
+          <aside className={`${isEmbedded ? 'hidden' : 'hidden lg:block'} w-[240px] shrink-0 h-full overflow-y-auto no-scrollbar pb-10 space-y-4 pt-2 lg:pt-0`}>
+            {/* Profile Summary Card */}
+            <div className="bg-white/80 dark:bg-white/[0.03] backdrop-blur-xl rounded-2xl border border-slate-200/50 dark:border-white/10 shadow-xl overflow-hidden transition-all hover:border-white/20 transform-gpu group">
+               <div className={`h-16 bg-gradient-to-br ${config.from} ${config.to} opacity-20 overflow-hidden relative`}>
+                  <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 mix-blend-overlay"></div>
+               </div>
+               <div className="px-4 pb-6 relative">
+                  <div className="relative -mt-10 flex justify-center">
+                    <div className="w-20 h-20 rounded-2xl border-4 border-white dark:border-[#020617] bg-slate-100 dark:bg-white/5 overflow-hidden shrink-0 shadow-2xl group-hover:scale-105 transition-transform duration-500">
+                       {user?.profilePic ? (
+                         <img src={user.profilePic} alt={user.name} className="w-full h-full object-cover" />
+                       ) : (
+                         <div className="w-full h-full flex items-center justify-center text-2xl font-black text-slate-400">
+                           {user?.name?.charAt(0) || 'U'}
+                         </div>
+                       )}
                     </div>
-                  </motion.div>
-                  <h2 className="text-2xl font-black text-slate-900 dark:text-white text-center leading-tight tracking-tight uppercase italic">{user?.name}</h2>
-                  <div className="mt-3 px-6 py-2 rounded-full bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/5">
-                    <span className="text-[10px] font-black uppercase text-indigo-500 dark:text-indigo-400 tracking-[0.3em]">{user?.role} • {user?.department || 'Node Architecture'}</span>
                   </div>
-                </div>
-                
-                <div className="mt-10 p-8 pt-0 space-y-6 relative z-10">
-                  <div className="grid grid-cols-2 gap-4">
-                     <div className="p-4 bg-slate-50/50 dark:bg-white/5 rounded-2xl border border-slate-100 dark:border-white/5 text-center">
-                        <span className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Impact</span>
-                        <span className="text-lg font-black text-slate-900 dark:text-white">
-                          {personalStats.impactCount > 999 ? (personalStats.impactCount / 1000).toFixed(1) + 'k' : personalStats.impactCount}
-                        </span>
-                     </div>
-                     <div className="p-4 bg-slate-50/50 dark:bg-white/5 rounded-2xl border border-slate-100 dark:border-white/5 text-center">
-                        <span className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Posts</span>
-                        <span className="text-lg font-black text-slate-900 dark:text-white">{personalStats.postsCount}</span>
-                     </div>
+                  <div className="mt-4 text-center">
+                    <h2 className="text-base font-black text-slate-900 dark:text-white leading-tight uppercase tracking-tight">{user?.name}</h2>
+                    <p className={`text-[10px] font-mono ${config.color} mt-1 uppercase tracking-widest ${config.lightBg} inline-block px-2 py-0.5 rounded italic`}>
+                      {user?.role} • {user?.department || 'Academic Node'}
+                    </p>
                   </div>
-                </div>
-              </div>
+                  
+                  <div className="mt-8 space-y-3">
+                    <div className="pt-4 border-t border-slate-200/50 dark:border-white/5 flex justify-between items-center">
+                       <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Post views</span>
+                       <span className={`text-xs font-mono font-black ${config.color}`}>{personalStats.impactCount || 0}</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                       <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Total Pulses</span>
+                       <span className={`text-xs font-mono font-black ${config.color}`}>{personalStats.postsCount || 0}</span>
+                    </div>
+                  </div>
+               </div>
+            </div>
 
-              {/* Quick Navigation Shortcuts */}
-              <div className="bg-white/40 dark:bg-white/5 rounded-[3rem] border border-slate-100 dark:border-white/5 p-8 backdrop-blur-xl">
-                <h3 
-                  onClick={() => navigate('/departments')}
-                  className="text-[10px] font-black uppercase tracking-[0.4em] text-slate-400 mb-8 px-2 italic cursor-pointer hover:text-indigo-500 transition-colors"
-                >
-                  Important Links
-                </h3>
-                <nav className="space-y-2">
+            {/* Side Navigation links */}
+            <div className="bg-white/80 dark:bg-white/[0.03] backdrop-blur-xl rounded-2xl border border-slate-200/50 dark:border-white/10 shadow-xl p-4 transition-all hover:border-white/20">
+               <nav className="flex flex-col space-y-1">
                   {[
-                    { label: 'Matrix Arena', icon: <Users size={20} />, path: '/arena' },
-                    { label: 'Governance Node', icon: <Calendar size={20} />, path: '/dashboard?tab=schedule' },
-                    { label: 'Neural Broadcasts', icon: <Bell size={20} />, badge: '12', path: '/notifications' },
-                    { label: 'Identity Nexus', icon: <Shield size={20} />, path: '/profile' },
+                    { label: 'Campus Arena', path: '/arena', icon: Newspaper },
+                    { label: 'Operations', path: '/dashboard?tab=schedule', icon: LayoutGrid },
+                    { label: 'Signal Center', path: '/notifications', icon: Bell },
+                    { label: 'Identify', path: '/profile', icon: User },
                     ...(user?.role === 'admin' || user?.role === 'hod' ? [
-                      { label: 'Moderation Grid', icon: <ShieldAlert size={20} />, path: '/admin-dashboard?tab=moderation', active: true, color: 'text-rose-500' }
+                      { label: 'Moderation', path: '/admin-dashboard?tab=moderation', color: 'text-rose-500', icon: Shield }
                     ] : [])
-                  ].filter(item => !item.role || item.role.includes(user?.role)).map((item, i) => (
-                    <motion.button 
+                  ].map((item, i) => (
+                    <button 
                       key={i} 
-                      whileHover={{ x: 8 }}
                       onClick={() => item.path && navigate(item.path)}
-                      className={`w-full flex items-center justify-between p-4 rounded-[1.5rem] hover:bg-white dark:hover:bg-white/5 transition-all group font-bold ${item.color || 'text-slate-600 dark:text-gray-400'} hover:text-indigo-600 shadow-sm hover:shadow-md`}
+                      className={`text-left px-3 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest flex items-center gap-3 ${item.color || 'text-slate-600 dark:text-gray-400'} hover:bg-slate-100 dark:hover:bg-white/5 transition-all w-full group`}
                     >
-                      <div className="flex items-center gap-4">
-                        <span className={`p-2 rounded-xl bg-slate-100 dark:bg-white/5 group-hover:bg-indigo-50 dark:group-hover:bg-indigo-900/20 group-hover:text-indigo-600 transition-colors ${item.active ? 'text-indigo-600 bg-indigo-50 dark:bg-indigo-900/20' : ''}`}>{item.icon}</span>
-                        <span className="text-[11px] uppercase tracking-widest font-black">{item.label}</span>
-                      </div>
-                      {item.badge && (
-                        <span className="bg-indigo-600 text-white text-[9px] px-2 py-0.5 rounded-lg font-black tracking-widest">{item.badge}</span>
-                      )}
-                    </motion.button>
+                      {item.icon && <item.icon size={14} className={`group-hover:scale-110 transition-transform ${item.color ? '' : `group-hover:${config.color}`}`} />}
+                      {item.label}
+                    </button>
                   ))}
-                </nav>
-              </div>
+               </nav>
             </div>
           </aside>
 
-           {/* MAIN CENTER FEED */}
-          <main className="flex-1 h-full max-w-[800px] min-w-0 w-full flex flex-col gap-6 mx-auto lg:mx-0 overflow-y-auto overflow-x-hidden custom-scrollbar px-6 pt-0 pb-32 relative">
-
-            {/* Announcement Banner */}
-            <div className="relative h-72 rounded-[3.5rem] overflow-hidden shadow-2xl shadow-indigo-500/10 group mb-4">
-              <img src="/banner.png" alt="Academic Feed" className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-1000" />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent z-0" />
-              <div className="absolute top-0 right-0 p-12 opacity-30 z-10 transition-transform group-hover:rotate-12 duration-1000">
-                <Sparkles size={140} className="text-white" />
-              </div>
-              <div className="relative z-10 p-12 h-full flex flex-col justify-end">
-                <span className="px-5 py-2 w-fit rounded-full bg-white/10 backdrop-blur-xl border border-white/20 text-white text-[10px] font-black uppercase tracking-[0.3em] shadow-2xl">Institutional Broadcast</span>
-                <h1 className="text-5xl lg:text-6xl font-black text-white mt-4 leading-none uppercase tracking-tighter italic">Lattice Community</h1>
-                <p className="text-white/70 text-sm font-bold mt-4 max-w-lg leading-relaxed">Connecting faculty and scholars through high-performance academic governance and synchronous social identity nodes.</p>
-              </div>
-            </div>
-
-            <div className="relative z-40 w-full">
-              <CreatePost user={user} onPostCreated={handlePostCreated} />
-            </div>
-            
-            <div className="space-y-8 relative z-10 w-full">
-               <AnnouncementFeed key={feedVersion} user={user} />
-            </div>
+          {/* MAIN CENTER FEED */}
+          <main className="flex-1 min-w-0 h-full overflow-y-auto custom-scrollbar gpu-accelerated space-y-4 px-1 pb-20 pt-2 lg:pt-0">
+            <CreatePost user={user} onPostCreated={handlePostCreated} />
+            <AnnouncementFeed key={feedVersion} user={user} />
           </main>
 
-          {/* RIGHT SIDEBAR - Trending & Highlights */}
-          <aside className="hidden xl:block w-[350px] shrink-0 h-full overflow-y-auto overflow-x-hidden custom-scrollbar pl-2">
-            <div className="flex flex-col gap-6 pt-8 pb-24">
-              {/* Trending Hub - Reimagined as Pulse Matrix */}
-              <div className="bg-white/70 dark:bg-white/5 backdrop-blur-3xl rounded-[3rem] border border-slate-200/60 dark:border-white/5 p-8 shadow-2xl shadow-indigo-500/5 relative overflow-hidden group">
-                {/* Background Decor */}
-                <div className="absolute -top-24 -right-24 w-48 h-48 bg-indigo-500/10 rounded-full blur-3xl group-hover:scale-150 transition-transform duration-1000" />
-                
-                <div className="flex items-center justify-between mb-10 relative z-10">
-                  <div>
-                    <h3 className="text-[10px] font-black uppercase tracking-[0.4em] text-slate-400">Neural Pulse</h3>
-                    <p className="text-sm font-black text-slate-900 dark:text-white mt-1 uppercase tracking-tighter">Trending Hub</p>
-                  </div>
-                  <div className="p-3 bg-indigo-50 dark:bg-indigo-900/20 rounded-2xl text-indigo-600">
-                    <TrendingUp size={20} />
-                  </div>
+          {/* RIGHT SIDEBAR - Trending */}
+          <aside className="hidden xl:block w-[320px] shrink-0 h-full overflow-y-auto no-scrollbar pb-10 space-y-4 pt-2 lg:pt-0">
+             <div className="bg-white/80 dark:bg-white/[0.03] backdrop-blur-xl rounded-2xl border border-slate-200/50 dark:border-white/10 shadow-xl p-6 transition-all hover:border-white/20">
+                <div className="flex items-center justify-between mb-6">
+                   <h3 className="text-xs font-black uppercase tracking-widest text-slate-900 dark:text-white">Trending Signal</h3>
+                   <TrendingUp size={16} className={`${config.color} animate-pulse`} />
                 </div>
                 
-                <div className="space-y-4 relative z-10">
-                  {trendingPosts.slice(0, 3).length > 0 ? trendingPosts.slice(0, 3).map((post, i) => {
-                    const isLive = post.title?.toLowerCase().includes('live class') || post.content?.toLowerCase().includes('broadcast');
-                    return (
-                      <motion.div 
-                        key={post._id} 
-                        whileHover={{ x: 6 }}
-                        className="p-5 rounded-[2rem] bg-slate-50/50 dark:bg-white/5 border border-slate-100 dark:border-white/5 transition-all hover:bg-white dark:hover:bg-white/10 hover:shadow-xl group/card relative"
-                      >
-                        <div className="flex gap-5">
-                          {/* Rank/Counter */}
-                          <div className="shrink-0 flex flex-col items-center">
-                            <span className="text-3xl font-black tracking-tighter text-slate-200 dark:text-slate-800 group-hover/card:text-indigo-500/20 transition-colors">0{i + 1}</span>
-                            {isLive && (
-                              <div className="mt-2 w-1.5 h-1.5 rounded-full bg-rose-500 animate-ping shadow-[0_0_8px_rgba(244,63,94,0.8)]" />
-                            )}
-                          </div>
-
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2 mb-2">
-                              {isLive && (
-                                <span className="px-2 py-0.5 rounded-md bg-rose-500/10 text-rose-500 text-[8px] font-black uppercase tracking-widest border border-rose-500/20">Live</span>
-                              )}
-                              <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest truncate">{post.category || 'Institutional'}</span>
-                            </div>
-                            
-                            <h4 className="text-xs font-black text-slate-900 dark:text-gray-100 line-clamp-2 leading-tight tracking-tight uppercase group-hover/card:text-indigo-600 transition-colors">
-                              {post.title || post.content}
-                            </h4>
-
-                            <div className="flex items-center gap-4 mt-4 opacity-60">
-                              <div className="flex items-center gap-1.5 text-[9px] font-black text-slate-500 uppercase tracking-widest">
-                                <Heart size={10} className="text-rose-500" /> {post.likesCount || 0}
-                              </div>
-                              <div className="flex items-center gap-1.5 text-[9px] font-black text-slate-500 uppercase tracking-widest">
-                                <MessageSquare size={10} /> {post.commentsCount || 0}
-                              </div>
-                              <div className="ml-auto text-[8px] font-black text-slate-400 uppercase">
-                                {safeFormatDate(post.createdAt)}
-                              </div>
-                            </div>
-                          </div>
+                <div className="space-y-6">
+                   {trendingPosts.slice(0, 5).length > 0 ? trendingPosts.slice(0, 5).map((post, i) => (
+                     <div key={post._id} className="cursor-pointer group flex gap-3">
+                        <div className="text-xs font-mono font-black text-slate-300 dark:text-white/10 mt-1">0{i+1}</div>
+                        <div>
+                          <h4 className={`text-xs font-bold text-slate-800 dark:text-gray-200 group-hover:${config.color} transition-colors line-clamp-2 leading-relaxed`}>
+                             {post.title || post.content}
+                          </h4>
+                          <p className="text-[9px] font-mono font-bold text-slate-500 mt-1 uppercase tracking-widest">{safeFormatDate(post.createdAt)} • {post.likesCount || 0} ARCHIVES</p>
                         </div>
-                      </motion.div>
-                    );
-                  }) : (
-                    <div className="py-20 flex flex-col items-center justify-center space-y-4">
-                       <div className="w-10 h-10 rounded-full border-2 border-slate-100 dark:border-white/5 border-t-indigo-500 animate-spin" />
-                       <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Syncing Lattice Pulse...</p>
-                    </div>
-                  )}
+                     </div>
+                   )) : (
+                     <div className="flex flex-col items-center py-6 gap-2">
+                        <div className={`w-8 h-8 rounded-full border border-dashed ${config.color} opacity-30 animate-spin`} />
+                        <p className="text-[10px] font-mono text-slate-500 uppercase tracking-widest italic">Syncing pulses...</p>
+                     </div>
+                   )}
                 </div>
-              </div>
+                
+                <button 
+                  onClick={() => navigate('/notifications')}
+                  className="w-full mt-8 py-3 border border-slate-200 dark:border-white/5 rounded-xl text-[10px] font-black uppercase tracking-widest text-slate-500 hover:bg-slate-100 dark:hover:bg-white/5 transition-all"
+                >
+                  Global Archives
+                </button>
+             </div>
 
-              {/* Verification / Security Badge */}
-              <div className="bg-gradient-to-br from-gray-900 to-gray-800 dark:from-gray-800 dark:to-black rounded-[2rem] p-8 text-white relative overflow-hidden group">
-                <div className="relative z-10">
-                  <ShieldCheck size={32} className="text-emerald-400 mb-4 group-hover:scale-110 transition-transform" />
-                  <h4 className="text-lg font-black uppercase tracking-tight">Verified Feed</h4>
-                  <p className="text-xs text-gray-400 mt-2 font-bold leading-relaxed">
-                    Only official academic updates from verified faculty and administrators are pinned at the top.
-                  </p>
+             <div className={`bg-gradient-to-br ${config.from} ${config.to} opacity-5 backdrop-blur-xl rounded-2xl border border-white/10 p-6 text-center group transition-all hover:border-white/20 relative overflow-hidden`}>
+                {/* Visual Fix for the above background: the opacity affects children too if not careful. Using a pseudo-element or separate div is better. */}
+             </div>
+             {/* Redefining the Verified box with better nesting */}
+             <div className="relative group transition-all">
+                <div className={`absolute inset-0 bg-gradient-to-br ${config.from} ${config.to} opacity-[0.03] dark:opacity-[0.05] rounded-2xl`} />
+                <div className="relative z-10 p-6 text-center rounded-2xl border border-slate-200/50 dark:border-white/10 shadow-lg backdrop-blur-sm group-hover:border-white/20 transition-all overflow-hidden font-sans">
+                   <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-10 mix-blend-overlay"></div>
+                   <ShieldCheck size={28} className={`${config.color} mx-auto mb-4 group-hover:scale-110 transition-transform`} />
+                   <h4 className="text-xs font-black uppercase tracking-widest text-slate-900 dark:text-white">Verified Protocol</h4>
+                   <p className="text-[10px] font-medium text-slate-500 dark:text-gray-400 mt-3 leading-relaxed">
+                     Authorized signals from the Institutional Council and Strategic Boards.
+                   </p>
                 </div>
-                <div className="absolute -bottom-10 -right-10 w-32 h-32 bg-emerald-500/10 rounded-full blur-3xl" />
-              </div>
-
-            </div>
+             </div>
           </aside>
 
         </div>
       </div>
       <style>
         {`
-          @keyframes marquee {
-            0% { transform: translateX(0); }
-            100% { transform: translateX(-50%); }
-          }
-          .animate-marquee {
-            animation: marquee 60s linear infinite;
-            display: flex;
-          }
-          .animate-marquee:hover {
-            animation-play-state: paused;
+          .custom-scrollbar {
+            scroll-behavior: smooth;
+            -webkit-overflow-scrolling: touch;
+            scrollbar-gutter: stable;
           }
           .custom-scrollbar::-webkit-scrollbar {
-            width: 6px;
-            height: 6px;
+            width: 4px;
           }
           .custom-scrollbar::-webkit-scrollbar-track {
             background: transparent;
           }
           .custom-scrollbar::-webkit-scrollbar-thumb {
-            background: rgba(67, 97, 238, 0.1);
+            background: rgba(15, 23, 42, 0.1);
             border-radius: 20px;
-            border: 2px solid transparent;
-            background-clip: content-box;
           }
           .dark .custom-scrollbar::-webkit-scrollbar-thumb {
-            background: rgba(255, 255, 255, 0.1);
+            background: rgba(255, 255, 255, 0.05);
           }
-          .custom-scrollbar:hover::-webkit-scrollbar-thumb {
-            background: rgba(67, 97, 238, 0.4);
-            background-clip: content-box;
+          .no-scrollbar::-webkit-scrollbar {
+            display: none;
           }
-           /* Hide main page scrollbar to enforce 3-column independent scrolling */
+          .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+          }
           html, body {
             overflow: hidden !important;
-            height: 100%;
+            height: 100vh !important;
+            margin: 0;
+            padding: 0;
+            background-color: transparent !important;
+          }
+          /* Optimize for video & heavy blur */
+          .gpu-accelerated {
+            transform: translateZ(0);
+            backface-visibility: hidden;
+            perspective: 1000px;
+            will-change: transform;
+          }
+          .glass-contain {
+            contain: paint;
           }
         `}
       </style>

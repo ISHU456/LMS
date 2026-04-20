@@ -3,7 +3,7 @@ import {
   Image, Video, Link, FileText, X, 
   Send, Plus, Type, CheckCircle2, 
   AlertCircle, Sparkles, Pin, Shield, 
-  Upload, Paperclip, ChevronDown
+  Upload, Paperclip, ChevronDown, Briefcase
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import axios from 'axios';
@@ -122,270 +122,154 @@ const CreatePost = ({ user, onPostCreated }) => {
     { id: 'link', icon: <Link size={18} />, label: 'Link', color: 'bg-primary-50 text-primary-600' },
   ];
 
-  return (
-    <div className={`w-full bg-white dark:bg-[#0b0f1a] shadow-2xl shadow-slate-200/50 dark:shadow-none rounded-[3rem] border border-slate-100 dark:border-white/5 transition-all relative z-30 overflow-visible ${isExpanded ? 'p-10' : 'p-6'}`}>
-      
-      {/* Terminal Pulse Background */}
-      {isExpanded && (
-        <div className="absolute top-0 right-0 w-64 h-64 bg-primary-500/5 rounded-full blur-[100px] pointer-events-none" />
-      )}
+  const roleConfigs = {
+    admin: { color: 'text-rose-500', bg: 'bg-rose-500', lightBg: 'bg-rose-50', border: 'border-rose-500/20', shadow: 'shadow-rose-500/20', hoverBg: 'hover:bg-rose-500/10' },
+    teacher: { color: 'text-indigo-500', bg: 'bg-indigo-500', lightBg: 'bg-indigo-50', border: 'border-indigo-500/20', shadow: 'shadow-indigo-500/20', hoverBg: 'hover:bg-indigo-500/10' },
+    faculty: { color: 'text-indigo-500', bg: 'bg-indigo-500', lightBg: 'bg-indigo-50', border: 'border-indigo-500/20', shadow: 'shadow-indigo-500/20', hoverBg: 'hover:bg-indigo-500/10' },
+    student: { color: 'text-blue-500', bg: 'bg-blue-500', lightBg: 'bg-blue-50', border: 'border-blue-500/20', shadow: 'shadow-blue-500/20', hoverBg: 'hover:bg-blue-500/10' },
+  };
 
+  const config = roleConfigs[user?.role] || roleConfigs.student;
+
+  return (
+    <div className={`w-full bg-white/80 dark:bg-white/[0.03] backdrop-blur-xl shadow-xl rounded-2xl border border-slate-200/50 dark:border-white/10 transition-all relative z-30 transform-gpu hover:border-white/20 ${isExpanded ? 'p-8' : 'p-6'}`}>
+      
       {!isExpanded ? (
-        <div className="w-full flex items-center justify-between gap-6">
-          <div className="flex items-center gap-5 flex-1">
-            <div className="relative group cursor-pointer shrink-0" onClick={() => setIsExpanded(true)}>
-              <div className="w-14 h-14 rounded-[1.2rem] p-[2px] bg-gradient-to-tr from-slate-200 to-slate-300 dark:from-white/10 dark:to-white/5">
-                <div className="w-full h-full rounded-[1.1rem] bg-white dark:bg-[#0b0f19] overflow-hidden flex items-center justify-center">
-                   {user?.profilePic ? (
-                     <img src={user.profilePic} alt={user.name} className="w-full h-full object-cover" />
-                   ) : (
-                     <span className="text-xl font-black text-slate-300">{user?.name?.charAt(0) || 'U'}</span>
-                   )}
-                </div>
-              </div>
-              <div className="absolute -bottom-1 -right-1 w-4 h-4 rounded-full bg-emerald-500 border-2 border-white dark:border-[#0b0f1a] animate-pulse" />
+        <div className="flex flex-col gap-4">
+          <div className="flex items-center gap-4">
+            <div className={`w-14 h-14 rounded-2xl bg-slate-100 dark:bg-white/5 overflow-hidden shrink-0 border border-slate-200 dark:border-white/10 shadow-lg`}>
+               {user?.profilePic ? (
+                 <img src={user.profilePic} alt={user.name} className="w-full h-full object-cover" />
+               ) : (
+                 <div className="w-full h-full flex items-center justify-center text-xl font-black text-slate-400">
+                    {user?.name?.charAt(0) || 'U'}
+                 </div>
+               )}
             </div>
-            
             <button 
               onClick={() => setIsExpanded(true)}
-              className="flex-1 h-14 text-left px-8 rounded-[1.5rem] bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/5 text-slate-400 font-bold hover:bg-slate-100 dark:hover:bg-white/10 transition-all text-sm tracking-tight"
+              className="flex-1 h-14 text-left px-6 rounded-2xl bg-slate-50 dark:bg-white/[0.02] border border-slate-200 dark:border-white/5 text-slate-400 font-bold hover:bg-slate-100 dark:hover:bg-white/[0.05] transition-all text-sm uppercase tracking-widest"
             >
-              Initiate academic broadcast...
+              Start an institutional signal...
             </button>
           </div>
           
-          <div className="hidden sm:flex items-center gap-3 shrink-0">
+          <div className="flex items-center justify-around pt-2">
             {[
-              { icon: <Image size={20} />, action: () => { setType('image'); setIsExpanded(true); }, color: 'text-rose-500', bg: 'bg-rose-50' },
-              { icon: <Video size={20} />, action: () => { setType('video'); setIsExpanded(true); }, color: 'text-amber-500', bg: 'bg-amber-50' },
-              { icon: <Paperclip size={20} />, action: () => { setType('file'); setIsExpanded(true); }, color: 'text-emerald-500', bg: 'bg-emerald-50' },
+              { icon: <Image size={20} className="text-blue-500" />, label: 'PHOTO', action: () => { setType('image'); setIsExpanded(true); } },
+              { icon: <Video size={20} className="text-emerald-500" />, label: 'MEDIA', action: () => { setType('video'); setIsExpanded(true); } },
+              { icon: <Briefcase size={20} className="text-purple-500" />, label: 'MISSION', action: () => { setType('link'); setIsExpanded(true); } },
+              { icon: <FileText size={20} className="text-orange-500" />, label: 'ARCHIVE', action: () => { setType('file'); setIsExpanded(true); } },
             ].map((tool, i) => (
               <button 
                 key={i}
                 onClick={tool.action}
-                className={`p-4 rounded-2xl ${tool.bg} dark:bg-white/5 ${tool.color} hover:scale-110 active:scale-95 transition-all shadow-sm`}
+                className="flex items-center gap-2 px-4 py-2.5 rounded-xl hover:bg-slate-100 dark:hover:bg-white/5 transition-all group"
               >
-                {tool.icon}
+                <div className="group-hover:scale-110 transition-transform">{tool.icon}</div>
+                <span className="text-[10px] font-black text-slate-500 tracking-widest uppercase">{tool.label}</span>
               </button>
             ))}
           </div>
         </div>
       ) : (
-        <div className="space-y-8 relative z-10">
-          {/* Header */}
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-5">
-              <div className="w-14 h-14 rounded-2xl bg-indigo-600 flex items-center justify-center text-white shadow-xl shadow-indigo-500/20">
-                <Sparkles size={24} />
-              </div>
-              <div>
-                <h3 className="text-xl font-black text-slate-900 dark:text-white tracking-tight uppercase">Broadcast Terminal</h3>
-                <div className="flex items-center gap-2 mt-1">
-                   <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                   <p className="text-[10px] font-black uppercase text-emerald-500 tracking-[0.2em]">Institutional Connection Synchronized</p>
+        <div className="space-y-4">
+          <div className="flex items-center justify-between pb-6 border-b border-slate-100 dark:border-white/5">
+             <div className="flex items-center gap-4">
+                <div className="w-12 h-12 rounded-xl bg-slate-100 dark:bg-white/5 overflow-hidden border border-slate-200 dark:border-white/10 shadow-lg">
+                   {user?.profilePic ? <img src={user.profilePic} alt="" className="w-full h-full object-cover" /> : null}
                 </div>
-              </div>
-            </div>
-            <button 
-              onClick={() => setIsExpanded(false)} 
-              className="p-3 rounded-2xl text-slate-400 hover:bg-slate-100 dark:hover:bg-white/5 transition-all"
-            >
-              <X size={24} />
-            </button>
+                <div>
+                  <h4 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-tight">{user?.name}</h4>
+                  <p className={`text-[10px] ${config.color} font-black uppercase tracking-[0.2em] italic`}>Transmitting Signal</p>
+                </div>
+             </div>
+             <button onClick={() => setIsExpanded(false)} className="p-2 hover:bg-slate-100 dark:hover:bg-white/5 rounded-xl text-slate-500 transition-colors">
+                <X size={20} />
+             </button>
           </div>
 
-          {/* Type Selector Tabs */}
-          <div className="flex flex-wrap gap-2">
-            {typeOptions.map(opt => (
-              <button
-                key={opt.id}
-                onClick={() => setType(opt.id)}
-                className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${type === opt.id ? opt.color + ' border-2 border-currentColor/20 shadow-lg' : 'bg-gray-50 dark:bg-gray-800/50 text-gray-500'}`}
-              >
-                {opt.icon} {opt.label}
-              </button>
-            ))}
-          </div>
-
-          {/* Inputs Section */}
           <div className="space-y-4">
             <input 
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              placeholder="Post Title (Optional)"
-              className="w-full px-5 py-3 rounded-2xl bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-700 outline-none font-black text-gray-900 dark:text-white placeholder:text-gray-400 focus:bg-white dark:focus:bg-gray-900 focus:border-primary-500/50 transition-all"
+              placeholder="Title (optional)"
+              className="w-full text-lg font-semibold bg-transparent border-none outline-none text-slate-900 dark:text-white placeholder:text-slate-400"
             />
             
             <textarea 
               value={content}
               onChange={(e) => setContent(e.target.value)}
-              rows={4}
-              placeholder="What would you like to announce?"
-              className="w-full px-5 py-4 rounded-3xl bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-700 outline-none font-bold text-gray-900 dark:text-white placeholder:text-gray-400 focus:bg-white dark:focus:bg-gray-900 focus:border-primary-500/50 transition-all resize-none"
+              rows={6}
+              placeholder="What do you want to talk about?"
+              className="w-full text-sm font-medium bg-transparent border-none outline-none text-slate-800 dark:text-gray-300 placeholder:text-slate-400 resize-none"
+              autoFocus
             />
             
-            <div className="space-y-2">
-              <div className="relative">
-                <span className="absolute left-5 top-1/2 -translate-y-1/2 font-black text-gray-400">#</span>
-                <input 
-                  value={tagInput}
-                  onChange={(e) => setTagInput(e.target.value)}
-                  onKeyDown={handleAddTag}
-                  placeholder="Add tags (press Enter or comma)"
-                  className="w-full pl-10 pr-5 py-3 rounded-2xl bg-gray-50 dark:bg-gray-800/20 border border-gray-100 dark:border-gray-700 outline-none text-sm font-bold text-gray-900 dark:text-white placeholder:text-gray-400 focus:bg-white dark:focus:bg-gray-900 focus:border-indigo-500/50 transition-all"
-                />
-              </div>
-              {tags.length > 0 && (
-                <div className="flex flex-wrap gap-2 pt-1">
-                  {tags.map((tag, idx) => (
-                    <span key={idx} className="flex items-center gap-1.5 px-3 py-1 rounded-xl bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 font-bold text-xs">
-                      #{tag}
-                      <button onClick={() => removeTag(tag)} className="text-indigo-400 hover:text-rose-500 transition-colors">
-                        <X size={12} />
-                      </button>
-                    </span>
-                  ))}
-                </div>
-              )}
-            </div>
-            
-            <AnimatePresence mode="wait">
-              {type === 'video' && (
-                <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }}>
-                  <div className="relative">
-                    <Video size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
-                    <input 
-                      value={videoUrl}
-                      onChange={(e) => setVideoUrl(e.target.value)}
-                      placeholder="YouTube or Vimeo URL"
-                      className="w-full pl-12 pr-5 py-3 rounded-2xl bg-amber-50/30 border border-amber-200/50 outline-none text-sm font-bold text-gray-900 dark:text-white"
-                    />
-                  </div>
-                </motion.div>
-              )}
-              
-              {type === 'link' && (
-                <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }}>
-                  <div className="relative">
-                    <Link size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
-                    <input 
-                      value={externalLink}
-                      onChange={(e) => setExternalLink(e.target.value)}
-                      placeholder="https://..."
-                      className="w-full pl-12 pr-5 py-3 rounded-2xl bg-primary-50/30 border border-primary-200/50 outline-none text-sm font-bold text-gray-900 dark:text-white"
-                    />
-                  </div>
-                </motion.div>
-              )}
-
-              {(type === 'image' || type === 'file') && (
-                <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="space-y-3">
-                  <div 
-                    onClick={() => fileInputRef.current.click()}
-                    className="border-2 border-dashed border-gray-200 dark:border-gray-700 rounded-3xl p-8 flex flex-col items-center justify-center gap-3 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-all group"
-                  >
-                    <div className="w-12 h-12 rounded-2xl bg-gray-100 dark:bg-gray-800 flex items-center justify-center text-gray-400 group-hover:scale-110 transition-transform">
-                      {type === 'image' ? <Image size={24} /> : <Upload size={24} />}
-                    </div>
-                    <div className="text-center">
-                      <p className="text-sm font-black text-gray-900 dark:text-white">Click to upload {type}</p>
-                      <p className="text-[10px] uppercase font-black tracking-widest text-gray-400">Drag and drop also works</p>
-                    </div>
-                    <input 
-                      type="file" 
-                      ref={fileInputRef} 
-                      className="hidden" 
-                      multiple={type === 'file'}
-                      accept={type === 'image' ? "image/*" : "*"}
-                      onChange={handleFileChange}
-                    />
-                  </div>
-                  
-                  {attachments.length > 0 && (
-                    <div className="flex flex-wrap gap-2">
-                      {attachments.map((file, idx) => (
-                        <div key={idx} className="flex items-center gap-2 px-3 py-2 rounded-xl bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
-                          {file.type === 'image' ? <Image size={14} className="text-rose-500" /> : <Paperclip size={14} className="text-primary-500" />}
-                          <span className="text-[10px] font-bold text-gray-700 dark:text-gray-300 truncate max-w-[120px]">{file.name}</span>
-                          <button onClick={() => setAttachments(attachments.filter((_, i) => i !== idx))} className="text-gray-400 hover:text-red-500"><X size={14} /></button>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </motion.div>
-              )}
+            {/* Type Specific Fields */}
+            <AnimatePresence>
+               {type === 'video' && (
+                 <input 
+                   value={videoUrl} onChange={(e) => setVideoUrl(e.target.value)}
+                   placeholder="Video URL (YouTube/Vimeo)"
+                   className="w-full px-4 py-2 text-xs rounded-lg bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800"
+                 />
+               )}
+               {type === 'link' && (
+                 <input 
+                   value={externalLink} onChange={(e) => setExternalLink(e.target.value)}
+                   placeholder="External Link (https://...)"
+                   className="w-full px-4 py-2 text-xs rounded-lg bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800"
+                 />
+               )}
             </AnimatePresence>
+
+            {/* Tags */}
+            <div className="flex flex-wrap gap-2 items-center">
+               <span className={`text-xs font-bold ${config.color}`}>Tags:</span>
+               {tags.map(tag => (
+                 <span key={tag} className={`px-2 py-1 ${config.lightBg} ${config.color} rounded text-[10px] font-bold flex items-center gap-1`}>
+                   #{tag} <X size={10} onClick={() => removeTag(tag)} className="cursor-pointer" />
+                 </span>
+               ))}
+               <input 
+                 value={tagInput}
+                 onChange={(e) => setTagInput(e.target.value)}
+                 onKeyDown={handleAddTag}
+                 placeholder="add tag..."
+                 className="bg-transparent border-none outline-none text-xs text-slate-600 w-24"
+               />
+            </div>
           </div>
 
-          {/* Admin Controls */}
-          {isAdmin && (
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 bg-gray-50/50 dark:bg-gray-800/30 p-4 rounded-3xl border border-gray-100 dark:border-gray-800">
-              <div className="col-span-1">
-                <label className="text-[9px] font-black uppercase tracking-widest text-gray-400 block mb-1">Category</label>
-                <select 
-                  value={category}
-                  onChange={(e) => setCategory(e.target.value)}
-                  className="w-full bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl px-3 py-2 text-xs font-bold outline-none"
-                >
-                  <option>General</option>
-                  <option>Academic</option>
-                  <option>Events</option>
-                  <option>Exams</option>
-                  <option>Sports</option>
-                </select>
-              </div>
-              <div className="col-span-1">
-                <label className="text-[9px] font-black uppercase tracking-widest text-gray-400 block mb-1">Priority</label>
-                <select 
-                  value={priority}
-                  onChange={(e) => setPriority(e.target.value)}
-                  className="w-full bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl px-3 py-2 text-xs font-bold outline-none"
-                >
-                  <option value="normal">Normal</option>
-                  <option value="high">High</option>
-                  <option value="critical">Critical</option>
-                </select>
-              </div>
-              <div className="flex items-end pb-1 gap-2">
-                <button 
-                  onClick={() => setIsPinned(!isPinned)}
-                  className={`flex-1 flex items-center justify-center gap-2 h-10 rounded-xl border transition-all ${isPinned ? 'bg-amber-50 border-amber-500/20 text-amber-600' : 'bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-700 text-gray-400'}`}
-                >
-                  <Pin size={16} className={isPinned ? 'fill-current' : ''} />
-                  <span className="text-[10px] font-black uppercase tracking-widest">Pin</span>
-                </button>
-              </div>
-              <div className="flex items-end pb-1 gap-2">
-                <button 
-                   onClick={() => setImportant(!important)}
-                   className={`flex-1 flex items-center justify-center gap-2 h-10 rounded-xl border transition-all ${important ? 'bg-rose-50 border-rose-500/20 text-rose-600' : 'bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-700 text-gray-400'}`}
-                >
-                  <Shield size={16} className={important ? 'fill-current' : ''} />
-                  <span className="text-[10px] font-black uppercase tracking-widest">Mark</span>
-                </button>
-              </div>
-            </div>
-          )}
-
-          {/* Footer Actions */}
-          <div className="flex items-center justify-between pt-2">
-             <div className="flex items-center gap-4 text-gray-400">
-               <div className="flex items-center gap-1.5">
-                  <AlertCircle size={14} />
-                  <span className="text-[10px] font-black uppercase tracking-widest">Posts shown in academic feed</span>
-               </div>
+          <div className="flex items-center justify-between pt-4 border-t border-slate-100 dark:border-white/5">
+             <div className="flex items-center gap-2 transition-all">
+                {typeOptions.map(opt => (
+                  <button 
+                    key={opt.id} onClick={() => setType(opt.id)}
+                    className={`p-2 rounded-full transition-colors ${type === opt.id ? `${config.lightBg} ${config.color}` : 'text-slate-400 hover:bg-slate-50 dark:hover:bg-white/5'}`}
+                  >
+                    {opt.icon}
+                  </button>
+                ))}
              </div>
-             <button 
-              onClick={handlePost}
-              disabled={isLoading || !content.trim()}
-              className="flex items-center gap-2 px-8 py-3 rounded-2xl bg-primary-600 text-white font-black text-xs uppercase tracking-[0.2em] shadow-xl shadow-primary-500/30 hover:shadow-2xl hover:shadow-primary-600/40 hover:scale-105 active:scale-95 transition-all disabled:opacity-50"
-             >
-               {isLoading ? (
-                 <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-               ) : (
-                 <>Post <Send size={16} /></>
-               )}
-             </button>
+             
+             <div className="flex items-center gap-3">
+                {isAdmin && (
+                  <div className="flex items-center gap-2 mr-4">
+                     <button onClick={() => setIsPinned(!isPinned)} className={`p-3 rounded-xl transition-all ${isPinned ? `${config.color} ${config.bg}/10 border ${config.border}` : 'text-slate-500 border border-transparent'}`}>
+                        <Pin size={18} fill={isPinned ? 'currentColor' : 'none'} />
+                     </button>
+                  </div>
+                )}
+                <button 
+                  onClick={handlePost}
+                  disabled={isLoading || !content.trim()}
+                  className={`px-8 py-3 rounded-2xl ${config.bg} text-white font-black text-xs uppercase tracking-[0.2em] hover:opacity-90 disabled:opacity-50 transition-all shadow-lg ${config.shadow} active:scale-95`}
+                >
+                  {isLoading ? 'SYNCING...' : 'INITIATE SIGNAL'}
+                </button>
+             </div>
           </div>
         </div>
       )}

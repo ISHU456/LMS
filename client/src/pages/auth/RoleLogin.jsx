@@ -1,9 +1,10 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Mail, Lock, LogIn, ChevronRight, UserPlus, BookOpen, User, Building, Phone, CalendarDays, KeyRound, ArrowLeft, UserCheck, ShieldCheck } from 'lucide-react';
+import { Mail, Lock, LogIn, ChevronRight, UserPlus, BookOpen, User, Building, Phone, CalendarDays, KeyRound, ArrowLeft, UserCheck, ShieldCheck, Fingerprint } from 'lucide-react';
 import { useDispatch, useSelector } from 'react-redux';
 import { login, register, reset } from '../../features/auth/authSlice';
 import { useNavigate, useParams, Link } from 'react-router-dom';
+import axios from 'axios';
 
 const RoleLogin = () => {
   const { roleType } = useParams(); // 'student', 'faculty', 'admin', 'librarian'
@@ -21,6 +22,15 @@ const RoleLogin = () => {
   });
   const [registrationToken, setRegistrationToken] = useState(null);
 
+  const roleConfigs = {
+    admin: { color: 'from-rose-600 to-orange-500', shadow: 'shadow-rose-500/20', subtitle: 'System Control' },
+    faculty: { color: 'from-indigo-600 to-purple-500', shadow: 'shadow-indigo-500/20', subtitle: 'Educator Suite' },
+    student: { color: 'from-blue-500 to-cyan-400', shadow: 'shadow-blue-500/20', subtitle: 'Knowledge Gateway' },
+    librarian: { color: 'from-amber-600 to-yellow-500', shadow: 'shadow-amber-500/20', subtitle: 'Digital Archives' },
+  };
+
+  const config = roleConfigs[roleType] || roleConfigs.student;
+
   // Auto-generate Enrollment Number for students
   useEffect(() => {
     if (view === 'register' && finalRole === 'student' && !formData.enrollmentNumber) {
@@ -28,7 +38,7 @@ const RoleLogin = () => {
       const randomId = Math.floor(100000 + Math.random() * 900000); 
       setFormData(prev => ({ ...prev, enrollmentNumber: `LMS-${yearPrefix}-${randomId}` }));
     }
-  }, [view, finalRole]);
+  }, [view, finalRole, formData.enrollmentNumber]);
 
   // Auto-generate Roll Number when department is selected
   useEffect(() => {
@@ -43,13 +53,12 @@ const RoleLogin = () => {
         }
     };
     fetchRoll();
-  }, [formData.department, view]);
+  }, [formData.department, view, formData.role]);
 
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const { user, isLoading, isError, isSuccess, message } = useSelector(state => state.auth);
 
-  // 1. Redirection if user is already logged in
   useEffect(() => {
     if (user) {
         if (user.role === 'admin') {
@@ -72,7 +81,6 @@ const RoleLogin = () => {
   }, [user, navigate]);
 
   useEffect(() => {
-    // Force role to match URL parameter
     setFormData(prev => ({ ...prev, role: finalRole }));
   }, [finalRole]);
 
@@ -83,30 +91,7 @@ const RoleLogin = () => {
     }
     
     if (isSuccess && user) {
-      if (user.role === 'admin') {
-        if (!user.faceRegistered) {
-          navigate('/face-registration', { state: { forced: true } });
-        } else {
-          navigate('/admin-dashboard');
-        }
-      }
-      else if (user.role === 'student') {
-        if (!user.faceRegistered) {
-          navigate('/face-registration', { state: { forced: true } });
-        } else {
-          navigate('/dashboard');
-        }
-      }
-      else if (user.role === 'librarian') navigate('/librarian-dashboard');
-      else if (user.role === 'hod') navigate('/hod-dashboard');
-      else if (user.role === 'parent') navigate('/parent-dashboard');
-      else if (user.role === 'teacher') {
-        if (!user.faceRegistered) {
-          navigate('/face-registration', { state: { forced: true } });
-        } else {
-          navigate('/faculty-dashboard');
-        }
-      }
+       // Success redirection logic remains handled by the first useEffect
     }
   }, [user, isError, isSuccess, message, navigate, dispatch]);
 
@@ -124,7 +109,6 @@ const RoleLogin = () => {
     }
   };
 
-
   const handleRegisterSubmit = async (e) => {
     e.preventDefault();
     const maxStep = (formData.role === 'student') ? 3 : (formData.role === 'teacher' ? 2 : 2);
@@ -140,79 +124,140 @@ const RoleLogin = () => {
       console.log('Registration Error:', err);
     }
   };
-  
-
 
   const formVariants = {
-    hidden: { opacity: 0, x: 50 },
-    visible: { opacity: 1, x: 0, transition: { duration: 0.4, ease: "easeOut" } },
-    exit: { opacity: 0, x: -50, transition: { duration: 0.3 } }
+    hidden: { opacity: 0, x: 20 },
+    visible: { opacity: 1, x: 0, transition: { duration: 0.4, ease: [0.23, 1, 0.32, 1] } },
+    exit: { opacity: 0, x: -20, transition: { duration: 0.3 } }
   };
 
-  return (
-    <div className="min-h-[calc(100vh-73px)] flex items-center justify-center p-6 bg-gray-50 dark:bg-dark-bg relative overflow-hidden transition-colors duration-300">
-      {/* Decorative Blob */}
-      <div className={`absolute top-1/4 -right-20 w-96 h-96 rounded-full mix-blend-multiply dark:mix-blend-screen filter blur-3xl opacity-30 animate-pulse
-        ${roleType === 'admin' ? 'bg-red-400' : roleType === 'faculty' ? 'bg-indigo-400' : roleType === 'librarian' ? 'bg-amber-400' : 'bg-primary-400'}
-      `}></div>
+  const inputClasses = "appearance-none rounded-2xl relative block w-full px-4 py-4 pl-12 border border-white/10 bg-white/5 text-white placeholder-gray-500 focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 outline-none transition-all backdrop-blur-sm";
 
-      <div className="w-full max-w-md relative z-10 perspective-1000">
-        <div className="glass shadow-2xl rounded-3xl p-8 backdrop-blur-xl border border-white/40 dark:border-gray-800/60 transition-all duration-300 hover:shadow-primary-500/10">
-          
-          <Link to="/login" className="inline-flex items-center text-sm font-medium text-gray-500 hover:text-primary-600 mb-6 transition-colors">
-             <ArrowLeft size={16} className="mr-1" /> Back to Portals
+  return (
+    <div className="relative min-h-[calc(100vh-80px)] w-full flex items-center justify-center p-4 md:p-8 overflow-hidden bg-[#020617] transform-gpu">
+      {/* Dynamic Background Elements */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none transform-gpu">
+        <div className={`absolute top-[-10%] left-[-10%] w-[40%] h-[40%] rounded-full opacity-20 blur-[80px] bg-gradient-to-br ${config.color} transform-gpu`} />
+        <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] rounded-full bg-blue-600/10 blur-[80px] transform-gpu" />
+        
+        {/* Animated grid background */}
+        <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 mix-blend-overlay"></div>
+        <div className="absolute inset-0 opacity-[0.03]" 
+             style={{ backgroundImage: 'radial-gradient(circle at 1px 1px, white 1px, transparent 0)', backgroundSize: '40px 40px' }}>
+        </div>
+      </div>
+
+      <div className="w-full max-w-xl relative z-10 py-12">
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="relative rounded-[2.5rem] bg-white/[0.03] border border-white/10 backdrop-blur-lg p-8 md:p-12 shadow-2xl transform-gpu"
+        >
+          {/* Back Button */}
+          <Link to="/login" className="inline-flex items-center gap-2 text-xs font-mono text-gray-500 hover:text-white mb-8 transition-colors uppercase tracking-[0.2em] group">
+             <div className="p-2 rounded-lg bg-white/5 group-hover:bg-white/10 transition-colors">
+                <ArrowLeft size={14} />
+             </div>
+             System Core
           </Link>
 
-          <div className="text-center mb-10">
-            <h2 className="text-3xl font-extrabold text-gray-900 dark:text-white capitalize tracking-tight mb-2">
-              {roleType} Portal
-            </h2>
-            <p className="text-gray-500 dark:text-gray-400 text-sm font-medium">
-              Secure {view === 'login' ? 'Authentication' : view === 'register' ? 'Registration' : 'Recovery'} Area
-            </p>
-          </div>
+          <header className="mb-10">
+             <div className="flex items-center gap-4 mb-4">
+                <div className={`p-4 rounded-2xl bg-gradient-to-br ${config.color} shadow-lg ${config.shadow}`}>
+                   {view === 'login' ? <Lock size={28} className="text-white" /> : <UserPlus size={28} className="text-white" />}
+                </div>
+                <div>
+                   <p className={`text-xs font-mono uppercase tracking-[0.2em] bg-clip-text text-transparent bg-gradient-to-r ${config.color} font-bold`}>
+                      {config.subtitle}
+                   </p>
+                   <h1 className="text-3xl font-black text-white capitalize tracking-tight">
+                      {roleType} {view === 'login' ? 'Authentication' : 'Registration'}
+                   </h1>
+                </div>
+             </div>
+             <p className="text-gray-400 text-sm font-medium leading-relaxed">
+                {view === 'login' 
+                  ? `Please provide your secure credentials to bypass the ${roleType} identity handshake.`
+                  : `Initialize your institutional identity profile within the ${roleType} sector archives.`
+                }
+             </p>
+          </header>
 
           <AnimatePresence mode="wait">
             {view === 'login' && (
               <motion.form key="login" variants={formVariants} initial="hidden" animate="visible" exit="exit" className="space-y-6" onSubmit={handleLoginSubmit}>
                 <div className="space-y-4">
                   <div className="relative group">
-                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400 group-focus-within:text-primary-500 transition-colors"><Mail size={20} /></div>
-                    <input type="email" name="email" value={formData.email} onChange={handleChange} required className="appearance-none rounded-xl relative block w-full px-3 py-3 pl-10 border border-gray-300 dark:border-gray-700 bg-white/50 dark:bg-dark-card/50 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500 outline-none transition-all" placeholder={`${roleType.charAt(0).toUpperCase() + roleType.slice(1)} Email`} />
+                    <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-gray-500 group-focus-within:text-blue-400 transition-colors">
+                      <Mail size={18} />
+                    </div>
+                    <input type="email" name="email" value={formData.email} onChange={handleChange} required className={inputClasses} placeholder="Access Email (e.g. system@edu.com)" />
                   </div>
                   <div className="relative group">
-                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400 group-focus-within:text-primary-500 transition-colors"><Lock size={20} /></div>
-                    <input type="password" name="password" value={formData.password} onChange={handleChange} required className="appearance-none rounded-xl relative block w-full px-3 py-3 pl-10 border border-gray-300 dark:border-gray-700 bg-white/50 dark:bg-dark-card/50 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500 outline-none transition-all" placeholder="Password" />
+                    <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-gray-500 group-focus-within:text-blue-400 transition-colors">
+                      <KeyRound size={18} />
+                    </div>
+                    <input type="password" name="password" value={formData.password} onChange={handleChange} required className={inputClasses} placeholder="Cryptographic Password" />
                   </div>
                 </div>
                 
-                <div className="flex items-center justify-between text-sm">
-                  <button type="button" onClick={() => setView('forgot')} className="font-medium text-primary-600 hover:text-primary-500 transition-colors">Forgot password?</button>
+                <div className="flex items-center justify-between">
+                  <button type="button" onClick={() => setView('forgot')} className="text-xs font-mono text-gray-500 hover:text-blue-400 transition-colors uppercase tracking-widest">
+                    Recovery Protocol?
+                  </button>
                 </div>
 
-                <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} type="submit" disabled={isLoading} className={`w-full flex justify-center py-3 border border-transparent text-sm font-bold rounded-xl text-white shadow-lg transition-all ${
-                    roleType === 'admin' ? 'bg-red-600 hover:bg-red-700 shadow-red-500/30' : 
-                    roleType === 'faculty' ? 'bg-indigo-600 hover:bg-indigo-700 shadow-indigo-500/30' : 
-                    roleType === 'librarian' ? 'bg-amber-600 hover:bg-amber-700 shadow-amber-500/30' : 
-                    'bg-primary-600 hover:bg-primary-700 shadow-primary-500/30'
-                }`}>
-                    {isLoading ? 'Verifying...' : <><LogIn className="mr-2" size={20} /> Login Access</>}
+                <motion.button 
+                  whileHover={{ scale: 1.01 }} 
+                  whileTap={{ scale: 0.99 }} 
+                  type="submit" 
+                  disabled={isLoading} 
+                  className={`w-full flex items-center justify-center gap-3 py-4 rounded-2xl text-white font-bold text-sm tracking-widest uppercase transition-all shadow-xl bg-gradient-to-r ${config.color} ${config.shadow} disabled:opacity-50`}
+                >
+                    {isLoading ? (
+                      <div className="flex gap-1">
+                        <div className="w-1.5 h-1.5 bg-white rounded-full animate-bounce" />
+                        <div className="w-1.5 h-1.5 bg-white rounded-full animate-bounce [animation-delay:0.2s]" />
+                        <div className="w-1.5 h-1.5 bg-white rounded-full animate-bounce [animation-delay:0.4s]" />
+                      </div>
+                    ) : (
+                      <>
+                        Initialize Access
+                        <ChevronRight size={18} />
+                      </>
+                    )}
                 </motion.button>
                 
-                <p className="text-center text-sm text-gray-600 dark:text-gray-400 font-medium pt-2">
-                  New to the platform? <button type="button" onClick={() => { setView('register'); setStep(1); }} className="text-primary-600 hover:text-primary-700 transition-colors ml-1">Register Now</button>
-                </p>
+                <div className="pt-6 border-t border-white/5 text-center">
+                  <p className="text-xs font-medium text-gray-500 group">
+                    First time accessing the protocol? 
+                    <button type="button" onClick={() => { setView('register'); setStep(1); }} className="text-white hover:text-blue-400 transition-colors ml-2 font-bold uppercase tracking-widest">
+                      Request ID
+                    </button>
+                  </p>
+                </div>
               </motion.form>
             )}
 
             {view === 'register' && (
-              <motion.form key="register" variants={formVariants} initial="hidden" animate="visible" exit="exit" className="space-y-6" onSubmit={handleRegisterSubmit}>
-                <div className="flex justify-between mb-8 relative">
-                  <div className="absolute top-1/2 left-0 w-full h-1 bg-gray-200 dark:bg-gray-700 -z-10 -translate-y-1/2 rounded-full"></div>
+              <motion.form key="register" variants={formVariants} initial="hidden" animate="visible" exit="exit" className="space-y-8" onSubmit={handleRegisterSubmit}>
+                {/* Stepper */}
+                <div className="flex items-center justify-center gap-4 mb-2">
                   {[1, 2, 3].map((s) => (
                     (s === 3 && finalRole !== 'student') ? null : (
-                      <div key={s} className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm transition-all shadow-md ${step >= s ? 'bg-primary-600 text-white border-4 border-white dark:border-dark-bg' : 'bg-gray-200 text-gray-500 dark:bg-gray-800 dark:text-gray-400'}`}>
-                        {step > s ? <BookOpen size={16} /> : s}
+                      <div key={s} className="flex items-center">
+                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-bold text-sm transition-all border ${
+                          step === s 
+                            ? `bg-gradient-to-br ${config.color} text-white border-transparent ${config.shadow}` 
+                            : step > s 
+                              ? 'bg-blue-500/20 text-blue-400 border-blue-500/20' 
+                              : 'bg-white/5 text-gray-600 border-white/5'
+                        }`}>
+                          {step > s ? <ShieldCheck size={18} /> : s}
+                        </div>
+                        {((s < 3 && finalRole === 'student') || (s < 2 && finalRole !== 'student')) && (
+                          <div className={`w-8 h-px mx-1 ${step > s ? 'bg-blue-500/30' : 'bg-white/5'}`} />
+                        )}
                       </div>
                     )
                   ))}
@@ -221,16 +266,16 @@ const RoleLogin = () => {
                 {step === 1 && (
                   <div className="space-y-4">
                     <div className="relative group">
-                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400 group-focus-within:text-primary-500"><User size={20} /></div>
-                      <input type="text" name="name" value={formData.name} onChange={handleChange} required className="appearance-none rounded-xl relative block w-full px-3 py-3 pl-10 border border-gray-300 dark:border-gray-700 bg-white/50 dark:bg-dark-card/50 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500 outline-none" placeholder="Full Legal Name" />
+                      <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-gray-400 group-focus-within:text-blue-400"><User size={18} /></div>
+                      <input type="text" name="name" value={formData.name} onChange={handleChange} required className={inputClasses} placeholder="Legal Identity Name" />
                     </div>
                     <div className="relative group">
-                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400 group-focus-within:text-primary-500"><Mail size={20} /></div>
-                      <input type="email" name="email" value={formData.email} onChange={handleChange} required className="appearance-none rounded-xl relative block w-full px-3 py-3 pl-10 border border-gray-300 dark:border-gray-700 bg-white/50 dark:bg-dark-card/50 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500 outline-none" placeholder="College Email" />
+                      <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-gray-400 group-focus-within:text-blue-400"><Mail size={18} /></div>
+                      <input type="email" name="email" value={formData.email} onChange={handleChange} required className={inputClasses} placeholder="Institutional Email" />
                     </div>
                     <div className="relative group">
-                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400 group-focus-within:text-primary-500"><Lock size={20} /></div>
-                      <input type="password" name="password" value={formData.password} onChange={handleChange} required className="appearance-none rounded-xl relative block w-full px-3 py-3 pl-10 border border-gray-300 dark:border-gray-700 bg-white/50 dark:bg-dark-card/50 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500 outline-none" placeholder="Create Password" />
+                      <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-gray-400 group-focus-within:text-blue-400"><Lock size={18} /></div>
+                      <input type="password" name="password" value={formData.password} onChange={handleChange} required className={inputClasses} placeholder="Create Encryption Token" />
                     </div>
                   </div>
                 )}
@@ -240,141 +285,115 @@ const RoleLogin = () => {
                     {finalRole === 'student' ? (
                       <>
                         <div className="relative group">
-                          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400 group-focus-within:text-primary-500"><UserCheck size={20} /></div>
-                          <input type="text" name="enrollmentNumber" value={formData.enrollmentNumber} onChange={handleChange} required className="appearance-none rounded-xl relative block w-full px-3 py-3 pl-10 border border-gray-300 dark:border-gray-700 bg-white/50 dark:bg-dark-card/50 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500 outline-none" placeholder="Enrollment Number" />
+                          <input type="text" name="enrollmentNumber" value={formData.enrollmentNumber} onChange={handleChange} required className={inputClasses} placeholder="Enrollment Vector" />
                         </div>
                         <div className="relative group">
-                          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400 group-focus-within:text-primary-500"><Building size={20} /></div>
-                          <select name="department" value={formData.department} onChange={handleChange} required className="appearance-none rounded-xl relative block w-full px-3 py-3 pl-10 border border-gray-300 dark:border-gray-700 bg-white/50 dark:bg-dark-card/50 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500 outline-none">
-                            <option value="">Select Sector (Department)</option>
-                            <option value="CSE">Computer Science (CSE)</option>
-                            <option value="ECE">Electronics (ECE)</option>
-                            <option value="ME">Mechanical (ME)</option>
-                            <option value="CE">Civil (CE)</option>
-                            <option value="IT">Information Tech (IT)</option>
-                            <option value="AI">Artificial Intelligence (AI)</option>
+                          <select name="department" value={formData.department} onChange={handleChange} required className={`${inputClasses} appearance-none cursor-pointer pr-10`}>
+                            <option value="" className="bg-[#020617]">Select Sector (Department)</option>
+                            <option value="CSE" className="bg-[#020617]">Computer Science (CSE)</option>
+                            <option value="ECE" className="bg-[#020617]">Electronics (ECE)</option>
+                            <option value="ME" className="bg-[#020617]">Mechanical (ME)</option>
+                            <option value="CE" className="bg-[#020617]">Civil (CE)</option>
+                            <option value="IT" className="bg-[#020617]">Information Tech (IT)</option>
+                            <option value="AI" className="bg-[#020617]">Artificial Intelligence (AI)</option>
                           </select>
                         </div>
                         <div className="grid grid-cols-2 gap-4">
-                           <div className="relative group">
-                              <select name="semester" value={formData.semester} onChange={handleChange} required className="appearance-none rounded-xl relative block w-full px-3 py-3 border border-gray-300 dark:border-gray-700 bg-white/50 dark:bg-dark-card/50 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500 outline-none">
-                                <option value="">Semester</option>
-                                {[1,2,3,4,5,6,7,8].map(s => <option key={s} value={s}>{s}</option>)}
-                              </select>
-                           </div>
-                           <div className="relative group">
-                              <select name="year" value={formData.year} onChange={handleChange} required className="appearance-none rounded-xl relative block w-full px-3 py-3 border border-gray-300 dark:border-gray-700 bg-white/50 dark:bg-dark-card/50 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500 outline-none">
-                                <option value="">Year</option>
-                                {[1,2,3,4].map(y => <option key={y} value={y}>{y}</option>)}
-                              </select>
-                           </div>
+                            <select name="semester" value={formData.semester} onChange={handleChange} required className={`${inputClasses} appearance-none cursor-pointer pr-4`}>
+                              <option value="" className="bg-[#020617]">Semester</option>
+                              {[1,2,3,4,5,6,7,8].map(s => <option key={s} value={s} className="bg-[#020617]">{s}</option>)}
+                            </select>
+                            <select name="year" value={formData.year} onChange={handleChange} required className={`${inputClasses} appearance-none cursor-pointer pr-4`}>
+                              <option value="" className="bg-[#020617]">Year</option>
+                              {[1,2,3,4].map(y => <option key={y} value={y} className="bg-[#020617]">{y}</option>)}
+                            </select>
                         </div>
-                        <div className="relative group">
-                          <input type="text" name="batch" value={formData.batch} onChange={handleChange} required className="appearance-none rounded-xl block w-full px-4 py-3 border border-gray-300 dark:border-gray-700 bg-white/50 dark:bg-dark-card/50 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500 outline-none" placeholder="Batch (e.g., 2024-28)" />
-                        </div>
+                        <input type="text" name="batch" value={formData.batch} onChange={handleChange} required className={inputClasses} placeholder="Operational Batch (e.g., 2024-28)" />
+                        
                         {formData.rollNumber && (
-                           <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="p-4 bg-emerald-50 dark:bg-emerald-900/10 border border-emerald-500/20 rounded-2xl">
-                              <p className="text-[10px] font-black uppercase text-emerald-600 mb-1">Generated Institutional Roll ID</p>
-                              <p className="text-lg font-black text-emerald-500 tracking-widest">{formData.rollNumber}</p>
-                           </motion.div>
+                           <div className="p-4 bg-blue-500/5 border border-blue-500/10 rounded-2xl text-center">
+                              <p className="text-[10px] font-mono text-gray-500 uppercase tracking-widest mb-1">Generated ID</p>
+                              <p className="text-xl font-black text-blue-400 tracking-widest">{formData.rollNumber}</p>
+                           </div>
                         )}
-                      </>
-                    ) : finalRole === 'teacher' ? (
-                      <>
-                        <div className="relative group">
-                           <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400 group-focus-within:text-primary-500"><UserCheck size={20} /></div>
-                           <input type="text" name="employeeId" value={formData.employeeId} onChange={handleChange} required className="appearance-none rounded-xl relative block w-full px-3 py-3 pl-10 border border-gray-300 dark:border-gray-700 bg-white/50 dark:bg-dark-card/50 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500 outline-none" placeholder="Official College ID" />
-                        </div>
-                        <div className="relative group">
-                           <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400 group-focus-within:text-primary-500"><Phone size={20} /></div>
-                           <input type="tel" name="contact" value={formData.contact} onChange={handleChange} required className="appearance-none rounded-xl relative block w-full px-3 py-3 pl-10 border border-gray-300 dark:border-gray-700 bg-white/50 dark:bg-dark-card/50 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500 outline-none" placeholder="Personal Phone Number" />
-                        </div>
                       </>
                     ) : (
                       <>
-                        <div className="relative group">
-                           <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400 group-focus-within:text-primary-500"><UserCheck size={20} /></div>
-                           <input type="text" name="employeeId" value={formData.employeeId} onChange={handleChange} required className="appearance-none rounded-xl relative block w-full px-3 py-3 pl-10 border border-gray-300 dark:border-gray-700 bg-white/50 dark:bg-dark-card/50 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500 outline-none" placeholder="Official Employee ID" />
-                        </div>
-                        <div className="relative group">
-                          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400 group-focus-within:text-primary-500"><Building size={20} /></div>
-                          <select name="department" value={formData.department} onChange={handleChange} required className="appearance-none rounded-xl relative block w-full px-3 py-3 pl-10 border border-gray-300 dark:border-gray-700 bg-white/50 dark:bg-dark-card/50 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500 outline-none">
-                            <option value="">Assigned Sector</option>
-                            <option value="CSE">Computer Science (CSE)</option>
-                            <option value="ECE">Electronics (ECE)</option>
-                            <option value="ME">Mechanical (ME)</option>
-                            <option value="CE">Civil (CE)</option>
-                            <option value="IT">Information Tech (IT)</option>
-                            <option value="AI">Artificial Intelligence (AI)</option>
-                          </select>
-                        </div>
+                        <input type="text" name="employeeId" value={formData.employeeId} onChange={handleChange} required className={inputClasses} placeholder="Official Employee ID" />
+                        <input type="tel" name="contact" value={formData.contact} onChange={handleChange} required className={inputClasses} placeholder="Contact Frequency (Phone)" />
                       </>
                     )}
                   </div>
                 )}
+
                 {step === 3 && (
                   <div className="space-y-4">
-                    <p className="text-xs font-black text-primary-600 uppercase tracking-widest mb-4">Finalizing Identity Profile</p>
                     <div className="relative group">
-                       <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400 group-focus-within:text-primary-500"><CalendarDays size={20} /></div>
-                       <input type="date" name="dob" value={formData.dob} onChange={handleChange} required className="appearance-none rounded-xl relative block w-full px-3 py-3 pl-10 border border-gray-300 dark:border-gray-700 bg-white/50 dark:bg-dark-card/50 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500 outline-none" />
+                       <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-gray-500"><CalendarDays size={18} /></div>
+                       <input type="date" name="dob" value={formData.dob} onChange={handleChange} required className={inputClasses} />
                     </div>
                     <div className="relative group">
-                       <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400 group-focus-within:text-primary-500"><Phone size={20} /></div>
-                       <input type="tel" name="contact" value={formData.contact} onChange={handleChange} required className="appearance-none rounded-xl relative block w-full px-3 py-3 pl-10 border border-gray-300 dark:border-gray-700 bg-white/50 dark:bg-dark-card/50 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500 outline-none" placeholder="Primary Contact Phone" />
+                       <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-gray-500"><Phone size={18} /></div>
+                       <input type="tel" name="contact" value={formData.contact} onChange={handleChange} required className={inputClasses} placeholder="Primary Communication Link" />
                     </div>
-                    <div className="relative group">
-                       <textarea name="address" value={formData.address} onChange={handleChange} required className="appearance-none rounded-xl block w-full px-3 py-3 border border-gray-300 dark:border-gray-700 bg-white/50 dark:bg-dark-card/50 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500 outline-none" placeholder="Permanent Residential Address" rows="3"></textarea>
-                    </div>
+                    <textarea name="address" value={formData.address} onChange={handleChange} required className={`${inputClasses} min-h-[100px] resize-none pl-4`} placeholder="Base Operations Address (Residential)" rows="3"></textarea>
                   </div>
                 )}
 
                 <div className="flex gap-4 pt-2">
                   {step > 1 && (
-                    <button type="button" onClick={() => setStep(step - 1)} className="w-1/3 py-3 border border-gray-300 dark:border-gray-700 text-sm font-bold rounded-xl text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition">Back</button>
+                    <button type="button" onClick={() => setStep(step - 1)} className="flex-1 py-4 border border-white/10 text-xs font-mono font-bold uppercase tracking-widest rounded-2xl text-gray-400 hover:text-white hover:bg-white/5 transition-all">
+                       Abort Step
+                    </button>
                   )}
-                  <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} type="submit" disabled={isLoading} className="flex-1 flex justify-center py-3 border border-transparent text-sm font-bold rounded-xl text-white bg-primary-600 hover:bg-primary-700 shadow-lg shadow-primary-500/30">
-                    {step < (formData.role === 'student' ? 3 : 2) ? 'Next Step' : isLoading ? 'Registering...' : <><UserPlus className="mr-2" size={20} /> Complete Registration</>}
+                  <motion.button 
+                    whileHover={{ scale: 1.01 }} 
+                    whileTap={{ scale: 0.99 }} 
+                    type="submit" 
+                    disabled={isLoading} 
+                    className="flex-[2] flex items-center justify-center gap-2 py-4 rounded-2xl text-white bg-gradient-to-r from-blue-600 to-indigo-600 font-bold text-xs uppercase tracking-widest shadow-xl shadow-blue-500/20"
+                  >
+                    {step < (formData.role === 'student' ? 3 : 2) ? 'Next Sector' : isLoading ? 'Encrypting...' : <><Fingerprint size={18} /> Finalize Profile</>}
                   </motion.button>
                 </div>
                 
-                <p className="text-center text-sm text-gray-600 dark:text-gray-400 font-medium">
-                  Already registered? <button type="button" onClick={() => setView('login')} className="text-primary-600 hover:text-primary-700 transition-colors ml-1">Go to Login</button>
+                <p className="text-center text-xs text-gray-500 font-medium">
+                  Identity already archived? 
+                  <button type="button" onClick={() => setView('login')} className="text-white hover:text-blue-400 transition-colors ml-2 font-bold uppercase tracking-widest">
+                    Go to Uplink
+                  </button>
                 </p>
               </motion.form>
             )}
 
-            {view === 'forgot' && (
-              <motion.form key="forgot" variants={formVariants} initial="hidden" animate="visible" exit="exit" className="space-y-6">
-                <p className="text-gray-600 dark:text-gray-400 text-sm text-center">Answer your security question to reset your password.</p>
-                <div className="space-y-4">
-                  <input type="email" name="email" value={formData.email} onChange={handleChange} required className="w-full rounded-xl px-4 py-3 border border-gray-300 dark:border-gray-700 bg-white/50 dark:bg-dark-card/50 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500 outline-none" placeholder="Email Address" />
-                  <input type="text" name="securityAnswer" value={formData.securityAnswer} onChange={handleChange} required className="w-full rounded-xl px-4 py-3 border border-gray-300 dark:border-gray-700 bg-white/50 dark:bg-dark-card/50 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500 outline-none" placeholder="Security Answer" />
-                </div>
-                <button type="button" className="w-full py-3 text-sm font-bold rounded-xl text-white bg-primary-600 hover:bg-primary-700 shadow-lg transition">Verify & Reset Password</button>
-                <button type="button" onClick={() => setView('login')} className="w-full text-sm font-medium text-gray-500 hover:text-gray-900 dark:hover:text-white transition">Cancel</button>
-              </motion.form>
-            )}
-
             {view === 'pendingauth' && (
-              <motion.div key="pending" variants={formVariants} initial="hidden" animate="visible" exit="exit" className="text-center space-y-6">
-                 <div className="mx-auto w-20 h-20 bg-amber-100/50 dark:bg-amber-900/30 rounded-full flex items-center justify-center border border-amber-500/20 shadow-xl shadow-amber-500/20 mb-6">
-                    <ShieldCheck className="w-10 h-10 text-amber-500 animate-pulse" />
+              <motion.div key="pending" variants={formVariants} initial="hidden" animate="visible" exit="exit" className="text-center space-y-8 py-4">
+                 <div className="relative mx-auto w-24 h-24">
+                    <div className="absolute inset-0 bg-amber-500/20 blur-2xl rounded-full animate-pulse" />
+                    <div className="relative h-full w-full bg-white/5 rounded-3xl flex items-center justify-center border border-white/10">
+                       <ShieldCheck className="w-12 h-12 text-amber-500" />
+                    </div>
                  </div>
-                 <h3 className="text-2xl font-black text-gray-900 dark:text-white uppercase tracking-tight">Authorization Pending</h3>
-                 <p className="text-sm text-gray-500 dark:text-gray-400 leading-relaxed font-medium">Your faculty registration has been securely transmitted. Access will be granted once the Administration officially verifies your college credentials.</p>
                  
-                 <div className="bg-gray-100 dark:bg-dark-bg border border-gray-200 dark:border-gray-800 rounded-3xl p-6 shadow-inner">
-                    <p className="text-xs font-black uppercase text-gray-400 mb-2 tracking-widest">Your Auth Token Reference</p>
-                    <p className="text-3xl font-black text-gray-800 dark:text-white tracking-widest font-mono">{registrationToken}</p>
+                 <div className="space-y-2">
+                    <h3 className="text-2xl font-black text-white uppercase tracking-tight">Authorization In Progress</h3>
+                    <p className="text-sm text-gray-400 leading-relaxed max-w-sm mx-auto">
+                       Your identity request has been securely queued. The Central Administration must verify your institutional clearance before uplink is fully established.
+                    </p>
+                 </div>
+                 
+                 <div className="bg-white/5 border border-white/10 rounded-[2rem] p-8 text-center">
+                    <p className="text-[10px] font-mono text-gray-500 uppercase tracking-[0.3em] mb-3">Unique Auth Signature</p>
+                    <p className="text-4xl font-black text-white tracking-[0.2em] font-mono">{registrationToken}</p>
                  </div>
 
-                 <button type="button" onClick={() => setView('login')} className="mt-8 w-full py-4 text-xs font-black uppercase tracking-widest rounded-2xl text-white bg-gray-900 hover:bg-black dark:bg-white dark:text-gray-900 shadow-lg transition-all hover:-translate-y-1">Return to Login</button>
+                 <button type="button" onClick={() => setView('login')} className="w-full py-5 rounded-2xl text-white font-bold text-xs uppercase tracking-widest bg-white/5 hover:bg-white/10 transition-all border border-white/10">
+                    Return to Login
+                 </button>
               </motion.div>
             )}
-
           </AnimatePresence>
-        </div>
+        </motion.div>
       </div>
     </div>
   );

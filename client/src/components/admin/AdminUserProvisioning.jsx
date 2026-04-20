@@ -2,16 +2,18 @@ import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { 
     Search, UserPlus, Filter, Edit, Trash2, 
-    MoreVertical, Shield, Mail, Building, Target 
+    MoreVertical, Shield, Mail, Building, Target, ChevronRight 
 } from 'lucide-react';
 import AdminTeacherProfileModal from './AdminTeacherProfileModal';
 import AdminStudentProfileModal from './AdminStudentProfileModal';
 
 const AdminUserManagement = ({ user, forcedRole }) => {
     const [users, setUsers] = useState([]);
-    const [role, setRole] = useState(() => forcedRole || localStorage.getItem('provision_role') || 'teacher');
+    const [role, setRole] = useState(forcedRole || 'all');
     const [search, setSearch] = useState('');
     const [isLoading, setIsLoading] = useState(false);
+    const [currentPage, setCurrentPage] = useState(1);
+    const itemsPerPage = 12;
 
     useEffect(() => {
         if (forcedRole) setRole(forcedRole);
@@ -20,16 +22,12 @@ const AdminUserManagement = ({ user, forcedRole }) => {
     const [selectedStudentId, setSelectedStudentId] = useState(null);
     
     // Filters
-    const [selectedDept, setSelectedDept] = useState(() => localStorage.getItem('provision_dept') || 'all');
-    const [selectedSem, setSelectedSem] = useState(() => localStorage.getItem('provision_sem') || 'all');
-    const [selectedSec, setSelectedSec] = useState(() => localStorage.getItem('provision_sec') || 'all');
+    const [selectedDept, setSelectedDept] = useState('all');
+    const [selectedSem, setSelectedSem] = useState('all');
+    const [selectedSec, setSelectedSec] = useState('all');
     const [activeStatus, setActiveStatus] = useState('all'); // all, true, false
 
     useEffect(() => {
-        localStorage.setItem('provision_role', role);
-        localStorage.setItem('provision_dept', selectedDept);
-        localStorage.setItem('provision_sem', selectedSem);
-        localStorage.setItem('provision_sec', selectedSec);
         fetchUsers();
     }, [role, selectedDept, selectedSem, selectedSec, activeStatus]);
 
@@ -77,6 +75,9 @@ const AdminUserManagement = ({ user, forcedRole }) => {
         )
         .sort((a, b) => a.name.localeCompare(b.name));
 
+    const totalPages = Math.ceil(filteredUsers.length / itemsPerPage);
+    const paginatedUsers = filteredUsers.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+
     return (
         <div className="space-y-6">
             <div className="bg-white dark:bg-gray-900 p-6 lg:p-8 rounded-[2.5rem] lg:rounded-[3rem] border border-gray-100 dark:border-gray-800 shadow-sm space-y-6">
@@ -88,27 +89,6 @@ const AdminUserManagement = ({ user, forcedRole }) => {
                                     <button key={r} onClick={() => setRole(r)}
                                         className={`shrink-0 px-5 lg:px-6 py-2.5 rounded-xl text-[9px] font-black uppercase tracking-widest border transition-all ${role === r ? 'bg-red-600 text-white border-transparent shadow-lg shadow-red-600/20' : 'bg-gray-50 dark:bg-gray-800 text-gray-400 border-gray-100 dark:border-gray-700 hover:border-red-300'}`}>
                                         {r === 'all' ? 'All Roles' : `${r}s`}
-                                    </button>
-                                ))}
-                            </div>
-                            <div className="hidden sm:block h-6 w-[1px] bg-gray-200 dark:bg-gray-800/60 mx-1" />
-                            <div className="flex overflow-x-auto no-scrollbar gap-2 pb-2 sm:pb-0 w-full sm:w-auto">
-                                {[
-                                    { val: 'all', label: 'All Status' },
-                                    { val: 'true', label: 'Active' },
-                                    { val: 'false', label: 'Pending' }
-                                ].map(s => (
-                                    <button key={s.val} onClick={() => {
-                                        setActiveStatus(s.val);
-                                        if (s.val === 'false') {
-                                            setRole('all');
-                                            setSelectedDept('all');
-                                            setSelectedSem('all');
-                                            setSelectedSec('all');
-                                        }
-                                    }}
-                                        className={`shrink-0 px-4 py-2.5 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all ${activeStatus === s.val ? 'bg-slate-900 dark:bg-white text-white dark:text-slate-900 shadow-md' : 'text-gray-400 hover:text-gray-600'}`}>
-                                        {s.label}
                                     </button>
                                 ))}
                             </div>
@@ -170,22 +150,27 @@ const AdminUserManagement = ({ user, forcedRole }) => {
                 </div>
             </div>
 
-            <div className="bg-white dark:bg-gray-900 rounded-[32px] border border-gray-100 dark:border-gray-800 shadow-xl overflow-hidden min-h-[500px]">
-                <div className="overflow-x-auto">
-                    <table className="w-full text-left">
-                        <thead>
-                            <tr className="bg-gray-50 dark:bg-gray-800/50">
-                                <th className="px-8 py-5 text-[10px] font-black uppercase tracking-widest text-gray-400">Identity Name</th>
-                                <th className="px-8 py-5 text-[10px] font-black uppercase tracking-widest text-gray-400">Department</th>
-                                <th className="px-8 py-5 text-[10px] font-black uppercase tracking-widest text-gray-400">Status</th>
-                                <th className="px-8 py-5 text-[10px] font-black uppercase tracking-widest text-gray-400 text-right">Commands</th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-gray-50 dark:divide-gray-800">
+            <div className="flex items-center justify-between px-6 mb-4">
+                <span className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-400">Identity Records Index</span>
+                <span className="text-[10px] font-black uppercase tracking-widest text-indigo-500 bg-indigo-50 dark:bg-indigo-900/20 px-3 py-1 rounded-full border border-indigo-100 dark:border-indigo-800">Total: {filteredUsers.length}</span>
+            </div>
+            <div className="bg-white dark:bg-gray-900 rounded-[32px] border border-gray-100 dark:border-gray-800 shadow-xl min-h-[500px]">
+                <table className="w-full text-left border-separate border-spacing-0">
+                    <thead className="sticky top-0 z-20 bg-slate-900 dark:bg-black">
+                        <tr>
+                            <th className="sticky top-0 z-30 bg-slate-900 dark:bg-black px-6 py-5 text-[10px] font-black uppercase tracking-widest text-white/90 w-16 border-b border-white/10">#</th>
+                            <th className="sticky top-0 z-30 bg-slate-900 dark:bg-black px-8 py-5 text-[10px] font-black uppercase tracking-widest text-white/90 border-b border-white/10">Identity Name</th>
+                            <th className="sticky top-0 z-30 bg-slate-900 dark:bg-black px-8 py-5 text-[10px] font-black uppercase tracking-widest text-white/90 border-b border-white/10">Department</th>
+                            <th className="sticky top-0 z-30 bg-slate-900 dark:bg-black px-8 py-5 text-[10px] font-black uppercase tracking-widest text-white/90 border-b border-white/10">Status</th>
+                            <th className="sticky top-0 z-30 bg-slate-900 dark:bg-black px-8 py-5 text-[10px] font-black uppercase tracking-widest text-white/90 text-right border-b border-white/10">Commands</th>
+                        </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-50 dark:divide-gray-800">
                             {isLoading ? (
-                                [1,2,3].map(i => <tr key={i}><td colSpan="4" className="p-8 animate-pulse bg-gray-50/50 dark:bg-gray-800/20"/></tr>)
-                            ) : filteredUsers.length > 0 ? filteredUsers.map(u => (
-                                <tr key={u._id} className="group hover:bg-gray-50/50 dark:hover:bg-gray-800/20 transition-all duration-300">
+                                [1,2,3].map(i => <tr key={i}><td colSpan="5" className="p-8 animate-pulse bg-gray-50/50 dark:bg-gray-800/20"/></tr>)
+                            ) : paginatedUsers.length > 0 ? paginatedUsers.map((u, idx) => (
+                                <tr key={u._id} className="group hover:bg-gray-50/10 dark:hover:bg-gray-800/10">
+                                    <td className="px-6 py-5 text-[10px] font-black text-gray-400">{(currentPage - 1) * itemsPerPage + idx + 1}</td>
                                     <td className="px-8 py-5 cursor-pointer" 
                                         onClick={() => {
                                             if (u.role === 'teacher') setSelectedTeacherId(u._id);
@@ -244,8 +229,32 @@ const AdminUserManagement = ({ user, forcedRole }) => {
                             )}
                         </tbody>
                     </table>
+
+                    {/* Pro Pagination Deck */}
+                    {totalPages > 1 && (
+                        <div className="px-8 py-6 border-t border-gray-50 dark:border-gray-800 flex items-center justify-between bg-white dark:bg-gray-900 rounded-b-[32px]">
+                            <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] italic">
+                                Block {currentPage} of {totalPages}
+                            </p>
+                            <div className="flex gap-2">
+                                <button 
+                                    disabled={currentPage === 1}
+                                    onClick={() => { setCurrentPage(prev => prev - 1); window.scrollTo({ top: 300, behavior: 'smooth' }); }}
+                                    className="p-3 rounded-xl border border-gray-100 dark:border-gray-800 disabled:opacity-30 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                                >
+                                    <ChevronRight className="rotate-180" size={14} />
+                                </button>
+                                <button 
+                                    disabled={currentPage === totalPages}
+                                    onClick={() => { setCurrentPage(prev => prev + 1); window.scrollTo({ top: 300, behavior: 'smooth' }); }}
+                                    className="p-3 rounded-xl border border-gray-100 dark:border-gray-800 disabled:opacity-30 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                                >
+                                    <ChevronRight size={14} />
+                                </button>
+                            </div>
+                        </div>
+                    )}
                 </div>
-            </div>
 
             {selectedTeacherId && (
                 <AdminTeacherProfileModal 

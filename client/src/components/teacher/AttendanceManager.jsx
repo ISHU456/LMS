@@ -288,7 +288,7 @@ const AttendanceManager = ({ user, initialSemester, initialCourse, onPersistChan
         )}
       </AnimatePresence>
 
-      <div className="flex flex-col xl:flex-row items-center justify-between gap-6 bg-white/80 dark:bg-white/5 backdrop-blur-2xl p-6 lg:p-8 rounded-[2.5rem] lg:rounded-[3rem] border border-gray-100 dark:border-gray-700/50 shadow-sm relative">
+      <div className="flex flex-col xl:flex-row items-center justify-between gap-6 bg-white dark:bg-[#080c14] p-6 lg:p-8 rounded-[2.5rem] lg:rounded-[3rem] border border-gray-100 dark:border-gray-800 shadow-sm relative">
         <div className="flex items-center gap-4 w-full xl:w-auto">
           <div className="w-14 h-14 bg-indigo-50 dark:bg-indigo-900/40 rounded-2xl flex items-center justify-center text-indigo-600 shadow-inner">
             <CalendarDays size={28} />
@@ -369,7 +369,7 @@ const AttendanceManager = ({ user, initialSemester, initialCourse, onPersistChan
 
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
         <div className="lg:col-span-1 space-y-4">
-          <div className="bg-white/80 dark:bg-white/5 backdrop-blur-2xl p-5 rounded-3xl border border-gray-100 dark:border-gray-800 shadow-sm flex flex-col h-full lg:h-[calc(100vh-280px)] overflow-hidden">
+          <div className="bg-white dark:bg-[#080c14] p-5 rounded-3xl border border-gray-100 dark:border-gray-800 shadow-sm flex flex-col h-full lg:h-[calc(100vh-280px)] overflow-hidden">
             <div className="flex items-center justify-between mb-4 shrink-0">
                <h3 className="text-[10px] font-black text-gray-400 dark:text-gray-200 uppercase tracking-widest">Select Subject</h3>
                <span className="text-[9px] font-black px-2 py-0.5 rounded-full bg-indigo-50 dark:bg-indigo-900/30 text-indigo-500">{sidebarFilteredCourses.length}</span>
@@ -407,19 +407,23 @@ const AttendanceManager = ({ user, initialSemester, initialCourse, onPersistChan
 
         <div className="lg:col-span-3 space-y-6">
           {viewMode === 'mark' ? (
-            <div className="bg-white/80 dark:bg-white/5 backdrop-blur-2xl rounded-[2.5rem] border border-slate-200 dark:border-slate-800/60 shadow-xl overflow-hidden relative h-full lg:h-[calc(100vh-280px)]">
-              <div className="overflow-auto custom-scrollbar h-full">
-                <table className="w-full text-left border-collapse">
-                  <thead className="bg-slate-50/80 dark:bg-slate-900/50 backdrop-blur-md sticky top-0 z-10">
+            <div className="bg-white dark:bg-[#080c14] rounded-[2.5rem] border border-slate-200 dark:border-slate-800/60 shadow-xl min-h-[500px]">
+                <table className="w-full text-left border-separate border-spacing-0">
+                  <thead className="sticky top-0 z-30">
                     <tr>
-                      <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-200 dark:border-slate-800/60 font-black">Student Identity</th>
-                      <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-200 dark:border-slate-800/60 font-black">Recognition Logs</th>
-                      <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-200 dark:border-slate-800/60 text-center font-black">Response</th>
+                      <th className="sticky top-0 z-[40] bg-slate-900 dark:bg-black px-6 py-5 text-[10px] font-black text-white uppercase tracking-widest border-b border-white/10 w-12">#</th>
+                      <th className="sticky top-0 z-[40] bg-slate-900 dark:bg-black px-8 py-5 text-[10px] font-black text-white uppercase tracking-widest border-b border-white/10 font-black">Student Identity</th>
+                      <th className="sticky top-0 z-[40] bg-slate-900 dark:bg-black px-8 py-5 text-[10px] font-black text-white uppercase tracking-widest border-b border-white/10 font-black">Recognition Logs</th>
+                      <th className="sticky top-0 z-[40] bg-slate-900 dark:bg-black px-8 py-5 text-[10px] font-black text-white uppercase tracking-widest border-b border-white/10 text-center font-black">Response</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60">
-                    {paginatedStudents.map(student => (
-                      <tr key={`att-${student._id}`} className="group hover:bg-slate-50/50 dark:hover:bg-white/[0.02] transition-all">
+                    {paginatedStudents.map((student, idx) => (
+                      <tr 
+                        key={`att-${student._id}`}
+                        className="group hover:bg-slate-50 dark:hover:bg-white/[0.02]"
+                      >
+                        <td className="px-6 py-5 text-[10px] font-black text-slate-400">{(currentMarkPage - 1) * itemsPerPage + idx + 1}</td>
                         <td className="px-8 py-5">
                           <div className="flex items-center gap-4">
                             <div className="relative group/avatar">
@@ -453,7 +457,7 @@ const AttendanceManager = ({ user, initialSemester, initialCourse, onPersistChan
                               </div>
                             ) : (
                               <div className="flex items-center gap-2 px-3 py-1.5 bg-slate-50 dark:bg-slate-900/50 rounded-xl border border-slate-100 dark:border-slate-800/60 max-w-[180px]">
-                                <RefreshCw size={10} className="text-slate-300 animate-spin-slow" />
+                               <RefreshCw size={10} className="text-slate-300" />
                                 <span className="text-[8px] font-black text-slate-300 uppercase tracking-widest">Awaiting Logs</span>
                               </div>
                             )}
@@ -471,9 +475,9 @@ const AttendanceManager = ({ user, initialSemester, initialCourse, onPersistChan
                                   <button 
                                     key={status.key} 
                                     onClick={() => handleStatusChange(student._id, status.key)}
-                                    className={`w-8 h-8 lg:w-9 lg:h-9 rounded-xl text-[9px] font-black transition-all flex items-center justify-center ${
+                                    className={`w-8 h-8 lg:w-9 lg:h-9 rounded-xl text-[9px] font-black flex items-center justify-center transition-colors ${
                                       attendanceEntries[student._id] === status.key 
-                                        ? `bg-${status.color}-600 text-white shadow-lg shadow-${status.color}-600/20 translate-y-[-2px]` 
+                                        ? `bg-${status.color}-600 text-white shadow-md` 
                                         : 'text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-white dark:hover:bg-white/5'
                                     }`}
                                   >
@@ -500,7 +504,6 @@ const AttendanceManager = ({ user, initialSemester, initialCourse, onPersistChan
                     ))}
                   </tbody>
                 </table>
-              </div>
 
               {!isAuthorized && (
                 <motion.div initial={{ opacity: 0, backdropFilter: 'blur(0px)' }} animate={{ opacity: 1, backdropFilter: 'blur(8px)' }}

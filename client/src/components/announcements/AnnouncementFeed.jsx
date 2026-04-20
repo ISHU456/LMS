@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import axios from 'axios';
 import PostCard from './PostCard';
 import { Loader2, Sparkles, Filter, Newspaper, Layers, Search } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+
 import { io } from 'socket.io-client';
 import GeminiLoader from '../GeminiLoader';
 
@@ -102,44 +102,53 @@ const AnnouncementFeed = ({ user, initialSearch = '', initialCategory = 'All' })
     setAnnouncements(prev => prev.map(p => p._id === updatedPost._id ? updatedPost : p));
   };
 
+  const roleConfigs = {
+    admin: { color: 'text-rose-500', bg: 'bg-rose-500', from: 'from-rose-600', to: 'to-orange-500', lightBg: 'bg-rose-500/10' },
+    teacher: { color: 'text-indigo-500', bg: 'bg-indigo-500', from: 'from-indigo-600', to: 'to-purple-500', lightBg: 'bg-indigo-500/10' },
+    faculty: { color: 'text-indigo-500', bg: 'bg-indigo-500', from: 'from-indigo-600', to: 'to-purple-500', lightBg: 'bg-indigo-500/10' },
+    student: { color: 'text-blue-500', bg: 'bg-blue-500', from: 'from-blue-600', to: 'to-cyan-500', lightBg: 'bg-blue-500/10' },
+  };
+
+  const config = roleConfigs[user?.role] || roleConfigs.student;
+
   return (
     <div className="space-y-6">
-      {/* Header & Controls Overlay (Academic Feed) */}
-      <div className="pt-4 pb-8 bg-white dark:bg-gray-900 rounded-[2.5rem] border border-gray-100 dark:border-gray-800 shadow-xl px-8 mb-8">
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mb-4">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-white dark:bg-gray-800 flex items-center justify-center text-primary-600 shadow-sm border border-gray-100 dark:border-gray-700">
-              <Newspaper size={20} />
-            </div>
-            <div>
-              <h1 className="text-xl font-black text-gray-900 dark:text-white">Academic Feed</h1>
-              <span className="text-[10px] font-black uppercase tracking-widest text-gray-400">Latest social & academic updates</span>
-            </div>
+      {/* Header & Controls */}
+      <div className="p-6 bg-white/80 dark:bg-white/[0.02] backdrop-blur-xl rounded-2xl border border-slate-200/50 dark:border-white/10 shadow-xl">
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-6">
+          <div className="flex items-center gap-4">
+             <div className={`p-3 rounded-2xl ${config.lightBg} border ${config.lightBg.replace('bg-', 'border-').replace('/10', '/20')}`}>
+                <Newspaper size={20} className={config.color} />
+             </div>
+             <div className="flex flex-col">
+               <h1 className="text-base font-black text-slate-900 dark:text-white uppercase tracking-tight">Academic Signaling</h1>
+               <span className="text-[10px] text-slate-500 font-bold uppercase tracking-widest italic pt-0.5">Real-time institutional relay active</span>
+             </div>
           </div>
           
-          <div className="flex items-center gap-2">
-            <div className="relative">
-              <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
+          <div className="flex items-center gap-3 w-full sm:w-auto">
+            <div className="relative flex-1 sm:w-64">
+              <Search size={14} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" />
               <input 
                 type="text" 
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                placeholder="Search updates..."
-                className="pl-12 pr-4 py-2.5 rounded-2xl bg-white dark:bg-gray-800/50 border border-gray-100 dark:border-gray-700 outline-none text-sm font-bold w-48 focus:w-64 focus:border-primary-500/50 transition-all"
+                placeholder="Search archive..."
+                className="w-full pl-10 pr-4 py-2.5 rounded-2xl bg-slate-50 dark:bg-white/[0.03] border border-slate-200 dark:border-white/5 outline-none text-xs text-white placeholder-slate-500 focus:border-indigo-500/50 transition-all font-mono"
               />
             </div>
-            <button className="p-2.5 rounded-2xl bg-white dark:bg-gray-800/50 border border-gray-100 dark:border-gray-700 text-gray-400 hover:text-primary-600 transition-colors">
-              <Filter size={18} />
+            <button className="p-2.5 rounded-xl bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/5 text-slate-500 hover:text-white transition-colors">
+               <Filter size={18} />
             </button>
           </div>
         </div>
 
-        <div className="flex gap-2 overflow-x-auto pb-2 no-scrollbar">
+        <div className="flex gap-2 overflow-x-auto mt-6 no-scrollbar pb-1">
            {['All', 'Admin', 'Teacher', 'Student'].map(cat => (
              <button
               key={cat}
               onClick={() => setCategory(cat)}
-              className={`flex-none px-5 py-2 rounded-xl text-[10px] font-black uppercase tracking-[0.2em] transition-all border ${category === cat ? 'bg-primary-600 border-primary-500 text-white shadow-lg shadow-primary-500/30' : 'bg-white dark:bg-gray-800/50 border-gray-100 dark:border-gray-700 text-gray-500 hover:bg-gray-50'}`}
+              className={`flex-none px-6 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all border ${category === cat ? `${config.bg} border-${config.bg.split('-')[1]}-600 text-white shadow-lg ${config.bg.replace('bg-', 'shadow-')}/20` : 'bg-white dark:bg-white/5 border-slate-200 dark:border-white/5 text-slate-500 hover:bg-slate-100 dark:hover:bg-white/10'}`}
              >
                {cat}
              </button>
@@ -151,7 +160,6 @@ const AnnouncementFeed = ({ user, initialSearch = '', initialCategory = 'All' })
 
       {/* Feed Content */}
       <div className="space-y-8">
-        <AnimatePresence mode="popLayout">
           {announcements.map((post, index) => (
             <div 
               key={post._id} 
@@ -165,7 +173,6 @@ const AnnouncementFeed = ({ user, initialSearch = '', initialCategory = 'All' })
               />
             </div>
           ))}
-        </AnimatePresence>
 
         {isLoading && (
           <div className="py-10">

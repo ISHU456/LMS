@@ -110,8 +110,10 @@ const GlobalAlertMarquee = () => {
        setIsDismissed(true);
     };
 
-    // Show to all users
-    if (!user) return null;
+    // Filter teacher-specific alerts from students
+    const isTeacherSpecific = alert.toLowerCase().includes('mark transmission') || alert.toLowerCase().includes('execute entry');
+    if (user.role === 'student' && isTeacherSpecific) return null;
+
     if (!alert || isDismissed) return null;
 
     return (
@@ -133,9 +135,9 @@ const GlobalAlertMarquee = () => {
                         </span>
                         <Link 
                             to={activeLiveRoom ? `/live-class/${activeLiveRoom}` : "/results/entry"} 
-                            className="flex items-center gap-1 px-3 py-1 bg-white/20 hover:bg-white/30 rounded-full text-[9px] font-black uppercase text-white tracking-widest transition-all mr-12"
+                            className={`flex items-center gap-1 px-3 py-1 bg-white/20 hover:bg-white/30 rounded-full text-[9px] font-black uppercase text-white tracking-widest transition-all mr-12 ${!activeLiveRoom && user.role === 'student' ? 'hidden' : ''}`}
                         >
-                            {activeLiveRoom ? "Execute Entry" : "Execute Entry"} <ChevronRight size={12} />
+                            {activeLiveRoom ? "Join Session" : "Execute Entry"} <ChevronRight size={12} />
                         </Link>
                         
                         {/* Repeat for seamless loop */}
@@ -144,9 +146,9 @@ const GlobalAlertMarquee = () => {
                         </span>
                         <Link 
                             to={activeLiveRoom ? `/live-class/${activeLiveRoom}` : "/results/entry"} 
-                            className="flex items-center gap-1 px-3 py-1 bg-white/20 hover:bg-white/30 rounded-full text-[9px] font-black uppercase text-white tracking-widest transition-all mr-12"
+                            className={`flex items-center gap-1 px-3 py-1 bg-white/20 hover:bg-white/30 rounded-full text-[9px] font-black uppercase text-white tracking-widest transition-all mr-12 ${!activeLiveRoom && user.role === 'student' ? 'hidden' : ''}`}
                         >
-                            {activeLiveRoom ? "Execute Entry" : "Execute Entry"} <ChevronRight size={12} />
+                            {activeLiveRoom ? "Join Session" : "Execute Entry"} <ChevronRight size={12} />
                         </Link>
                     </div>
                 </div>

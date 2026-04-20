@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
-import { Home, Users, BarChart2, MessageSquare, BookOpen, Clock, UserCheck } from 'lucide-react';
+import { Home, Users, BarChart2, MessageSquare, BookOpen, Clock, UserCheck, X } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer } from 'recharts';
+import { motion, AnimatePresence } from 'framer-motion';
 
 const HODDashboard = () => {
   const [activeTab, setActiveTab] = useState('overview');
@@ -51,12 +52,12 @@ const HODDashboard = () => {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={() => setIsSidebarOpen(false)}
-            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] lg:hidden"
+            className="fixed inset-0 bg-black/40 z-[100] lg:hidden"
           />
         )}
       </AnimatePresence>
 
-      <aside className={`fixed lg:relative inset-y-0 left-0 w-64 glass border-r border-gray-200 dark:border-gray-800 p-4 space-y-2 z-[101] transition-transform duration-300 lg:translate-x-0 ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'} bg-white dark:bg-[#0f172a]`}>
+      <aside className={`fixed lg:relative inset-y-0 left-0 w-64 bg-white dark:bg-slate-900 border-r border-gray-200 dark:border-gray-800 p-4 space-y-2 z-[101] transition-transform duration-300 lg:translate-x-0 ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}>
         <div className="flex items-center justify-between lg:hidden mb-6">
            <span className="text-xs font-black uppercase tracking-widest text-purple-600">HOD Portal</span>
            <button onClick={() => setIsSidebarOpen(false)} className="p-2 rounded-xl bg-gray-100 dark:bg-gray-800 text-gray-500">
@@ -88,22 +89,22 @@ const HODDashboard = () => {
         {activeTab === 'overview' ? (
           <div className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-              <div className="glass p-6 rounded-2xl border-l-[6px] border-l-blue-500">
+              <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm border-l-[6px] border-l-blue-500">
                 <p className="text-sm font-medium text-gray-500">Total Students</p><h3 className="text-3xl font-black dark:text-white mt-1">450</h3>
               </div>
-              <div className="glass p-6 rounded-2xl border-l-[6px] border-l-purple-500">
+              <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm border-l-[6px] border-l-purple-500">
                 <p className="text-sm font-medium text-gray-500">Total Faculty</p><h3 className="text-3xl font-black dark:text-white mt-1">24</h3>
               </div>
-               <div className="glass p-6 rounded-2xl border-l-[6px] border-l-amber-500">
+               <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm border-l-[6px] border-l-amber-500">
                 <p className="text-sm font-medium text-gray-500">Leave Requests</p><h3 className="text-3xl font-black dark:text-white mt-1">2</h3>
               </div>
-               <div className="glass p-6 rounded-2xl border-l-[6px] border-l-emerald-500">
+               <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm border-l-[6px] border-l-emerald-500">
                 <p className="text-sm font-medium text-gray-500">Resource Requests</p><h3 className="text-3xl font-black dark:text-white mt-1">5</h3>
               </div>
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
-               <div className="glass p-8 rounded-2xl shadow-lg border border-gray-100 dark:border-gray-800">
+               <div className="bg-white dark:bg-slate-900 p-8 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm">
                  <h3 className="text-xl font-bold dark:text-white mb-6">Subject Pass Rates</h3>
                  <div className="h-[250px] w-full relative">
                     {isMounted && (
@@ -119,7 +120,7 @@ const HODDashboard = () => {
                     )}
                  </div>
                </div>
-               <div className="glass p-8 rounded-2xl shadow-lg border border-gray-100 dark:border-gray-800">
+               <div className="bg-white dark:bg-slate-900 p-8 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm">
                  <h3 className="text-xl font-bold dark:text-white mb-6">Action Items</h3>
                  <div className="space-y-3">
                    <div className="p-4 rounded-xl bg-white dark:bg-gray-800 shadow-sm border-l-4 border-amber-500 flex items-center justify-between">
