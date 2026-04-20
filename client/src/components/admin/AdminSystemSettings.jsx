@@ -4,13 +4,12 @@ import { Save, Shield, Globe, Lock, Unlock, Zap, Building2, Calendar, RefreshCw,
 import { motion, AnimatePresence } from 'framer-motion';
 
 const THEMES = [
-    { id: 'academic', name: 'Classic Academic (Paper/Slate)', light: '#FDFBF7', dark: '#0f172a' },
-    { id: 'indigo', name: 'Indigo Fusion (Slate/Obsidian)', light: '#F0F4F8', dark: '#0B0E14' },
-    { id: 'nature', name: 'Nature\'s Breath (Mint/Forest)', light: '#F0FDF4', dark: '#052E16' },
-    { id: 'amethyst', name: 'Royal Amethyst (Lavender/Midnight)', light: '#F5F3FF', dark: '#1E1B4B' },
-    { id: 'sunset', name: 'Sunset Horizon (Rose/Burgundy)', light: '#FFF1F2', dark: '#450A0A' },
-    { id: 'ocean', name: 'Ocean Deep (Sky/Sea)', light: '#F0F9FF', dark: '#082F49' },
-    { id: 'cyber', name: 'Cyber Gold (Lemon/Bronze)', light: '#FEFCE8', dark: '#1A1600' }
+    { id: 'academic', name: 'Elite Canvas', light: '#FFFFFF', dark: '#0B1120', sL: '#F8FAFC', sD: '#0F172A', tL: '#0F172A', tD: '#FFFFFF', tSL: '#475569', tSD: '#94A3B8', acc: '#4F46E5' },
+    { id: 'indigo', name: 'Indigo Fusion', light: '#F8FAFC', dark: '#0B1120', sL: '#FFFFFF', sD: '#0F172A', tL: '#0F172A', tD: '#FFFFFF', tSL: '#475569', tSD: '#94A3B8', acc: '#6366f1' },
+    { id: 'slate', name: 'Executive Slate', light: '#F1F5F9', dark: '#0B1120', sL: '#FFFFFF', sD: '#0F172A', tL: '#0F172A', tD: '#FFFFFF', tSL: '#475569', tSD: '#94A3B8', acc: '#334155' },
+    { id: 'amethyst', name: 'Royal Amethyst', light: '#F5F3FF', dark: '#0B1120', sL: '#FFFFFF', sD: '#0F172A', tL: '#2E1065', tD: '#FFFFFF', tSL: '#4C1D95', tSD: '#A78BFA', acc: '#8b5cf6' },
+    { id: 'sunset', name: 'Sunset Horizon', light: '#FFF1F2', dark: '#0B1120', sL: '#FFFFFF', sD: '#0F172A', tL: '#450A0A', tD: '#FFFFFF', tSL: '#991B1B', tSD: '#FDA4AF', acc: '#f43f5e' },
+    { id: 'ocean', name: 'Ocean Deep', light: '#F0F9FF', dark: '#0B1120', sL: '#FFFFFF', sD: '#0F172A', tL: '#0C4A6E', tD: '#FFFFFF', tSL: '#075985', tSD: '#7DD3FC', acc: '#0ea5e9' }
 ];
 
 const AdminSystemSettings = ({ user }) => {
@@ -25,7 +24,16 @@ const AdminSystemSettings = ({ user }) => {
         facultyNeuralCredit: 8,
         globalAlert: '',
         teacherSignupAllowed: true,
-        autoApproveTeachers: false
+        autoApproveTeachers: false,
+        lightModeBgColor: '#FFFFFF',
+        darkModeBgColor: '#0B1120',
+        lightModeSurfaceColor: '#F8FAFC',
+        darkModeSurfaceColor: '#0F172A',
+        lightModePrimaryText: '#0F172A',
+        darkModePrimaryText: '#FFFFFF',
+        lightModeSecondaryText: '#475569',
+        darkModeSecondaryText: '#94A3B8',
+        accentColor: '#4F46E5'
     });
     const [isLoading, setIsLoading] = useState(true);
     const [isSaving, setIsSaving] = useState(false);
@@ -298,13 +306,29 @@ const AdminSystemSettings = ({ user }) => {
                                     onChange={(e) => {
                                         const theme = THEMES.find(t => t.id === e.target.value);
                                         if (theme) {
-                                            setSettings({
-                                                ...settings, 
+                                            const updates = {
                                                 lightModeBgColor: theme.light, 
-                                                darkModeBgColor: theme.dark
-                                            });
+                                                darkModeBgColor: theme.dark,
+                                                lightModeSurfaceColor: theme.sL,
+                                                darkModeSurfaceColor: theme.sD,
+                                                lightModePrimaryText: theme.tL,
+                                                darkModePrimaryText: theme.tD,
+                                                lightModeSecondaryText: theme.tSL,
+                                                darkModeSecondaryText: theme.tSD,
+                                                accentColor: theme.acc
+                                            };
+                                            setSettings({ ...settings, ...updates });
+                                            
+                                            // Real-time preview application
                                             document.documentElement.style.setProperty('--bg-light', theme.light);
                                             document.documentElement.style.setProperty('--bg-dark', theme.dark);
+                                            document.documentElement.style.setProperty('--surface-light', theme.sL);
+                                            document.documentElement.style.setProperty('--surface-dark', theme.sD);
+                                            document.documentElement.style.setProperty('--text-primary-light', theme.tL);
+                                            document.documentElement.style.setProperty('--text-primary-dark', theme.tD);
+                                            document.documentElement.style.setProperty('--text-secondary-light', theme.tSL);
+                                            document.documentElement.style.setProperty('--text-secondary-dark', theme.tSD);
+                                            document.documentElement.style.setProperty('--accent', theme.acc);
                                         }
                                     }}
                                     className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 rounded-xl px-4 py-3 text-[10px] font-black uppercase tracking-widest outline-none transition-all dark:text-white appearance-none cursor-pointer shadow-sm focus:ring-2 focus:ring-indigo-500/20"

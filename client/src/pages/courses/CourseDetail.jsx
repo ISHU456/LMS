@@ -724,7 +724,7 @@ const CourseDetail = () => {
             return (
                 <div className="flex flex-col items-center justify-center h-full">
                     <Loader2 className="w-16 h-16 animate-spin text-primary-500" />
-                    <p className="mt-4 text-lg font-bold text-gray-500 dark:text-gray-400">Loading Preview...</p>
+                    <p className="mt-4 text-lg font-medium text-gray-500 dark:text-gray-400">Loading Preview...</p>
                 </div>
             );
         case 'error':
@@ -738,7 +738,7 @@ const CourseDetail = () => {
                     href={previewItem.url}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="px-6 py-3 bg-primary-600 hover:bg-primary-700 text-white rounded-xl font-bold inline-flex items-center gap-2 transition-colors shadow-lg shadow-primary-500/20"
+                    className="px-6 py-3 bg-primary-600 hover:bg-primary-700 text-white rounded-xl font-medium inline-flex items-center gap-2 transition-colors shadow-lg shadow-primary-500/20"
                   >
                     <ExternalLink size={18} />
                     Open Original Resource
@@ -768,8 +768,8 @@ const CourseDetail = () => {
                   <Youtube size={16} fill="currentColor" />
                 </div>
                 <div>
-                  <p className="text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest">Digital Content Source</p>
-                  <p className="text-xs font-bold text-gray-900 dark:text-white uppercase">Sourced from YouTube API</p>
+                  <p className="text-[10px] font-medium text-gray-400 dark:text-gray-500 uppercase tracking-widest">Digital Content Source</p>
+                  <p className="text-xs font-medium text-gray-900 dark:text-white uppercase">Sourced from YouTube API</p>
                 </div>
               </div>
               <div className="flex items-center gap-4">
@@ -777,7 +777,7 @@ const CourseDetail = () => {
                   href={previewItem.url?.split('?')[0].replace('embed/', 'watch?v=')} 
                   target="_blank" 
                   rel="noopener noreferrer"
-                  className="flex items-center gap-2 px-6 py-2.5 bg-gray-900 dark:bg-white text-white dark:text-gray-900 text-[10px] font-black uppercase tracking-widest rounded-full hover:scale-105 active:scale-95 transition-all shadow-lg"
+                  className="flex items-center gap-2 px-6 py-2.5 bg-gray-900 dark:bg-white text-white dark:text-gray-900 text-[10px] font-medium uppercase tracking-widest rounded-full hover:scale-105 active:scale-95 transition-all shadow-lg"
                 >
                   <ExternalLink size={14} />
                   Watch on Original Channel
@@ -816,13 +816,13 @@ const CourseDetail = () => {
           <SimplePreviewWrapper>
             <div className="flex flex-col items-center justify-center h-full p-8 text-center text-gray-400">
               <FileText size={64} className="opacity-50 mb-4" />
-              <h3 className="text-xl font-bold mb-2 text-gray-800 dark:text-gray-200">{previewItem.title}</h3>
+              <h3 className="text-xl font-medium mb-2 text-gray-800 dark:text-gray-200">{previewItem.title}</h3>
               <p className="text-sm mb-6">Native preview unavailable.</p>
               <a
                 href={previewItem.url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="px-6 py-3 bg-primary-600 hover:bg-primary-700 text-white rounded-xl font-bold inline-flex items-center gap-2 transition-colors shadow-lg shadow-primary-500/20"
+                className="px-6 py-3 bg-primary-600 hover:bg-primary-700 text-white rounded-xl font-medium inline-flex items-center gap-2 transition-colors shadow-lg shadow-primary-500/20"
               >
                 <ExternalLink size={18} />
                 Open Original File
@@ -853,7 +853,7 @@ const CourseDetail = () => {
           </div>
         </div>
 
-        <h2 className="text-3xl font-black text-gray-900 dark:text-white uppercase tracking-tighter mb-4">
+        <h2 className="text-3xl font-medium text-gray-900 dark:text-white uppercase tracking-tighter mb-4">
           {isFutureSemester ? 'CURRICULUM LOCKED' : 'ACCESS DENIED'}
         </h2>
         <div className="w-12 h-1 bg-red-500 mx-auto rounded-full mb-6" />
@@ -868,7 +868,7 @@ const CourseDetail = () => {
         <div className="grid grid-cols-1 gap-4">
            <button 
              onClick={() => navigate('/courses')}
-             className="w-full flex items-center justify-center gap-3 py-5 rounded-[2rem] bg-gray-900 dark:bg-white text-white dark:text-gray-900 font-black text-xs uppercase tracking-widest hover:scale-[1.02] active:scale-[0.98] transition-all shadow-xl hover:shadow-primary-500/20"
+             className="w-full flex items-center justify-center gap-3 py-5 rounded-[2rem] bg-gray-900 dark:bg-white text-white dark:text-gray-900 font-medium text-xs uppercase tracking-widest hover:scale-[1.02] active:scale-[0.98] transition-all shadow-xl hover:shadow-primary-500/20"
            >
              <ArrowLeft size={16} /> RETURN TO COURSE DIRECTORY
            </button>
@@ -878,7 +878,7 @@ const CourseDetail = () => {
   );
 
   return (
-    <div className="flex h-screen bg-[#f8fafc] dark:bg-[#030712] overflow-hidden font-sans relative">
+    <div className="flex h-screen bg-[#f8fafc] dark:bg-[#030712] overflow-hidden font-sans relative text-[13px]">
       <AnimatePresence>
         {sidebarOpen && window.innerWidth < 1024 && (
           <motion.div
@@ -963,13 +963,13 @@ const CourseDetail = () => {
                                      <Award size={20} />
                                   </div>
                                   <div>
-                                     <h2 className="text-lg font-black dark:text-white uppercase tracking-tighter">Course Completion Matrix</h2>
-                                     <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Verified Digital Credential Processing Engine</p>
+                                     <h2 className="text-lg font-medium dark:text-white uppercase tracking-tighter">Course Completion Matrix</h2>
+                                     <p className="text-[9px] font-medium text-gray-400 uppercase tracking-widest">Verified Digital Credential Processing Engine</p>
                                   </div>
                                </div>
                                <button 
                                  onClick={() => setActiveSection('timetable')}
-                                 className="px-6 py-3 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300 rounded-2xl font-black text-[10px] uppercase tracking-widest transition-all"
+                                 className="px-6 py-3 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300 rounded-2xl font-medium text-[10px] uppercase tracking-widest transition-all"
                                >
                                  Return to HUB
                                </button>

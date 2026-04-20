@@ -155,11 +155,11 @@ const AnnouncementCard = ({ ann, onReact }) => {
         {/* Header Row */}
         <div className="flex items-start justify-between gap-2 mb-3">
           <div className="flex flex-wrap items-center gap-1.5">
-            <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-widest ${cfg.badge}`}>
+            <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-widest ${cfg.badge}`}>
               {cfg.icon} {cfg.label}
             </span>
-            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{ann.category && categoryIcon[ann.category]} {ann.category}</span>
-            {ann.important && <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-black uppercase bg-yellow-100 text-yellow-600 dark:bg-yellow-900/30 dark:text-yellow-400"><Star size={9} fill="currentColor"/> IMPORTANT</span>}
+            <span className="text-[10px] font-medium text-gray-400 uppercase tracking-widest">{ann.category && categoryIcon[ann.category]} {ann.category}</span>
+            {ann.important && <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-bold uppercase bg-yellow-100 text-yellow-600 dark:bg-yellow-900/30 dark:text-yellow-400"><Star size={9} fill="currentColor"/> IMPORTANT</span>}
           </div>
           <div className="flex items-center gap-1.5 shrink-0">
             <span className="text-[10px] font-bold text-gray-400">{timeAgo(ann.createdAt)}</span>
@@ -168,12 +168,12 @@ const AnnouncementCard = ({ ann, onReact }) => {
         </div>
 
         {/* Title */}
-        <h3 className="text-base font-black text-gray-900 dark:text-white mb-2 group-hover:text-[#4361ee] transition-colors leading-snug">{ann.title}</h3>
+        <h3 className="text-base font-bold text-gray-900 dark:text-white mb-2 group-hover:text-[#4361ee] transition-colors leading-snug">{ann.title}</h3>
 
         {/* Content */}
         <p className={`text-sm text-gray-600 dark:text-gray-400 leading-relaxed mb-3 ${expanded ? '' : 'line-clamp-2'}`}>{ann.content}</p>
         {ann.content.length > 120 && (
-          <button onClick={e => { e.stopPropagation(); setExpanded(!expanded); }} className="text-[11px] font-black text-[#4361ee] uppercase tracking-widest mb-3 hover:underline">
+          <button onClick={e => { e.stopPropagation(); setExpanded(!expanded); }} className="text-[11px] font-bold text-[#4361ee] uppercase tracking-widest mb-3 hover:underline">
             {expanded ? 'Show Less ↑' : 'Read More ↓'}
           </button>
         )}
@@ -224,8 +224,8 @@ const AnnouncementCard = ({ ann, onReact }) => {
         <div className="flex items-center justify-between pt-3 border-t border-gray-100 dark:border-gray-800 gap-2 flex-wrap">
           {/* Author */}
           <div className="flex items-center gap-2">
-            <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-[#4361ee] to-[#f72585] flex items-center justify-center text-white text-[9px] font-black shrink-0">{ann.authorInitials}</div>
-            <span className="text-[10px] font-black uppercase text-gray-500 dark:text-gray-400">{ann.author}</span>
+            <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-[#4361ee] to-[#f72585] flex items-center justify-center text-white text-[9px] font-bold shrink-0">{ann.authorInitials}</div>
+            <span className="text-[10px] font-bold uppercase text-gray-500 dark:text-gray-400">{ann.author}</span>
           </div>
 
           {/* Stats + Reactions */}
@@ -241,18 +241,18 @@ const AnnouncementCard = ({ ann, onReact }) => {
         {/* Variant-specific CTA buttons */}
         <div className="flex gap-2 mt-3">
           {ann.variant === 'pinned' && <>
-            <button className="flex-1 py-2 rounded-xl border border-[#4361ee] text-[#4361ee] text-[11px] font-black uppercase tracking-widest hover:bg-[#4361ee]/10 transition-colors">View Details</button>
-            <button className="flex-1 py-2 rounded-xl bg-[#4361ee] text-white text-[11px] font-black uppercase tracking-widest hover:bg-[#3651d4] transition-colors flex items-center justify-center gap-1">Register <ChevronRight size={12}/></button>
+            <button className="flex-1 py-2 rounded-xl border border-[#4361ee] text-[#4361ee] text-[11px] font-bold uppercase tracking-widest hover:bg-[#4361ee]/10 transition-colors">View Details</button>
+            <button className="flex-1 py-2 rounded-xl bg-[#4361ee] text-white text-[11px] font-bold uppercase tracking-widest hover:bg-[#3651d4] transition-colors flex items-center justify-center gap-1">Register <ChevronRight size={12}/></button>
           </>}
           {ann.variant === 'event' && <>
-            <button className="flex-1 py-2 rounded-xl border border-emerald-500 text-emerald-600 text-[11px] font-black uppercase tracking-widest hover:bg-emerald-50 transition-colors">Interested</button>
-            <button className="flex-1 py-2 rounded-xl bg-emerald-500 text-white text-[11px] font-black uppercase tracking-widest hover:bg-emerald-600 transition-colors flex items-center justify-center gap-1"><Bell size={11}/> Remind Me</button>
+            <button className="flex-1 py-2 rounded-xl border border-emerald-500 text-emerald-600 text-[11px] font-bold uppercase tracking-widest hover:bg-emerald-50 transition-colors">Interested</button>
+            <button className="flex-1 py-2 rounded-xl bg-emerald-500 text-white text-[11px] font-bold uppercase tracking-widest hover:bg-emerald-600 transition-colors flex items-center justify-center gap-1"><Bell size={11}/> Remind Me</button>
           </>}
           {ann.variant === 'achievement' && (
-            <button className="py-2 px-4 rounded-xl bg-amber-500 text-white text-[11px] font-black uppercase tracking-widest hover:bg-amber-600 transition-colors flex items-center gap-1.5"><Trophy size={12}/> View Team</button>
+            <button className="py-2 px-4 rounded-xl bg-amber-500 text-white text-[11px] font-bold uppercase tracking-widest hover:bg-amber-600 transition-colors flex items-center gap-1.5"><Trophy size={12}/> View Team</button>
           )}
           {ann.variant === 'critical' && (
-            <button className="py-2 px-4 rounded-xl bg-[#4361ee] text-white text-[11px] font-black uppercase tracking-widest hover:bg-[#3651d4] transition-colors flex items-center gap-1.5"><Download size={12}/> Download</button>
+            <button className="py-2 px-4 rounded-xl bg-[#4361ee] text-white text-[11px] font-bold uppercase tracking-widest hover:bg-[#3651d4] transition-colors flex items-center gap-1.5"><Download size={12}/> Download</button>
           )}
         </div>
       </div>
@@ -359,7 +359,7 @@ const Community = () => {
               <div>
                 <div className="flex items-center gap-3 mb-2">
                   <div className="w-10 h-10 rounded-2xl bg-white/20 flex items-center justify-center text-white"><Megaphone size={22}/></div>
-                  <h1 className="text-3xl md:text-4xl font-black text-white tracking-tighter">Announcement Center</h1>
+                  <h1 className="text-3xl md:text-4xl font-bold text-white tracking-tighter">Announcement Center</h1>
                 </div>
                 <div className="relative overflow-hidden w-72 h-0.5 bg-white/30 mb-3 rounded-full">
                   <motion.div className="absolute inset-y-0 left-0 bg-white rounded-full" animate={{ x: [-300, 300] }} transition={{ duration: 2, repeat: Infinity, ease: 'linear' }}/>
@@ -371,12 +371,12 @@ const Community = () => {
                   {soundOn ? <Volume2 size={18}/> : <VolumeX size={18}/>}
                 </button>
                 <button onClick={() => setSubscribed(!subscribed)}
-                  className={`flex items-center gap-2 px-5 py-3 rounded-2xl font-black text-xs uppercase tracking-widest transition-all ${subscribed ? 'bg-white text-[#764ba2]' : 'bg-white/20 text-white hover:bg-white/30'}`}>
+                  className={`flex items-center gap-2 px-5 py-3 rounded-2xl font-bold text-xs uppercase tracking-widest transition-all ${subscribed ? 'bg-white text-[#764ba2]' : 'bg-white/20 text-white hover:bg-white/30'}`}>
                   <BellRing size={15}/>{subscribed ? 'Subscribed ✓' : 'Subscribe'}
                   {!subscribed && <span className="w-2 h-2 rounded-full bg-red-400 animate-pulse"/>}
                 </button>
                 {isAdmin && (
-                  <button onClick={() => setShowCreate(true)} className="flex items-center gap-2 px-5 py-3 rounded-2xl bg-[#f72585] text-white font-black text-xs uppercase tracking-widest hover:bg-[#d61a6f] transition-colors shadow-lg">
+                  <button onClick={() => setShowCreate(true)} className="flex items-center gap-2 px-5 py-3 rounded-2xl bg-[#f72585] text-white font-bold text-xs uppercase tracking-widest hover:bg-[#d61a6f] transition-colors shadow-lg">
                     <Plus size={15}/> New Post
                   </button>
                 )}
@@ -410,8 +410,8 @@ const Community = () => {
               className="shrink-0 flex items-center gap-3 px-5 py-3.5 rounded-2xl bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all cursor-default">
               <div className={`w-9 h-9 rounded-xl bg-gradient-to-br ${s.color} flex items-center justify-center text-lg`}>{s.icon}</div>
               <div>
-                <p className="text-[9px] font-black uppercase tracking-widest text-gray-400">{s.label}</p>
-                <p className="text-xl font-black text-gray-900 dark:text-white leading-none">{s.value}</p>
+                <p className="text-[9px] font-bold uppercase tracking-widest text-gray-400">{s.label}</p>
+                <p className="text-xl font-bold text-gray-900 dark:text-white leading-none">{s.value}</p>
               </div>
             </motion.div>
           ))}

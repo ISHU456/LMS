@@ -3,6 +3,7 @@ import { Home, Users, BarChart2, MessageSquare, BookOpen, Clock, UserCheck, X } 
 import { Link, useNavigate } from 'react-router-dom';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer } from 'recharts';
 import { motion, AnimatePresence } from 'framer-motion';
+import GeminiLoader from '../../components/GeminiLoader';
 
 const HODDashboard = () => {
   const [activeTab, setActiveTab] = useState('overview');
@@ -36,12 +37,9 @@ const HODDashboard = () => {
     { subject: 'AI', passRate: 88 },
   ];
 
-  if (isLoading) return (
-    <div className="flex min-h-[calc(100vh-73px)] flex-col lg:flex-row bg-gray-50 p-4 md:p-8 gap-6 animate-pulse">
-       <div className="w-full lg:w-64 bg-gray-200 rounded-2xl h-48 lg:h-full"></div>
-       <div className="flex-1 bg-gray-200 rounded-2xl h-56 lg:h-full"></div>
-    </div>
-  );
+  if (isLoading) return <GeminiLoader fullScreen text="Synchronizing Departmental Node..." />;
+
+
 
   return (
     <div className="flex min-h-[calc(100vh-73px)] flex-col lg:flex-row bg-gray-50 dark:bg-[#0f172a] relative overflow-hidden">

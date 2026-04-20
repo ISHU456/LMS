@@ -50,12 +50,12 @@ const SidebarNav = ({
           
           {sidebarOpen && (
             <Link to="/profile" className="flex items-center gap-3 transition-opacity duration-200 hover:opacity-80">
-               <div className="w-9 h-9 rounded-xl bg-indigo-600 flex items-center justify-center text-white text-[10px] font-black shadow-lg shrink-0">
+               <div className="w-9 h-9 rounded-xl bg-indigo-600 flex items-center justify-center text-white text-[10px] font-bold shadow-lg shrink-0">
                  {initials}
                </div>
                <div className="flex flex-col min-w-0">
-                  <span className="text-[10px] font-black dark:text-white uppercase truncate">{displayName}</span>
-                  <span className="text-[8px] font-black text-primary-500 uppercase flex items-center gap-1">
+                  <span className="text-[10px] font-bold dark:text-white uppercase truncate">{displayName}</span>
+                  <span className="text-[8px] font-bold text-primary-500 uppercase flex items-center gap-1">
                     <div className="w-1 h-1 bg-primary-500 rounded-full animate-pulse"></div> {roleLabel}
                   </span>
                </div>
@@ -64,7 +64,7 @@ const SidebarNav = ({
         </div>
 
         {!sidebarOpen && (
-           <Link to="/profile" className="w-10 h-10 rounded-xl bg-indigo-600 flex items-center justify-center text-white text-[12px] font-black shadow-lg shrink-0 hover:scale-105 transition-transform" title="Profile">
+           <Link to="/profile" className="w-10 h-10 rounded-xl bg-indigo-600 flex items-center justify-center text-white text-[12px] font-bold shadow-lg shrink-0 hover:scale-105 transition-transform" title="Profile">
              {initials}
            </Link>
         )}
@@ -97,7 +97,7 @@ const SidebarNav = ({
               className={`w-full flex items-center gap-4 rounded-[1.5rem] transition-all duration-300 bg-gray-50 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-900 hover:text-white ${sidebarOpen ? 'px-5 py-4' : 'h-12 justify-center'}`}
             >
               <Plus size={18} />
-              <span className={`text-[11px] font-black uppercase tracking-widest whitespace-nowrap transition-opacity ${sidebarOpen ? 'opacity-100' : 'opacity-0 h-0'}`}>Upload Hub</span>
+              <span className={`text-[10px] font-bold uppercase tracking-widest whitespace-nowrap transition-opacity ${sidebarOpen ? 'opacity-100' : 'opacity-0 h-0'}`}>Upload Hub</span>
             </Link>
           </div>
         )}
@@ -120,7 +120,7 @@ const SidebarNav = ({
                   <t.icon size={20} />
                 </div>
                 {sidebarOpen && (
-                  <span className={`font-black uppercase tracking-widest leading-none whitespace-nowrap ${t.id === 'ai-assistant' ? 'text-xs text-primary-600 dark:text-primary-400' : 'text-[11px]'}`}>
+                  <span className={`font-bold uppercase tracking-widest leading-none whitespace-nowrap ${t.id === 'ai-assistant' ? 'text-xs text-primary-600 dark:text-primary-400' : 'text-[10px]'}`}>
                     {t.label}
                   </span>
                 )}

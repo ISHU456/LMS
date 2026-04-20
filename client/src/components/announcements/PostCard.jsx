@@ -252,7 +252,7 @@ const PostCard = ({ announcement, user, onUpdate, onDelete }) => {
               href={file.url} 
               target="_blank" 
               rel="noreferrer"
-              className="flex items-center gap-3 p-3 rounded-2xl border border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-800/50 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+              className="flex items-center gap-3 p-3 rounded-2xl border border-app-border/30 bg-app-bg/40 hover:bg-app-bg/60 transition-colors"
             >
               <div className="w-10 h-10 rounded-xl bg-primary-100 dark:bg-primary-900/30 flex items-center justify-center text-primary-600">
                 <Paperclip size={20} />
@@ -308,12 +308,12 @@ const PostCard = ({ announcement, user, onUpdate, onDelete }) => {
   };
 
   return (
-    <div className="bg-white/80 dark:bg-white/[0.02] backdrop-blur-lg border border-slate-200/50 dark:border-white/10 rounded-[2.5rem] shadow-xl transition-all overflow-hidden mb-8 hover:border-white/10 transform-gpu group gpu-accelerated glass-contain">
+    <div className="bg-app-surface backdrop-blur-lg border border-app-border/10 rounded-[2.5rem] shadow-xl transition-all overflow-hidden mb-8 hover:border-app-border/20 transform-gpu group gpu-accelerated glass-contain">
       {/* Pinned / Priority Indicator Bar */}
       {announcement.pinned && (
-        <div className={`${config.lightBg} px-6 py-3 border-b border-slate-100/50 dark:border-white/5 flex items-center gap-3`}>
+        <div className={`${config.lightBg} px-6 py-3 border-b border-app-border/20 flex items-center gap-3`}>
            <Pin size={14} className={`${config.color} fill-current`} />
-           <span className={`text-[10px] font-black uppercase tracking-[0.2em] ${config.color}`}>Pinned Academic Priority</span>
+           <span className={`text-[10px] font-bold uppercase tracking-[0.2em] ${config.color}`}>Pinned Academic Priority</span>
         </div>
       )}
 
@@ -321,27 +321,27 @@ const PostCard = ({ announcement, user, onUpdate, onDelete }) => {
         {/* Header */}
         <div className="flex justify-between items-start mb-6">
           <div className="flex gap-4">
-            <div className="w-14 h-14 rounded-2xl bg-slate-100 dark:bg-white/5 overflow-hidden border border-slate-200 dark:border-white/10 shadow-lg group-hover:scale-105 transition-transform duration-500">
+            <div className="w-14 h-14 rounded-2xl bg-app-bg overflow-hidden border border-app-border/10 shadow-lg group-hover:scale-105 transition-transform duration-500">
                {announcement.author?.profilePic ? (
                  <img src={announcement.author.profilePic} alt="" className="w-full h-full object-cover" />
                ) : (
-                 <div className="w-full h-full flex items-center justify-center text-xl font-black text-slate-400">
+                 <div className="w-full h-full flex items-center justify-center text-xl font-black text-app-muted">
                    {announcement.author?.name?.charAt(0) || 'A'}
                  </div>
                )}
             </div>
             <div>
                <div className="flex items-center gap-2">
-                 <h3 className={`text-base font-black text-slate-900 dark:text-white group-hover:${config.color} transition-colors cursor-pointer uppercase tracking-tight`}>
+                 <h3 className={`text-base font-bold text-app-text group-hover:${config.color} transition-colors cursor-pointer uppercase tracking-tight`}>
                    {announcement.author?.name || 'Academic Handshake'}
                  </h3>
                  {announcement.author?.role === 'admin' && <ShieldCheck size={16} className={config.color} />}
                </div>
-               <p className="text-[10px] font-mono text-slate-500 leading-none mt-1 uppercase tracking-widest">
+               <p className="text-[10px] font-medium text-app-muted leading-none mt-1 uppercase tracking-widest">
                   {announcement.author?.role || 'Academic Member'} • Institutional Relay
                </p>
                <div className="flex items-center gap-2 mt-2">
-                  <div className="flex items-center gap-1 text-[9px] font-black text-slate-400 uppercase tracking-widest bg-slate-100 dark:bg-white/5 px-2 py-0.5 rounded">
+                  <div className="flex items-center gap-1 text-[9px] font-medium text-app-muted uppercase tracking-widest bg-app-bg px-2 py-0.5 rounded">
                      <Clock size={10} /> {safeFormatDate(announcement.createdAt)}
                   </div>
                </div>
@@ -349,17 +349,17 @@ const PostCard = ({ announcement, user, onUpdate, onDelete }) => {
           </div>
           
           <div className="relative">
-            <button onClick={() => setIsMenuOpen(!isMenuOpen)} className="p-2.5 hover:bg-slate-100 dark:hover:bg-white/5 rounded-xl text-slate-500 transition-all">
+            <button onClick={() => setIsMenuOpen(!isMenuOpen)} className="p-2.5 hover:bg-app-bg rounded-xl text-app-muted transition-all">
                <MoreVertical size={20} />
             </button>
             {isMenuOpen && (
-              <div className="absolute right-0 mt-2 w-56 bg-white/90 dark:bg-[#020617] backdrop-blur-2xl shadow-2xl rounded-2xl border border-slate-200 dark:border-white/10 z-50 overflow-hidden text-[10px] py-1">
+              <div className="absolute right-0 mt-2 w-56 bg-app-surface/95 backdrop-blur-2xl shadow-2xl rounded-2xl border border-app-border/30 z-50 overflow-hidden text-[10px] py-1">
                  {(isAuthor || isAdmin) && (
                    <button onClick={() => onDelete(announcement._id)} className="w-full text-left px-5 py-3 hover:bg-red-50 dark:hover:bg-red-500/10 text-red-500 font-black uppercase tracking-widest flex items-center gap-3 transition-colors">
                      <Trash2 size={14} /> Purge Post
                    </button>
                  )}
-                 <button onClick={handleReport} className="w-full text-left px-5 py-3 hover:bg-slate-50 dark:hover:bg-white/5 text-slate-600 dark:text-gray-400 font-black uppercase tracking-widest flex items-center gap-3 transition-colors">
+                 <button onClick={handleReport} className="w-full text-left px-5 py-3 hover:bg-app-bg text-app-muted font-black uppercase tracking-widest flex items-center gap-3 transition-colors">
                    <Info size={14} /> Report Pulse
                  </button>
               </div>
@@ -370,20 +370,20 @@ const PostCard = ({ announcement, user, onUpdate, onDelete }) => {
         {/* Post text content */}
         <div className="space-y-4">
           {announcement.title && (
-            <h2 className="text-xl font-black text-slate-900 dark:text-white leading-tight">
+            <h2 className="text-xl font-bold text-app-text leading-tight">
               {announcement.title}
             </h2>
           )}
-          <p className="text-sm text-slate-700 dark:text-gray-300 leading-relaxed whitespace-pre-wrap font-medium">
+          <p className="text-sm text-app-text/90 leading-relaxed whitespace-pre-wrap font-medium">
             {announcement.content}
           </p>
           
           <div className="flex flex-wrap gap-2 pt-2">
-            <span className={`text-[9px] font-black uppercase tracking-widest ${config.color} ${config.lightBg} px-3 py-1 rounded-lg border border-current opacity-60`}>
+            <span className={`text-[9px] font-bold uppercase tracking-widest ${config.color} ${config.lightBg} px-3 py-1 rounded-lg border border-current opacity-60`}>
               #{announcement.category || 'Institutional'}
             </span>
             {announcement.priority !== 'normal' && (
-              <span className={`text-[9px] font-black uppercase tracking-widest px-3 py-1 rounded-lg border ${announcement.priority === 'critical' ? 'bg-red-500/10 text-red-500 border-red-500/20' : 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20'}`}>
+              <span className={`text-[9px] font-bold uppercase tracking-widest px-3 py-1 rounded-lg border ${announcement.priority === 'critical' ? 'bg-red-500/10 text-red-500 border-red-500/20' : 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20'}`}>
                 {announcement.priority} PRIORITY
               </span>
             )}
@@ -396,11 +396,11 @@ const PostCard = ({ announcement, user, onUpdate, onDelete }) => {
       </div>
 
       {/* Footer Stats Line */}
-      <div className="px-8 py-3 flex items-center justify-between border-b border-slate-100/50 dark:border-white/5 text-[9px] text-slate-500 font-black uppercase tracking-[0.2em]">
+      <div className="px-8 py-3 flex items-center justify-between border-b border-app-border/20 text-[9px] text-app-muted font-bold uppercase tracking-[0.2em]">
          <div className="flex items-center gap-2">
             <div className="flex -space-x-1.5">
-               <div className="w-5 h-5 rounded-full bg-blue-500 border-2 border-white dark:border-[#020617] flex items-center justify-center text-[10px] text-white shadow-lg">👍</div>
-               <div className="w-5 h-5 rounded-full bg-red-500 border-2 border-white dark:border-[#020617] flex items-center justify-center text-[10px] text-white shadow-lg">❤️</div>
+               <div className="w-5 h-5 rounded-full bg-blue-500 border-2 border-transparent flex items-center justify-center text-[10px] text-white shadow-lg">👍</div>
+               <div className="w-5 h-5 rounded-full bg-red-500 border-2 border-transparent flex items-center justify-center text-[10px] text-white shadow-lg">❤️</div>
             </div>
             <span>{Object.values(reactions).reduce((a, b) => a + b, 0) || likesCount} ARCHIVES</span>
          </div>
@@ -439,19 +439,19 @@ const PostCard = ({ announcement, user, onUpdate, onDelete }) => {
           <button 
             key={i}
             onClick={btn.action}
-            className={`flex-1 flex items-center justify-center gap-3 py-3.5 rounded-2xl hover:bg-slate-100 dark:hover:bg-white/5 transition-all group ${btn.active ? config.color : 'text-slate-500'}`}
+            className={`flex-1 flex items-center justify-center gap-3 py-3.5 rounded-2xl hover:bg-app-bg transition-all group ${btn.active ? config.color : 'text-app-muted'}`}
           >
             <div className="group-hover:scale-110 transition-transform">{btn.icon}</div>
-            <span className="text-[9px] font-black uppercase tracking-widest">{btn.label}</span>
+            <span className="text-[9px] font-bold uppercase tracking-widest">{btn.label}</span>
           </button>
         ))}
       </div>
 
       {/* Comment Section Panel */}
       {showComments && (
-          <div className="border-t border-slate-100 dark:border-slate-800 p-4">
+          <div className="border-t border-app-border/20 p-4">
               <div className="flex gap-2 mb-4">
-                <div className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 shrink-0">
+                <div className="w-8 h-8 rounded-full bg-app-bg shrink-0">
                   {user?.profilePic && <img src={user.profilePic} alt="" className="w-full h-full object-cover rounded-full" />}
                 </div>
                 <div className="flex-1 flex gap-2">
@@ -460,7 +460,7 @@ const PostCard = ({ announcement, user, onUpdate, onDelete }) => {
                     value={commentText}
                     onChange={(e) => setCommentText(e.target.value)}
                     placeholder="Add a comment..."
-                    className="flex-1 px-4 py-2 rounded-full bg-transparent border border-slate-300 dark:border-slate-600 text-xs font-medium focus:border-indigo-600 outline-none"
+                    className="flex-1 px-4 py-2 rounded-full bg-transparent border border-app-border/10 text-xs font-medium focus:border-indigo-600 outline-none text-app-text"
                     onKeyDown={(e) => e.key === 'Enter' && handleAddComment()}
                   />
                   <button onClick={() => handleAddComment()} disabled={!commentText.trim()} className="px-3 py-1 bg-indigo-600 text-white rounded-full text-xs font-bold disabled:opacity-50">Post</button>

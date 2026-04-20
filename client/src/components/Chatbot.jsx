@@ -253,29 +253,53 @@ const Chatbot = ({ variant = 'floating', className = '', noAutoScroll = false })
 
   return (
     <>
-      <div className={`fixed bottom-10 right-10 z-[1000] floating-chatbot-launcher ${className}`}>
+      <div className={`fixed bottom-6 right-6 z-[1000] floating-chatbot-launcher ${className}`}>
         {/* Launch Button */}
         <motion.button
-          whileHover={{ scale: 1.1, rotate: 5 }}
+          whileHover={{ scale: 1.1, rotate: 8, boxShadow: '0 20px 40px -10px rgba(79, 70, 229, 0.4)' }}
           whileTap={{ scale: 0.9 }}
           onClick={() => setIsOpen(true)}
-          className="w-16 h-16 md:w-20 md:h-20 rounded-[2.2rem] bg-gradient-to-br from-primary-600 via-indigo-600 to-purple-600 text-white flex items-center justify-center shadow-2xl shadow-primary-500/40 border-4 border-white dark:border-gray-900 relative group overflow-hidden"
+          className="w-12 h-12 md:w-14 md:h-14 rounded-2xl bg-gradient-to-br from-primary-600 via-indigo-600 to-violet-600 text-white flex items-center justify-center shadow-xl shadow-primary-500/20 border-2 border-white/20 dark:border-white/10 backdrop-blur-xl relative group overflow-hidden"
         >
           <motion.div layoutId="chatbot-icon" className="relative z-10 transition-colors">
             <AnimatePresence mode="wait">
-              {isOpen ? <X size={32} key="x" /> : <Bot size={32} key="bot" />}
+              {isOpen ? (
+                <X size={22} key="x" className="text-white" />
+              ) : (
+                <div key="chat-icon" className="relative">
+                  <MessageSquare size={22} className="text-white" />
+                  <motion.div
+                    animate={{ scale: [1, 1.2, 1], opacity: [0.5, 1, 0.5] }}
+                    transition={{ duration: 2, repeat: Infinity }}
+                    className="absolute -top-2 -right-2 text-amber-300"
+                  >
+                    <Sparkles size={12} fill="currentColor" />
+                  </motion.div>
+                </div>
+              )}
             </AnimatePresence>
           </motion.div>
+          
+          {/* Animated Background Pulse */}
+          <motion.div 
+            animate={{ 
+              scale: [1, 1.2, 1],
+              opacity: [0.3, 0.6, 0.3]
+            }}
+            transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}
+            className="absolute inset-0 bg-white/20 rounded-full blur-xl"
+          />
+
           <motion.div 
             animate={{ rotate: 360 }}
-            transition={{ duration: 8, repeat: Infinity, ease: 'linear' }}
-            className="absolute inset-0 bg-gradient-to-tr from-white/20 via-transparent to-white/10"
+            transition={{ duration: 12, repeat: Infinity, ease: 'linear' }}
+            className="absolute inset-0 bg-gradient-to-tr from-white/10 via-transparent to-white/5"
           />
           
           {/* Sparkle effects on hover */}
           <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity">
-            <Sparkles size={12} className="absolute top-2 left-4 text-amber-300 animate-pulse" />
-            <Sparkles size={10} className="absolute bottom-4 right-4 text-blue-200 animate-pulse" />
+            <Sparkles size={10} className="absolute top-2 left-3 text-amber-300 animate-pulse" />
+            <Sparkles size={8} className="absolute bottom-3 right-3 text-blue-200 animate-pulse" />
           </div>
         </motion.button>
       </div>

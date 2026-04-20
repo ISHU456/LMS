@@ -63,7 +63,17 @@ const QuizHall = () => {
   });
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 will-change-transform">
+      {loading ? (
+        <div className="flex items-center justify-center min-h-[40vh]">
+          <motion.div 
+            animate={{ rotate: 360 }}
+            transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+            className="w-10 h-10 border-4 border-emerald-500 border-t-transparent rounded-full"
+          />
+        </div>
+      ) : (
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-8">
       <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-8 mb-8">
         <div>
           <h2 className="text-4xl font-black text-slate-900 dark:text-white uppercase tracking-tighter italic flex items-center gap-4">
@@ -281,6 +291,8 @@ const QuizHall = () => {
           </div>
       </div>
 
+        </motion.div>
+      )}
       <AnimatePresence>
         {showGenerator && (
           <QuizGenerator 

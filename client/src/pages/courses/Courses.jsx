@@ -117,7 +117,21 @@ const Courses = ({ isEmbedded = false }) => {
     if (n.includes('programming') || n.includes('computer')) return CodeIcon;
     if (n.includes('physics')) return Atom;
     if (n.includes('data structure') || n.includes('algorithm')) return Zap;
+    if (n.includes('network')) return Globe;
+    if (n.includes('database')) return Layers;
     return BookOpen;
+  };
+
+  const getCourseColors = (course) => {
+    const n = course.name.toLowerCase();
+    if (n.includes('chemistry')) return { text: 'text-emerald-500', bg: 'bg-emerald-50 dark:bg-emerald-500/10', border: 'border-emerald-500/20' };
+    if (n.includes('math')) return { text: 'text-blue-500', bg: 'bg-blue-50 dark:bg-blue-500/10', border: 'border-blue-500/20' };
+    if (n.includes('electronic') || n.includes('electric')) return { text: 'text-amber-500', bg: 'bg-amber-50 dark:bg-amber-500/10', border: 'border-amber-500/20' };
+    if (n.includes('programming') || n.includes('computer')) return { text: 'text-indigo-500', bg: 'bg-indigo-50 dark:bg-indigo-500/10', border: 'border-indigo-500/20' };
+    if (n.includes('physics')) return { text: 'text-violet-500', bg: 'bg-violet-50 dark:bg-violet-500/10', border: 'border-violet-500/20' };
+    if (n.includes('data structure') || n.includes('algorithm') || n.includes('os') || n.includes('operating')) return { text: 'text-rose-500', bg: 'bg-rose-50 dark:bg-rose-500/10', border: 'border-rose-500/20' };
+    if (course.type === 'lab') return { text: 'text-orange-500', bg: 'bg-orange-50 dark:bg-orange-500/10', border: 'border-orange-500/20' };
+    return { text: 'text-primary-600', bg: 'bg-primary-50 dark:bg-primary-500/10', border: 'border-primary-500/20' };
   };
 
   const isTeacher = user?.role === 'teacher';
@@ -211,8 +225,8 @@ const Courses = ({ isEmbedded = false }) => {
                 <ArrowRight size={18} className="rotate-180" />
               </Link>
               <div className={`flex flex-col transition-opacity duration-200 ${sidebarOpen ? 'opacity-100 flex' : 'opacity-0 hidden'}`}>
-                <span className="text-[8px] font-black text-primary-600 dark:text-primary-400 uppercase tracking-widest">Global Matrix</span>
-                <span className="text-xs font-black text-gray-800 dark:text-white uppercase tracking-tighter">Curriculum</span>
+                <span className="text-[8px] font-bold text-primary-600 dark:text-primary-400 uppercase tracking-widest">Global Matrix</span>
+                <span className="text-xs font-bold text-gray-800 dark:text-white uppercase tracking-tighter">Curriculum</span>
               </div>
             </div>
             <button onClick={() => { setSidebarOpen(false); setIsMobileSidebarOpen(false); }} className="lg:hidden p-2 bg-gray-50 dark:bg-gray-800 text-gray-500 rounded-xl">
@@ -251,10 +265,10 @@ const Courses = ({ isEmbedded = false }) => {
                   >
                     <div className={`flex items-center relative z-10 ${sidebarOpen ? 'w-full justify-between' : 'justify-center w-full'}`}>
                       <div className={`flex items-center ${sidebarOpen ? 'gap-3' : 'justify-center'}`}>
-                        <div className={`w-8 h-8 shrink-0 rounded-xl flex items-center justify-center transition-colors ${activeSem === sem.id ? 'bg-white/20 text-white' : sem.color}`}>
+                        <div className={`w-8 h-8 shrink-0 rounded-xl flex items-center justify-center transition-colors ${activeSem === sem.id ? 'bg-white/30 text-white' : sem.color}`}>
                           {isSemLocked(sem.id) ? <Lock size={14} /> : isSemCompleted(sem.id) ? <CheckCircle2 size={16} /> : <sem.icon size={16} />}
                         </div>
-                        {sidebarOpen && <span className="text-[9px] font-black uppercase tracking-widest">{sem.label}</span>}
+                        {sidebarOpen && <span className="text-[9px] font-bold uppercase tracking-widest">{sem.label}</span>}
                       </div>
                     </div>
                   </button>
@@ -274,8 +288,8 @@ const Courses = ({ isEmbedded = false }) => {
               </button>
             )}
             <div className="flex flex-col">
-               <span className="text-[8px] font-black text-primary-600 uppercase tracking-widest hidden lg:block">Architecture Flow</span>
-               <h2 className="text-sm lg:text-xl font-black text-gray-900 dark:text-white uppercase tracking-tighter leading-none truncate max-w-[150px] lg:max-w-none">
+               <span className="text-[8px] font-bold text-primary-600 uppercase tracking-widest hidden lg:block">Architecture Flow</span>
+               <h2 className="text-sm lg:text-xl font-bold text-gray-900 dark:text-white uppercase tracking-tighter leading-none truncate max-w-[150px] lg:max-w-none">
                   {selectedDept?.name || 'Curriculum Hub'}
                </h2>
             </div>
@@ -284,10 +298,10 @@ const Courses = ({ isEmbedded = false }) => {
          <div className="flex items-center gap-3 w-full md:w-auto">
             <div className="relative group md:w-72">
                <Search size={14} className="absolute left-5 top-1/2 -translate-y-1/2 text-gray-400" />
-               <input type="text" value={search} onChange={e=>setSearch(e.target.value)} placeholder="SEARCH..." className="w-full bg-gray-50 dark:bg-gray-800/50 pl-12 pr-4 py-3 rounded-xl outline-none text-[10px] font-black uppercase tracking-widest transition-all" />
+               <input type="text" value={search} onChange={e=>setSearch(e.target.value)} placeholder="SEARCH..." className="w-full bg-gray-50 dark:bg-gray-800/50 pl-12 pr-4 py-3 rounded-xl outline-none text-[10px] font-bold uppercase tracking-widest transition-all" />
             </div>
             {isHOD && (
-               <button onClick={handleOpenModal} className="px-5 py-3 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-xl font-black text-[9px] uppercase tracking-widest shadow-xl shrink-0">
+               <button onClick={handleOpenModal} className="px-5 py-3 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-xl font-bold text-[9px] uppercase tracking-widest shadow-xl shrink-0">
                   <Plus size={14} /> <span className="hidden sm:inline">SUBJECT</span>
                </button>
             )}
@@ -299,9 +313,9 @@ const Courses = ({ isEmbedded = false }) => {
           <button 
             key={sem.id} 
             onClick={() => setActiveSem(sem.id)} 
-            className={`flex items-center gap-2.5 whitespace-nowrap px-4 py-2.5 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all ${activeSem === sem.id ? sem.active : 'bg-gray-100/50 dark:bg-gray-800/50 text-gray-500 shadow-inner'}`}
+            className={`flex items-center gap-2.5 whitespace-nowrap px-4 py-2.5 rounded-2xl text-[10px] font-bold uppercase tracking-widest transition-all ${activeSem === sem.id ? sem.active : 'bg-gray-100/50 dark:bg-gray-800/50 text-gray-500 shadow-inner'}`}
           >
-            <div className={`w-7 h-7 rounded-xl flex items-center justify-center transition-colors ${activeSem === sem.id ? 'bg-white/20' : sem.color}`}>
+            <div className={`w-7 h-7 rounded-xl flex items-center justify-center transition-colors ${activeSem === sem.id ? 'bg-white/30' : sem.color}`}>
               {isSemLocked(sem.id) ? <Lock size={14} /> : <sem.icon size={14} />}
             </div>
             {sem.label.replace('Semester ', 'SEM ')}
@@ -317,13 +331,13 @@ const Courses = ({ isEmbedded = false }) => {
                     <CheckCircle2 size={24} />
                   </div>
                   <div>
-                    <h3 className="text-sm font-black text-emerald-600 uppercase tracking-widest">Academic Success Milestone</h3>
-                    <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest mt-1">This semester has been archived as successfully completed.</p>
+                    <h3 className="text-sm font-bold text-emerald-600 uppercase tracking-widest">Academic Success Milestone</h3>
+                    <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mt-1">This semester has been archived as successfully completed.</p>
                   </div>
                 </div>
                 <div className="flex flex-col items-end">
-                   <div className="px-4 py-1.5 rounded-full bg-emerald-500 text-white text-[9px] font-black uppercase tracking-widest shadow-lg shadow-emerald-500/20 animate-pulse">Status: ALREADY COMPLETED</div>
-                   <span className="text-[8px] font-black text-gray-400 uppercase tracking-widest mt-2">{activeSem.replace('-', ' ')} Archives</span>
+                   <div className="px-4 py-1.5 rounded-full bg-emerald-500 text-white text-[9px] font-bold uppercase tracking-widest shadow-lg shadow-emerald-500/20 animate-pulse">Status: ALREADY COMPLETED</div>
+                   <span className="text-[8px] font-bold text-gray-400 uppercase tracking-widest mt-2">{activeSem.replace('-', ' ')} Archives</span>
                 </div>
               </motion.div>
             )}
@@ -350,7 +364,7 @@ const Courses = ({ isEmbedded = false }) => {
                         >
                            <Link to={`/course-inner/${course.code}`} className="block h-full relative">
                               {shouldBeDull && (
-                                <div className="absolute top-4 left-4 z-20 px-3 py-1 bg-gray-600/20 backdrop-blur-md rounded-full border border-gray-600/30 text-[8px] font-black text-gray-500 uppercase tracking-widest">
+                                <div className="absolute top-4 left-4 z-20 px-3 py-1 bg-gray-600/20 backdrop-blur-md rounded-full border border-gray-600/30 text-[8px] font-bold text-gray-500 uppercase tracking-widest">
                                   READ ONLY
                                 </div>
                               )}
@@ -359,38 +373,38 @@ const Courses = ({ isEmbedded = false }) => {
                                  <div className="absolute top-6 right-6 flex flex-col items-end gap-2">
                                     <div className="flex items-center gap-2 px-3 py-1 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 rounded-full border border-emerald-100 dark:border-emerald-800/50 shadow-sm">
                                        <Activity size={10} className="animate-pulse"/>
-                                       <span className="text-[8px] font-black uppercase tracking-widest">{activeNow} LIVE</span>
+                                       <span className="text-[8px] font-bold uppercase tracking-widest">{activeNow} LIVE</span>
                                     </div>
                                     <div className="flex items-center gap-2 px-3 py-1 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 rounded-full border border-blue-100 dark:border-blue-800/50 shadow-sm">
                                        <Eye size={10}/>
-                                       <span className="text-[8px] font-black uppercase tracking-widest">{course.views || 0} VIEWS</span>
+                                       <span className="text-[8px] font-bold uppercase tracking-widest">{course.views || 0} VIEWS</span>
                                     </div>
                                  </div>
 
                                  <div className="flex items-center gap-4 mb-6 lg:mb-8">
-                                    <div className={`w-12 h-12 lg:w-14 lg:h-14 rounded-2xl flex items-center justify-center shadow-lg ${course.type === 'lab' ? 'bg-amber-500 text-white' : 'bg-primary-600 text-white'}`}>
-                                       <Icon size={24} className="lg:size-[28px]" />
+                                    <div className={`w-12 h-12 lg:w-14 lg:h-14 rounded-2xl flex items-center justify-center shadow-lg border-2 bg-white dark:bg-[#1a1f2e] ${getCourseColors(course).border}`}>
+                                       <Icon size={24} className={`lg:size-[28px] ${getCourseColors(course).text}`} />
                                     </div>
                                     <div className="flex flex-col">
-                                       <span className="text-[9px] lg:text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">{course.code}</span>
-                                       <span className="text-[10px] lg:text-xs font-black dark:text-white uppercase tracking-tighter">LEVEL {course.credits} UNIT</span>
+                                       <span className={`text-[9px] lg:text-[10px] font-bold uppercase tracking-[0.2em] ${getCourseColors(course).text}`}>{course.code}</span>
+                                       <span className="text-[10px] lg:text-xs font-bold dark:text-white uppercase tracking-tighter">LEVEL {course.credits} UNIT</span>
                                     </div>
                                  </div>
 
                                  <div className="flex-1">
-                                    <h3 className="text-lg lg:text-xl font-black text-gray-900 dark:text-white leading-tight uppercase tracking-tighter mb-4 group-hover:text-primary-600 transition-colors">
+                                    <h3 className="text-lg lg:text-xl font-bold text-gray-900 dark:text-white leading-tight uppercase tracking-tighter mb-4 group-hover:text-primary-600 transition-colors">
                                        {course.name}
                                     </h3>
                                  </div>
 
                                  <div className="pt-6 border-t border-gray-100 dark:border-gray-800 flex items-center justify-between">
                                     <div className="flex items-center gap-3">
-                                       <div className="w-8 h-8 lg:w-10 lg:h-10 rounded-[1rem] bg-indigo-500 flex items-center justify-center text-white text-[9px] font-black">
+                                       <div className="w-8 h-8 lg:w-10 lg:h-10 rounded-[1rem] bg-indigo-500 flex items-center justify-center text-white text-[9px] font-bold">
                                           {facultyName.split(' ').map(n=>n[0]).join('')}
                                        </div>
                                        <div>
-                                          <p className="text-[7px] lg:text-[8px] font-black text-gray-400 uppercase tracking-widest leading-none">Lead Strategist</p>
-                                          <p className="text-[10px] lg:text-xs font-black dark:text-white uppercase transition-colors">{facultyName}</p>
+                                          <p className="text-[7px] lg:text-[8px] font-bold text-gray-400 uppercase tracking-widest leading-none">Lead Strategist</p>
+                                          <p className="text-[10px] lg:text-xs font-bold dark:text-white uppercase transition-colors">{facultyName}</p>
                                        </div>
                                     </div>
                                     <div className="w-10 h-10 rounded-2xl bg-gray-50 dark:bg-gray-800 text-gray-400 group-hover:bg-primary-600 group-hover:text-white transition-all flex items-center justify-center shadow-inner">
@@ -412,15 +426,15 @@ const Courses = ({ isEmbedded = false }) => {
       {showModal && (
         <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 lg:p-8 backdrop-blur-xl bg-black/60">
           <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="bg-white dark:bg-[#0b0f19] w-full max-w-2xl rounded-3xl lg:rounded-[3rem] p-6 lg:p-12 shadow-2xl overflow-hidden border border-gray-100 dark:border-gray-800">
-               <h2 className="text-xl lg:text-3xl font-black dark:text-white uppercase tracking-tighter mb-6 lg:mb-10">Establish New Module</h2>
+               <h2 className="text-xl lg:text-3xl font-bold dark:text-white uppercase tracking-tighter mb-6 lg:mb-10">Establish New Module</h2>
                <form onSubmit={handleSubmit} className="space-y-6">
                  <div className="grid grid-cols-2 gap-6">
                     <input required type="text" placeholder="Unit Title..." value={formData.name} onChange={(e) => setFormData({...formData, name: e.target.value})} className="w-full bg-gray-50 dark:bg-gray-800/50 rounded-2xl px-6 py-4 text-sm font-bold outline-none" />
                     <input required type="text" placeholder="CS301" value={formData.code} onChange={(e) => setFormData({...formData, code: e.target.value.toUpperCase()})} className="w-full bg-gray-50 dark:bg-gray-800/50 rounded-2xl px-6 py-4 text-sm font-bold outline-none" />
                  </div>
                  <div className="flex gap-4 pt-6">
-                    <button type="button" onClick={() => setShowModal(false)} className="flex-1 py-5 bg-gray-100 dark:bg-gray-800 rounded-3xl font-black uppercase tracking-widest">Cancel</button>
-                    <button type="submit" className="flex-[2] py-5 bg-primary-600 text-white rounded-3xl font-black uppercase tracking-widest shadow-2xl">Confirm Module</button>
+                    <button type="button" onClick={() => setShowModal(false)} className="flex-1 py-5 bg-gray-100 dark:bg-gray-800 rounded-3xl font-bold uppercase tracking-widest">Cancel</button>
+                    <button type="submit" className="flex-[2] py-5 bg-primary-600 text-white rounded-3xl font-bold uppercase tracking-widest shadow-2xl">Confirm Module</button>
                  </div>
                </form>
           </motion.div>

@@ -1,106 +1,123 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
 
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
-
-/* 
-  DYNAMIC THEME OVERRIDES 
-  Ensures the global background flows correctly while allowing 
-  components to maintain their own surface elevation.
-*/
-.app-bg-sync {
-  background-color: var(--bg-light) !important;
-}
-
-.dark .app-bg-sync {
-  background-color: var(--bg-dark) !important;
-}
-
-/* Ensure root containers are transparent to show the body background */
-#root, .app-container {
-  background-color: transparent !important;
-}
+@import "tailwindcss";
 
 :root {
-  --bg-light: #FDFBF7;
-  --bg-dark: #0f172a;
-  scroll-behavior: smooth;
+  /* Dynamic Theme Variables - Premium Cyber Emerald Palette */
+  --bg-light: #FFFFFF;
+  --bg-dark: #020617;  /* Slate 950 - Deepest Professional Base */
+  
+  --surface-light: #F8FAFC;
+  --surface-dark: #0F172A; /* Slate 900 - Rich Surface */
+  
+  --text-primary-light: #0F172A;
+  --text-primary-dark: #F8FAFC; /* Slate 50 - High Contrast Soft White */
+  
+  --text-secondary-light: #475569;
+  --text-secondary-dark: #94A3B8; /* Slate 400 - Muted Support Text */
+  
+  --border-light: #E2E8F0;
+  --border-dark: #1E293B; /* Slate 800 - Discrete Borders */
+
+  --accent: #10B981; /* Emerald 500 - Vibrant Core */
+  --accent-soft: rgba(16, 185, 129, 0.1);
+  --accent-gradient: linear-gradient(135deg, #10B981 0%, #06B6D4 100%);
+  
+  --surface-light-blur: rgba(255, 255, 255, 0.7);
+  --surface-dark-blur: rgba(15, 23, 42, 0.75);
+
+  /* Theme-Reactive Variables (Auto-switching) */
+  --app-bg: var(--bg-light);
+  --app-surface: var(--surface-light);
+  --app-text: var(--text-primary-light);
+  --app-text-muted: var(--text-secondary-light);
+  --app-border: var(--border-light);
+  
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
-html {
-  font-size: 14px;
-  background-color: var(--bg-light);
+.dark {
+  --app-bg: var(--bg-dark);
+  --app-surface: var(--surface-dark);
+  --app-text: var(--text-primary-dark);
+  --app-text-muted: var(--text-secondary-dark);
+  --app-border: var(--border-dark);
 }
 
-.dark html {
-  background-color: var(--bg-dark);
+
+* {
+  scrollbar-gutter: stable;
 }
+
+html {
+  scroll-behavior: smooth;
+}
+
+html {
+  font-size: 14px;
+  background-color: var(--app-bg);
+  color: var(--app-text);
+  transition: background-color 0.3s cubic-bezier(0.4, 0, 0.2, 1), color 0.3s ease;
+}
+
+/* html.dark already handled by var transition in .dark block above */
 
 body {
   margin: 0;
-  overflow: hidden;
-  font-family: 'Inter', sans-serif;
-  line-height: 1.5;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  line-height: 1.6;
   background-color: transparent;
-  color: #0f172a;
-  transition: background-color 0.3s ease;
+  color: inherit;
 }
 
-.dark body {
-  background-color: var(--bg-dark);
-  color: #f8fafc;
+#root, .app-container {
+  background-color: transparent !important;
 }
 
-/* 60fps Smooth Scrolling Optimization */
-.smooth-scroll {
-  overflow-y: auto;
-  scroll-behavior: smooth;
-  -webkit-overflow-scrolling: touch;
-  will-change: transform;
-  backface-visibility: hidden;
-  transform: translateZ(0);
-  contain: paint;
-}
-
-.no-scrollbar::-webkit-scrollbar {
-  display: none;
-}
-
-.no-scrollbar {
-  -ms-overflow-style: none;
-  scrollbar-width: none;
-}
-
+/* Global Surface Utilities */
 .glass {
-  background: rgba(255, 255, 255, 0.45);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.5);
-  box-shadow: 0 10px 40px -10px rgba(0, 0, 0, 0.05);
+  background: var(--surface-light);
+  border: 1px solid var(--border-light);
+  color: var(--text-primary-light);
 }
 
 .dark .glass {
-  background: rgba(15, 23, 42, 0.35);
-  border: 1px solid rgba(255, 255, 255, 0.05);
-  box-shadow: 0 10px 40px -10px rgba(0, 0, 0, 0.4);
+  background: var(--surface-dark);
+  border: 1px solid var(--border-dark);
+  color: var(--text-primary-dark);
 }
 
-.surface-elevation {
-  background: rgba(255, 255, 255, 0.8) !important;
-  backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.3);
+.surface-card {
+  background: var(--surface-light);
+  border: 1px solid var(--border-light);
+  border-radius: 1.5rem;
 }
 
-.dark .surface-elevation {
-  background: rgba(30, 41, 59, 0.5) !important;
-  backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.05);
+.dark .surface-card {
+  background: var(--surface-dark);
+  border: 1px solid var(--border-dark);
 }
 
-/* Scrollbar */
+/* Text and Icon Utilities */
+.text-main { color: var(--text-primary-light); }
+.dark .text-main { color: var(--app-text); }
+
+.text-sub { color: var(--text-secondary-light); }
+.dark .text-sub { color: var(--app-text-muted); }
+
+.icon-theme {
+  color: var(--text-secondary-light);
+  transition: color 0.2s ease;
+}
+.dark .icon-theme {
+  color: var(--app-text-muted);
+}
+.icon-theme:hover {
+  color: var(--accent);
+}
+
+/* Scrollbar Refinement */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
@@ -113,95 +130,63 @@ body {
   border-radius: 4px;
 }
 .dark ::-webkit-scrollbar-thumb {
-  background: #475569;
-}
-::-webkit-scrollbar-thumb:hover {
-  background: #94a3b8;
-}
-.dark ::-webkit-scrollbar-thumb:hover {
-  background: #64748b;
-}
-
-.animate-float {
-  animation: float 6s ease-in-out infinite;
-}
-
-@keyframes float {
-  0% { transform: translateY(0px) }
-  50% { transform: translateY(-20px) }
-  100% { transform: translateY(0px) }
-}
-
-/* Hide floating chatbot on AI Assistant page to avoid overlaps */
-.ai-assistant-page-active .floating-chatbot-launcher {
-  display: none !important;
-}
-
-/* Institutional Alert Marquee Animation */
-@keyframes marquee {
-  0% { transform: translateX(0); }
-  100% { transform: translateX(-50%); }
-}
-
-.animate-marquee {
-  animation: marquee 40s linear infinite;
-}
-
-@keyframes slide-down {
-  0% { transform: translateY(-100%); opacity: 0; }
-  100% { transform: translateY(0); opacity: 1; }
-}
-.animate-slide-down {
-  animation: slide-down 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-}
-
-@keyframes shake {
-  0%, 100% { transform: translateX(0); }
-  10%, 30%, 50%, 70%, 90% { transform: translateX(-4px); }
-  20%, 40%, 60%, 80% { transform: translateX(4px); }
-}
-.animate-shake {
-  animation: shake 0.6s cubic-bezier(.36,.07,.19,.97) both;
-}
-
-@keyframes bounce-subtle {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-3px); }
-}
-.animate-bounce-subtle {
-  animation: bounce-subtle 2s ease-in-out infinite;
-}
-
-.custom-scrollbar::-webkit-scrollbar {
-  width: 6px;
-}
-
-.custom-scrollbar::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.custom-scrollbar::-webkit-scrollbar-thumb {
-  background: #e2e8f0;
-  border-radius: 10px;
-  transition: background 0.2s ease;
-}
-
-.dark .custom-scrollbar::-webkit-scrollbar-thumb {
   background: #334155;
-}
-
-.custom-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: #cbd5e1;
-}
-
-.dark .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: #475569;
 }
 
 .no-scrollbar::-webkit-scrollbar {
   display: none;
 }
 .no-scrollbar {
-  -ms-overflow-style: none;  /* IE and Edge */
-  scrollbar-width: none;  /* Firefox */
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Custom Utilities */
+.smooth-scroll {
+  overflow-y: auto;
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch;
+}
+
+.leaderboard-container {
+  contain: content;
+}
+
+.leaderboard-row {
+  content-visibility: auto;
+  contain-intrinsic-size: 0 80px;
+}
+
+.ai-assistant-page-active .floating-chatbot-launcher {
+  display: none !important;
+}
+
+
+svg {
+  transition: transform 0.2s ease, stroke 0.3s ease, fill 0.3s ease;
+}
+
+/* 
+ * GLOBAL TYPOGRAPHY SOFTENING 
+ * Overrides Tailwind's default weights to ensure a professional, 
+ * less aggressive aesthetic throughout the entire project.
+ */
+.font-black {
+  font-weight: 800 !important;
+}
+
+.font-extrabold {
+  font-weight: 700 !important;
+}
+
+.font-bold {
+  font-weight: 600 !important;
+}
+
+.font-semibold {
+  font-weight: 500 !important;
+}
+
+.font-medium {
+  font-weight: 500 !important;
 }

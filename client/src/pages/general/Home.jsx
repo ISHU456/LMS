@@ -68,7 +68,7 @@ const Home = () => {
   ];
 
   return (
-    <div className="relative overflow-x-hidden bg-transparent text-gray-900 dark:text-gray-100 transition-colors duration-500">
+    <div className="relative overflow-x-hidden bg-transparent text-app-text transition-colors duration-500">
 
       {/* --- PREMIUM SUBTLE BACKGROUND --- */}
       <div className="fixed inset-0 z-0 pointer-events-none overflow-hidden">
@@ -89,19 +89,19 @@ const Home = () => {
 
           {/* Text Content */}
           <div className="flex flex-col items-start text-left max-w-2xl">
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary-100 dark:bg-primary-950/50 text-primary-600 dark:text-primary-400 font-bold text-xs uppercase tracking-widest mb-8 border border-primary-200 dark:border-primary-800/50 shadow-sm">
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary-500/10 text-primary-600 dark:text-primary-400 font-bold text-xs uppercase tracking-widest mb-8 border border-primary-500/10 shadow-sm">
               <Sparkles size={14} className="text-amber-500" />
               <span>Next Generation Learning</span>
             </div>
 
-            <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-black tracking-tight leading-[1.05] mb-8 text-gray-900 dark:text-white">
+            <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-black tracking-tight leading-[1.05] mb-8 text-app-text">
               Unlock Your <br />
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary-600 to-indigo-600 dark:from-primary-400 dark:to-indigo-400">
                 True Potential
               </span>
             </h1>
 
-            <p className="text-lg md:text-xl text-gray-600 dark:text-gray-400 mb-12 font-medium leading-relaxed">
+            <p className="text-lg md:text-xl text-app-muted mb-12 font-medium leading-relaxed">
               Experience education like never before. SmartLMS integrates unparalleled AI capabilities with seamless live collaboration to craft a personalized curriculum tailored uniquely to your academic success.
             </p>
 
@@ -111,7 +111,7 @@ const Home = () => {
                 AI Mode
                 <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform duration-300" />
               </Link>
-              <Link to="/login" className="w-full sm:w-auto px-10 py-5 rounded-2xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 font-black text-xs uppercase tracking-widest text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 transition-all flex justify-center items-center gap-3 shadow-md">
+              <Link to="/login" className="w-full sm:w-auto px-10 py-5 rounded-2xl bg-app-surface border border-app-border font-black text-xs uppercase tracking-widest text-app-text hover:bg-app-surface/80 transition-all flex justify-center items-center gap-3 shadow-md">
                 Get Started
               </Link>
             </div>
@@ -125,13 +125,13 @@ const Home = () => {
               <div className="absolute inset-0 bg-gradient-to-br from-primary-600 to-indigo-600 rounded-[3rem] rotate-3 opacity-10" />
 
               <div className="relative h-full w-full glass rounded-[3rem] border border-white/20 flex flex-col items-center justify-center p-12 text-center overflow-hidden shadow-2xl">
-                <div className="w-28 h-28 rounded-3xl bg-white dark:bg-gray-800 shadow-2xl flex items-center justify-center mb-8 border border-gray-100 dark:border-gray-700">
+                <div className="w-28 h-28 rounded-3xl bg-app-surface shadow-2xl flex items-center justify-center mb-8 border border-app-border">
                   <Bot size={56} className="text-primary-600" />
                 </div>
-                <h3 className="text-3xl font-black text-gray-900 dark:text-white uppercase tracking-tighter mb-4">
+                <h3 className="text-3xl font-black text-app-text uppercase tracking-tighter mb-4">
                   Elite AI Mode
                 </h3>
-                <p className="text-base font-medium text-gray-500 dark:text-gray-400 leading-relaxed mb-10">
+                <p className="text-base font-medium text-app-muted leading-relaxed mb-10">
                   Unleash the full potential of academia with our immersive, stretched AI interface.
                 </p>
                 <Link to="/ai-mode" className="px-10 py-4 bg-primary-600 text-white rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-primary-700 transition-all shadow-xl shadow-primary-600/30 flex items-center gap-3">
@@ -153,9 +153,9 @@ const Home = () => {
       </section>
 
       {/* --- STATS SECTION --- */}
-      <section className="py-24 border-y border-gray-200 dark:border-gray-800 bg-white/50 dark:bg-dark-card/30 backdrop-blur-md relative z-20 px-6 md:px-12 lg:px-24">
+      <section className="py-24 border-y border-app-border bg-app-bg/50 backdrop-blur-md relative z-20 px-6 md:px-12 lg:px-24">
         <div className="container mx-auto">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-12 text-center divide-x divide-gray-200 dark:divide-gray-800">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-12 text-center divide-x divide-app-border">
             {[
               { num: "50k+", label: "Active Students" },
               { num: "3,000+", label: "Expert Instructors" },
@@ -177,7 +177,7 @@ const Home = () => {
       <section className="py-32 relative z-10 px-6 md:px-12 lg:px-24">
         <div className="container mx-auto">
           <div className="text-center max-w-4xl mx-auto mb-24">
-            <h2 className="text-3xl md:text-5xl font-black tracking-tight mb-8 text-gray-900 dark:text-white uppercase">Built for the Modern Scholar</h2>
+            <h2 className="text-3xl md:text-5xl font-black tracking-tight mb-8 text-app-text uppercase">Built for the Modern Scholar</h2>
             <p className="text-base md:text-lg text-gray-600 dark:text-gray-400 font-medium leading-relaxed">Everything you need to orchestrate a sophisticated learning environment precisely engineering for peak performance and student retention.</p>
           </div>
 
@@ -187,7 +187,7 @@ const Home = () => {
                 <div className={`w-16 h-16 rounded-2xl ${feature.bg} flex justify-center items-center mb-8 shadow-lg shadow-black/5`}>
                   <feature.icon className={`w-8 h-8 ${feature.color}`} />
                 </div>
-                <h3 className="text-xl font-black mb-5 text-gray-900 dark:text-white uppercase tracking-tight">{feature.title}</h3>
+                <h3 className="text-xl font-black mb-5 text-app-text uppercase tracking-tight">{feature.title}</h3>
                 <p className="text-sm md:text-base text-gray-600 dark:text-gray-400 leading-relaxed font-medium">
                   {feature.desc}
                 </p>
@@ -215,7 +215,7 @@ const Home = () => {
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {testimonials.map((testimonial, index) => (
-              <div key={testimonial.id} className="relative bg-white dark:bg-gray-800/40 rounded-[2.5rem] p-8 shadow-xl border border-gray-100 dark:border-gray-700/50 backdrop-blur-sm">
+              <div key={testimonial.id} className="relative bg-app-surface rounded-[2.5rem] p-8 shadow-xl border border-app-border backdrop-blur-sm">
                 <div className="absolute -top-4 -right-4 w-12 h-12 rounded-full bg-primary-500/10 flex items-center justify-center backdrop-blur-sm">
                   <Quote className="w-6 h-6 text-primary-500" />
                 </div>
@@ -232,7 +232,7 @@ const Home = () => {
                     {testimonial.avatar}
                   </div>
                   <div>
-                    <h4 className="font-black text-gray-900 dark:text-white text-lg">
+                    <h4 className="font-black text-app-text text-lg">
                       {testimonial.name}
                     </h4>
                     <p className="text-xs text-gray-500 dark:text-gray-400 font-bold uppercase tracking-wide">
@@ -270,7 +270,7 @@ const Home = () => {
               <Rocket size={14} />
               <span>Ready to Begin?</span>
             </div>
-            <h2 className="text-3xl md:text-5xl font-black mb-8 text-gray-900 dark:text-white uppercase tracking-tight">
+            <h2 className="text-3xl md:text-5xl font-black mb-8 text-app-text uppercase tracking-tight">
               Start Your Learning Journey Today
             </h2>
             <p className="text-base md:text-lg text-gray-600 dark:text-gray-400 mb-12 max-w-2xl mx-auto font-medium">
@@ -286,17 +286,6 @@ const Home = () => {
 
       {/* --- MODERN REFINED CSS --- */}
       <style>{`
-        .glass {
-          backdrop-filter: blur(10px);
-          -webkit-backdrop-filter: blur(10px);
-          background: rgba(255, 255, 255, 0.05);
-          transform: translateZ(0); /* Force GPU acceleration */
-          will-change: transform, backdrop-filter;
-        }
-        .dark .glass {
-          background: rgba(255, 255, 255, 0.02);
-        }
-
         /* Prevent layout shifts */
         img, .lucide {
           display: block;

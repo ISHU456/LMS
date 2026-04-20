@@ -106,12 +106,15 @@ const Announcements = ({ isEmbedded = false }) => {
   const config = roleConfigs[user?.role] || roleConfigs.student;
 
   return (
-    <div className={`${isEmbedded ? 'h-auto' : 'h-[calc(100vh-5rem)]'} bg-[#f8fafc] dark:bg-[#020617] transition-colors duration-500 overflow-hidden relative`}>
+    <div 
+      className={`${isEmbedded ? 'h-auto' : 'h-[calc(100vh-5rem)]'} transition-colors duration-500 overflow-hidden relative`}
+      style={{ backgroundColor: 'var(--app-bg)' }}
+    >
       {/* Dynamic Background Elements for Dark Mode */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none opacity-0 dark:opacity-100 transition-opacity duration-1000">
         <div className={`absolute top-[-10%] left-[-10%] w-[40%] h-[40%] rounded-full opacity-5 blur-[100px] transform-gpu bg-gradient-to-br ${config.from} ${config.to}`} />
         <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] rounded-full bg-blue-600/5 blur-[100px] transform-gpu" />
-        <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-[0.15] mix-blend-overlay"></div>
+        <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-[0.05] mix-blend-overlay"></div>
       </div>
 
       <div className={`h-full max-w-[1250px] mx-auto relative z-10 ${isEmbedded ? 'px-0' : 'px-4 sm:px-6 lg:px-8'} lg:pt-6`}>
@@ -121,13 +124,13 @@ const Announcements = ({ isEmbedded = false }) => {
           {/* LEFT SIDEBAR - User Profile & Navigation */}
           <aside className={`${isEmbedded ? 'hidden' : 'hidden lg:block'} w-[240px] shrink-0 h-full overflow-y-auto no-scrollbar pb-10 space-y-4 pt-2 lg:pt-0`}>
             {/* Profile Summary Card */}
-            <div className="bg-white/80 dark:bg-white/[0.03] backdrop-blur-xl rounded-2xl border border-slate-200/50 dark:border-white/10 shadow-xl overflow-hidden transition-all hover:border-white/20 transform-gpu group">
+            <div className="bg-app-surface backdrop-blur-xl rounded-2xl border border-app-border/10 shadow-xl overflow-hidden transition-all hover:border-app-border/30 transform-gpu group">
                <div className={`h-16 bg-gradient-to-br ${config.from} ${config.to} opacity-20 overflow-hidden relative`}>
                   <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 mix-blend-overlay"></div>
                </div>
                <div className="px-4 pb-6 relative">
                   <div className="relative -mt-10 flex justify-center">
-                    <div className="w-20 h-20 rounded-2xl border-4 border-white dark:border-[#020617] bg-slate-100 dark:bg-white/5 overflow-hidden shrink-0 shadow-2xl group-hover:scale-105 transition-transform duration-500">
+                    <div className="w-20 h-20 rounded-2xl border-2 border-app-border/10 bg-app-bg overflow-hidden shrink-0 shadow-2xl group-hover:scale-105 transition-transform duration-500">
                        {user?.profilePic ? (
                          <img src={user.profilePic} alt={user.name} className="w-full h-full object-cover" />
                        ) : (
@@ -138,19 +141,19 @@ const Announcements = ({ isEmbedded = false }) => {
                     </div>
                   </div>
                   <div className="mt-4 text-center">
-                    <h2 className="text-base font-black text-slate-900 dark:text-white leading-tight uppercase tracking-tight">{user?.name}</h2>
-                    <p className={`text-[10px] font-mono ${config.color} mt-1 uppercase tracking-widest ${config.lightBg} inline-block px-2 py-0.5 rounded italic`}>
+                    <h2 className="text-base font-bold text-app-text leading-tight uppercase tracking-tight">{user?.name}</h2>
+                    <p className={`text-[10px] font-medium ${config.color} mt-1 uppercase tracking-widest ${config.lightBg} inline-block px-2 py-0.5 rounded italic`}>
                       {user?.role} • {user?.department || 'Academic Node'}
                     </p>
                   </div>
                   
                   <div className="mt-8 space-y-3">
-                    <div className="pt-4 border-t border-slate-200/50 dark:border-white/5 flex justify-between items-center">
-                       <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Post views</span>
+                    <div className="pt-4 border-t border-app-border/10 flex justify-between items-center">
+                       <span className="text-[10px] font-black uppercase tracking-widest text-app-muted">Post views</span>
                        <span className={`text-xs font-mono font-black ${config.color}`}>{personalStats.impactCount || 0}</span>
                     </div>
                     <div className="flex justify-between items-center">
-                       <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Total Pulses</span>
+                       <span className="text-[10px] font-black uppercase tracking-widest text-app-muted">Total Pulses</span>
                        <span className={`text-xs font-mono font-black ${config.color}`}>{personalStats.postsCount || 0}</span>
                     </div>
                   </div>
@@ -158,7 +161,7 @@ const Announcements = ({ isEmbedded = false }) => {
             </div>
 
             {/* Side Navigation links */}
-            <div className="bg-white/80 dark:bg-white/[0.03] backdrop-blur-xl rounded-2xl border border-slate-200/50 dark:border-white/10 shadow-xl p-4 transition-all hover:border-white/20">
+            <div className="bg-app-surface backdrop-blur-xl rounded-2xl border border-app-border/10 shadow-xl p-4 transition-all hover:border-app-border/30">
                <nav className="flex flex-col space-y-1">
                   {[
                     { label: 'Campus Arena', path: '/arena', icon: Newspaper },
@@ -172,7 +175,7 @@ const Announcements = ({ isEmbedded = false }) => {
                     <button 
                       key={i} 
                       onClick={() => item.path && navigate(item.path)}
-                      className={`text-left px-3 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest flex items-center gap-3 ${item.color || 'text-slate-600 dark:text-gray-400'} hover:bg-slate-100 dark:hover:bg-white/5 transition-all w-full group`}
+                      className={`text-left px-3 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest flex items-center gap-3 ${item.color || 'text-app-muted'} hover:bg-app-bg transition-all w-full group`}
                     >
                       {item.icon && <item.icon size={14} className={`group-hover:scale-110 transition-transform ${item.color ? '' : `group-hover:${config.color}`}`} />}
                       {item.label}
@@ -190,21 +193,21 @@ const Announcements = ({ isEmbedded = false }) => {
 
           {/* RIGHT SIDEBAR - Trending */}
           <aside className="hidden xl:block w-[320px] shrink-0 h-full overflow-y-auto no-scrollbar pb-10 space-y-4 pt-2 lg:pt-0">
-             <div className="bg-white/80 dark:bg-white/[0.03] backdrop-blur-xl rounded-2xl border border-slate-200/50 dark:border-white/10 shadow-xl p-6 transition-all hover:border-white/20">
+             <div className="bg-app-surface backdrop-blur-xl rounded-2xl border border-app-border/30 shadow-xl p-6 transition-all hover:border-app-border/50">
                 <div className="flex items-center justify-between mb-6">
-                   <h3 className="text-xs font-black uppercase tracking-widest text-slate-900 dark:text-white">Trending Signal</h3>
+                   <h3 className="text-xs font-black uppercase tracking-widest text-app-text">Trending Signal</h3>
                    <TrendingUp size={16} className={`${config.color} animate-pulse`} />
                 </div>
                 
                 <div className="space-y-6">
                    {trendingPosts.slice(0, 5).length > 0 ? trendingPosts.slice(0, 5).map((post, i) => (
                      <div key={post._id} className="cursor-pointer group flex gap-3">
-                        <div className="text-xs font-mono font-black text-slate-300 dark:text-white/10 mt-1">0{i+1}</div>
+                        <div className="text-xs font-mono font-black text-app-muted/30 mt-1">0{i+1}</div>
                         <div>
-                          <h4 className={`text-xs font-bold text-slate-800 dark:text-gray-200 group-hover:${config.color} transition-colors line-clamp-2 leading-relaxed`}>
+                          <h4 className={`text-xs font-bold text-app-text group-hover:${config.color} transition-colors line-clamp-2 leading-relaxed`}>
                              {post.title || post.content}
                           </h4>
-                          <p className="text-[9px] font-mono font-bold text-slate-500 mt-1 uppercase tracking-widest">{safeFormatDate(post.createdAt)} • {post.likesCount || 0} ARCHIVES</p>
+                          <p className="text-[9px] font-mono font-bold text-app-muted mt-1 uppercase tracking-widest">{safeFormatDate(post.createdAt)} • {post.likesCount || 0} ARCHIVES</p>
                         </div>
                      </div>
                    )) : (
@@ -217,23 +220,32 @@ const Announcements = ({ isEmbedded = false }) => {
                 
                 <button 
                   onClick={() => navigate('/notifications')}
-                  className="w-full mt-8 py-3 border border-slate-200 dark:border-white/5 rounded-xl text-[10px] font-black uppercase tracking-widest text-slate-500 hover:bg-slate-100 dark:hover:bg-white/5 transition-all"
+                  className="w-full mt-8 py-3 border border-app-border rounded-xl text-[10px] font-black uppercase tracking-widest text-app-muted hover:bg-app-bg transition-all"
                 >
                   Global Archives
                 </button>
              </div>
 
-             <div className={`bg-gradient-to-br ${config.from} ${config.to} opacity-5 backdrop-blur-xl rounded-2xl border border-white/10 p-6 text-center group transition-all hover:border-white/20 relative overflow-hidden`}>
-                {/* Visual Fix for the above background: the opacity affects children too if not careful. Using a pseudo-element or separate div is better. */}
+             {/* Side Footer box */}
+             <div className="relative group transition-all">
+                <div className={`absolute inset-0 bg-app-surface opacity-50 rounded-2xl`} />
+                <div className="relative z-10 p-6 text-center rounded-2xl border border-app-border/10 shadow-lg backdrop-blur-sm group-hover:border-app-border/30 transition-all overflow-hidden font-sans">
+                   <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/10 to-purple-500/10 opacity-20" />
+                   <Sparkles size={28} className={`${config.color} mx-auto mb-4 group-hover:scale-110 transition-transform`} />
+                   <h4 className="text-xs font-black uppercase tracking-widest text-app-text tracking-tighter">Strategic Impact</h4>
+                   <p className="text-[10px] font-medium text-app-muted mt-3 leading-relaxed">
+                      Every signal sent propagates through the entire institutional lattice.
+                   </p>
+                </div>
              </div>
              {/* Redefining the Verified box with better nesting */}
              <div className="relative group transition-all">
                 <div className={`absolute inset-0 bg-gradient-to-br ${config.from} ${config.to} opacity-[0.03] dark:opacity-[0.05] rounded-2xl`} />
-                <div className="relative z-10 p-6 text-center rounded-2xl border border-slate-200/50 dark:border-white/10 shadow-lg backdrop-blur-sm group-hover:border-white/20 transition-all overflow-hidden font-sans">
+                <div className="relative z-10 p-6 text-center rounded-2xl border border-app-border/10 shadow-lg backdrop-blur-sm group-hover:border-app-border/30 transition-all overflow-hidden font-sans">
                    <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-10 mix-blend-overlay"></div>
                    <ShieldCheck size={28} className={`${config.color} mx-auto mb-4 group-hover:scale-110 transition-transform`} />
-                   <h4 className="text-xs font-black uppercase tracking-widest text-slate-900 dark:text-white">Verified Protocol</h4>
-                   <p className="text-[10px] font-medium text-slate-500 dark:text-gray-400 mt-3 leading-relaxed">
+                   <h4 className="text-xs font-black uppercase tracking-widest text-app-text">Verified Protocol</h4>
+                   <p className="text-[10px] font-medium text-app-muted mt-3 leading-relaxed">
                      Authorized signals from the Institutional Council and Strategic Boards.
                    </p>
                 </div>
@@ -274,7 +286,6 @@ const Announcements = ({ isEmbedded = false }) => {
             height: 100vh !important;
             margin: 0;
             padding: 0;
-            background-color: transparent !important;
           }
           /* Optimize for video & heavy blur */
           .gpu-accelerated {

@@ -1,6 +1,6 @@
 export const STUDENT_COURSE_CATALOG = [
   // Semester 1
-  { id: 'BT-101', name: 'Engineering Chemistry', accent: '#10b981', semester: 1 },
+  { id: 'BT-101', name: 'Engineering Chemistry', accent: '#6366f1', semester: 1 },
   { id: 'BT-102', name: 'Mathematics-I', accent: '#3b82f6', semester: 1 },
   { id: 'BT-103', name: 'English for Communication', accent: '#8b5cf6', semester: 1 },
   { id: 'BT-104', name: 'Basic Electrical & Electronics Engineering', accent: '#f59e0b', semester: 1 },
@@ -9,7 +9,7 @@ export const STUDENT_COURSE_CATALOG = [
   { id: 'BT-CLAB', name: 'English Language / Communication Lab', accent: '#0f172a', semester: 1 },
 
   // Semester 2
-  { id: 'BT-201', name: 'Engineering Physics', accent: '#14b8a6', semester: 2 },
+  { id: 'BT-201', name: 'Engineering Physics', accent: '#0ea5e9', semester: 2 },
   { id: 'BT-202', name: 'Mathematics-II', accent: '#f59e0b', semester: 2 },
   { id: 'BT-203', name: 'Basic Mechanical Engineering', accent: '#ef4444', semester: 2 },
   { id: 'BT-204', name: 'Basic Civil Engineering', accent: '#826011', semester: 2 },
@@ -25,14 +25,14 @@ export const STUDENT_COURSE_CATALOG = [
   // Semester 4
   { id: 'BT-401', name: 'Analysis & Design of Algorithms', accent: '#ef4444', semester: 4 },
   { id: 'BT-402', name: 'Operating Systems', accent: '#7209b7', semester: 4 },
-  { id: 'BT-403', name: 'Software Engineering', accent: '#10b981', semester: 4 },
+  { id: 'BT-403', name: 'Software Engineering', accent: '#6366f1', semester: 4 },
   { id: 'BT-404', name: 'Theory of Computation', accent: '#8b5cf6', semester: 4 },
   { id: 'BT-405', name: 'Database Management Systems', accent: '#f59e0b', semester: 4 },
 
   // Semester 5
   { id: 'BT-501', name: 'Computer Networks', accent: '#3b82f6', semester: 5 },
   { id: 'BT-502', name: 'Compiler Design', accent: '#f43f5e', semester: 5 },
-  { id: 'BT-503', name: 'Machine Learning / AI', accent: '#10b981', semester: 5 },
+  { id: 'BT-503', name: 'Machine Learning / AI', accent: '#6366f1', semester: 5 },
   { id: 'BT-OE1', name: 'Open Elective-I', accent: '#64748b', semester: 5 },
   { id: 'BT-DE1', name: 'Department Elective-I', accent: '#475569', semester: 5 },
 
@@ -47,12 +47,12 @@ export const STUDENT_COURSE_CATALOG = [
   { id: 'BT-701', name: 'Artificial Intelligence', accent: '#7c3aed', semester: 7 },
   { id: 'BT-DE3', name: 'Blockchain / IoT', accent: '#2563eb', semester: 7 },
   { id: 'BT-PROJ1', name: 'Major Project - Phase 1', accent: '#f72585', semester: 7 },
-  { id: 'BT-TRAIN', name: 'Industrial Training', accent: '#10b981', semester: 7 },
+  { id: 'BT-TRAIN', name: 'Industrial Training', accent: '#6366f1', semester: 7 },
 
   // Semester 8
   { id: 'BT-PROJ2', name: 'Major Project - Phase 2', accent: '#f72585', semester: 8 },
   { id: 'BT-SEM', name: 'Seminar', accent: '#64748b', semester: 8 },
-  { id: 'BT-INTERN', name: 'Internship / Industry Work', accent: '#10b981', semester: 8 },
+  { id: 'BT-INTERN', name: 'Internship / Industry Work', accent: '#6366f1', semester: 8 },
 ];
 
 export const QUIZZIES_BY_COURSE = {

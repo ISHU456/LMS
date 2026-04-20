@@ -15,18 +15,24 @@ const StudentResults = () => {
     dispatch(getMyResults());
   }, [dispatch]);
 
-  if (isLoading) return (
-    <div className="flex items-center justify-center min-h-[60vh]">
-        <motion.div 
-            animate={{ rotate: 360 }}
-            transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-            className="w-10 h-10 border-4 border-indigo-500 border-t-transparent rounded-full"
-        />
-    </div>
-  );
 
   return (
-    <div className="max-w-[1400px] mx-auto p-4 sm:p-8 space-y-8 pb-20 bg-[var(--bg-light)] dark:bg-[var(--bg-dark)] min-h-screen transition-colors">
+    <div className="max-w-[1400px] mx-auto p-4 sm:p-8 space-y-8 pb-20 bg-[var(--bg-light)] dark:bg-[var(--bg-dark)] min-h-screen transition-colors will-change-transform">
+      {isLoading ? (
+        <div className="flex items-center justify-center min-h-[60vh]">
+            <motion.div 
+                animate={{ rotate: 360 }}
+                transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                className="w-10 h-10 border-4 border-indigo-500 border-t-transparent rounded-full"
+            />
+        </div>
+      ) : (
+        <AnimatePresence>
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="space-y-8"
+          >
       {/* Dynamic Alert Banner */}
       {studentResults?.message && (
           <motion.div 
@@ -39,8 +45,8 @@ const StudentResults = () => {
                     <ShieldCheck size={24} />
                 </div>
                 <div>
-                   <h3 className="text-sm font-black text-indigo-600 dark:text-indigo-400 uppercase tracking-widest leading-none">Institutional Protocol</h3>
-                   <p className="text-xs font-bold text-gray-400 mt-1 uppercase tracking-tighter italic">{studentResults.message}</p>
+                   <h3 className="text-sm font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-widest leading-none">Institutional Protocol</h3>
+                   <p className="text-xs font-medium text-gray-400 mt-1 uppercase tracking-tighter italic">{studentResults.message}</p>
                 </div>
             </div>
             
@@ -120,10 +126,10 @@ const StudentResults = () => {
               <table className="w-full text-left border-separate border-spacing-0">
                 <thead>
                   <tr>
-                    <th className="p-6 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Course Name</th>
-                    <th className="p-6 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] text-center">Credit</th>
-                    <th className="p-6 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] text-center">Marks</th>
-                    <th className="p-6 text-center text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Grade</th>
+                    <th className="p-6 text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em]">Course Name</th>
+                    <th className="p-6 text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] text-center">Credit</th>
+                    <th className="p-6 text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] text-center">Marks</th>
+                    <th className="p-6 text-center text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em]">Grade</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-50 dark:divide-slate-800">
@@ -138,12 +144,12 @@ const StudentResults = () => {
                       >
                         <td className="p-6">
                            <div>
-                              <p className="text-xs font-black dark:text-white uppercase tracking-tighter">{r.course?.name}</p>
-                              <p className="text-[10px] font-bold text-slate-500">{r.course?.code}</p>
+                              <p className="text-xs font-bold dark:text-white uppercase tracking-tighter">{r.course?.name}</p>
+                              <p className="text-[10px] font-medium text-slate-500">{r.course?.code}</p>
                            </div>
                         </td>
-                        <td className="p-6 text-center text-xs font-black text-slate-600 dark:text-slate-400">{r.course?.credits || 4}</td>
-                        <td className="p-6 text-center text-xs font-black text-slate-900 dark:text-white">{(r.totalMarks || 0).toFixed(1)}</td>
+                        <td className="p-6 text-center text-xs font-bold text-slate-600 dark:text-slate-400">{r.course?.credits || 4}</td>
+                        <td className="p-6 text-center text-xs font-bold text-slate-900 dark:text-white">{(r.totalMarks || 0).toFixed(1)}</td>
                         <td className="p-6">
                           <div className="flex justify-center text-[10px] font-black">
                             <span className={`px-4 py-1.5 rounded-lg border uppercase tracking-widest ${
@@ -183,10 +189,10 @@ const StudentResults = () => {
                 >
                    <div className="flex justify-between items-start mb-4">
                       <div className="flex-1">
-                         <h4 className="text-sm font-black dark:text-white uppercase tracking-tighter leading-tight">{r.course?.name}</h4>
-                         <p className="text-[10px] font-bold text-slate-400 mt-1 uppercase tracking-widest">{r.course?.code}</p>
+                         <h4 className="text-sm font-bold dark:text-white uppercase tracking-tighter leading-tight">{r.course?.name}</h4>
+                         <p className="text-[10px] font-medium text-slate-400 mt-1 uppercase tracking-widest">{r.course?.code}</p>
                       </div>
-                      <div className={`px-3 py-1 rounded-lg border text-[10px] font-black uppercase tracking-widest ${
+                      <div className={`px-3 py-1 rounded-lg border text-[10px] font-bold uppercase tracking-widest ${
                         ['A', 'B'].includes(r.grade?.charAt(0)) ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20' :
                         r.grade === 'F' ? 'bg-red-500/10 text-red-500 border-red-500/20' :
                         'bg-amber-500/10 text-amber-500 border-amber-500/20'
@@ -196,15 +202,15 @@ const StudentResults = () => {
                    </div>
                    <div className="flex items-center justify-between pt-4 border-t border-gray-50 dark:border-slate-800">
                       <div className="text-center">
-                         <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1">Credits</p>
-                         <p className="text-xs font-black dark:text-white">{r.course?.credits || 4}</p>
+                         <p className="text-[8px] font-bold text-slate-400 uppercase tracking-widest mb-1">Credits</p>
+                         <p className="text-xs font-bold dark:text-white">{r.course?.credits || 4}</p>
                       </div>
                       <div className="text-center">
-                         <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1">Marks</p>
-                         <p className="text-xs font-black dark:text-white">{(r.totalMarks || 0).toFixed(1)}</p>
+                         <p className="text-[8px] font-bold text-slate-400 uppercase tracking-widest mb-1">Marks</p>
+                         <p className="text-xs font-bold dark:text-white">{(r.totalMarks || 0).toFixed(1)}</p>
                       </div>
                       <div className="text-center">
-                         <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1">Audit Status</p>
+                         <p className="text-[8px] font-medium text-slate-400 uppercase tracking-widest mb-1">Audit Status</p>
                          <ShieldCheck size={14} className="text-indigo-500 mx-auto" />
                       </div>
                    </div>
@@ -218,6 +224,9 @@ const StudentResults = () => {
           </div>
         </div>
       </div>
+          </motion.div>
+        </AnimatePresence>
+      )}
     </div>
   );
 };

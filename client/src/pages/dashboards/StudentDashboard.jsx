@@ -23,8 +23,6 @@ import {
   ChevronLeft,
   Zap,
   X,
-  Palette,
-  RefreshCw,
   ArrowRight,
   Check,
   Layers,
@@ -43,6 +41,7 @@ import {
   getQuizById,
 } from '../../data/learningCatalog';
 import { getCourseProgressSummary, getTodayKey } from '../../utils/gamificationStore';
+import GeminiLoader from '../../components/GeminiLoader';
 
 const MomentumSidebarTracker = ({ user, isInline }) => {
     const [secondsActive, setSecondsActive] = useState(() => {
@@ -77,21 +76,21 @@ const MomentumSidebarTracker = ({ user, isInline }) => {
     if (isRecorded || secondsActive >= 600) {
         if (isInline) {
             return (
-                <div className="flex items-center gap-1.5 px-3 py-0.5 bg-emerald-500/10 rounded-full border border-emerald-500/20">
-                    <Zap size={10} className="text-emerald-500 fill-current" />
-                    <span className="text-xs font-black text-emerald-600 uppercase tracking-widest italic">Streak</span>
+                <div className="flex items-center gap-1.5 px-3 py-0.5 bg-indigo-500/10 rounded-full border border-indigo-500/20">
+                    <Zap size={10} className="text-indigo-500 fill-current" />
+                    <span className="text-xs font-bold text-indigo-600 uppercase tracking-widest italic">Streak</span>
                 </div>
             );
         }
         return (
-            <div className="p-4 rounded-3xl border border-emerald-100 dark:border-emerald-900/30 bg-emerald-50/50 dark:bg-emerald-900/10 mt-2">
+            <div className="p-4 rounded-3xl border border-indigo-100 dark:border-indigo-900/30 bg-indigo-50/50 dark:bg-indigo-900/10 mt-2">
                 <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-xl bg-emerald-500 text-white flex items-center justify-center shadow-lg shadow-emerald-500/20">
+                    <div className="w-8 h-8 rounded-xl bg-indigo-500 text-white flex items-center justify-center shadow-lg shadow-indigo-500/20">
                         <Zap size={16} fill="white" />
                     </div>
                     <div>
-                       <p className="text-[10px] font-black uppercase text-emerald-600 dark:text-emerald-400 leading-none">Momentum Stabilized</p>
-                       <p className="text-[8px] font-bold text-emerald-500/60 uppercase tracking-widest mt-1">Daily Reward Claimed</p>
+                       <p className="text-[10px] font-bold uppercase text-indigo-600 dark:text-indigo-400 leading-none">Momentum Stabilized</p>
+                       <p className="text-[8px] font-bold text-indigo-500/60 uppercase tracking-widest mt-1">Daily Reward Claimed</p>
                     </div>
                 </div>
             </div>
@@ -108,9 +107,9 @@ const MomentumSidebarTracker = ({ user, isInline }) => {
                     <div className="flex items-center justify-between gap-3 mb-1.5">
                         <div className="flex items-center gap-1.5">
                             <Zap size={12} className="text-orange-500 animate-pulse" />
-                            <span className="text-[10px] font-black uppercase tracking-[0.15em] text-gray-500 dark:text-gray-400">Momentum</span>
+                            <span className="text-[10px] font-bold uppercase tracking-[0.15em] text-gray-500 dark:text-gray-400">Momentum</span>
                         </div>
-                        <span className="text-xs font-black text-orange-600 dark:text-orange-400 italic">{minutesLeft}m Left</span>
+                        <span className="text-xs font-bold text-orange-600 dark:text-orange-400 italic">{minutesLeft}m Left</span>
                     </div>
                     <div className="h-1.5 w-28 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden border border-white/5">
                         <motion.div 
@@ -125,13 +124,13 @@ const MomentumSidebarTracker = ({ user, isInline }) => {
     }
 
     return (
-        <div className="p-4 rounded-3xl border border-gray-100 dark:border-gray-800 bg-white/35 dark:bg-gray-900/25 mt-2 overflow-hidden group">
+        <div className="p-4 rounded-3xl border border-gray-100 dark:border-gray-800 bg-[var(--surface-light-blur)] dark:bg-[var(--surface-dark-blur)] mt-2 overflow-hidden group">
             <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-2">
                     <Zap size={14} className="text-primary-600 animate-pulse" />
-                    <span className="text-[10px] font-black uppercase tracking-widest text-gray-500 dark:text-gray-400">Momentum Build</span>
+                    <span className="text-[10px] font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400">Momentum Build</span>
                 </div>
-                <span className="text-[10px] font-black text-primary-600 italic">{minutesLeft}m Left</span>
+                <span className="text-[10px] font-bold text-primary-600 italic">{minutesLeft}m Left</span>
             </div>
             <div className="h-1.5 w-full bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden border border-white/5">
                 <motion.div 
@@ -190,24 +189,31 @@ const StudentDashboard = () => {
   const [isAttHistoryLoading, setIsAttHistoryLoading] = useState(false);
 
   useEffect(() => {
-    setIsLoading(true);
-    const timer = setTimeout(() => setIsLoading(false), 500);
-    
-    // Sync latest profile data on mount to ensure semester/details are fresh
-    const syncProfile = async () => {
-       try {
+    const initDashboard = async () => {
+      setIsLoading(true);
+      
+      const syncProfile = async () => {
+        try {
           const config = { headers: { Authorization: `Bearer ${user.token}` } };
           const res = await axios.get('http://localhost:5001/api/auth/profile', config);
           if (res.data) {
-             dispatch(updateProfile(res.data));
+            dispatch(updateProfile(res.data));
           }
-       } catch (err) {
+        } catch (err) {
           console.error("Profile sync failed", err);
-       }
-    };
-    if (user?.token) syncProfile();
+        }
+      };
 
-    return () => clearTimeout(timer);
+      if (user?.token) {
+        await syncProfile();
+      }
+      
+      // The secondary 'load()' in the other useEffect handles the rest.
+      // We give it a small buffer to start its async tasks.
+      setTimeout(() => setIsLoading(false), 800);
+    };
+
+    initDashboard();
   }, [activeTab, user?.token, dispatch]);
 
   useEffect(() => {
@@ -390,7 +396,7 @@ const StudentDashboard = () => {
     return [
       { id: 'streak_master', title: 'Streak Master', subtitle: '7 days attendance', icon: Flame, colorClass: 'bg-orange-500/20 border-orange-400/40 text-orange-200' },
       { id: 'quiz_genius', title: 'Quiz Genius', subtitle: '90%+ quiz accuracy', icon: Brain, colorClass: 'bg-amber-500/20 border-amber-400/40 text-amber-200' },
-      { id: 'consistent_learner', title: 'Consistent Learner', subtitle: '100% last 7 days attendance', icon: BookOpen, colorClass: 'bg-emerald-500/20 border-emerald-400/40 text-emerald-200' },
+      { id: 'consistent_learner', title: 'Consistent Learner', subtitle: '100% last 7 days attendance', icon: BookOpen, colorClass: 'bg-indigo-500/20 border-indigo-400/40 text-indigo-200' },
       { id: 'level_5_climber', title: 'Level 5 Climber', subtitle: 'Reach level 5', icon: Trophy, colorClass: 'bg-indigo-500/20 border-indigo-400/40 text-indigo-200' },
     ];
   }, []);
@@ -497,7 +503,6 @@ const StudentDashboard = () => {
       { id: 'monthly-register', icon: Layers, label: 'Monthly Register' },
       { id: 'achievements', icon: Trophy, label: 'Achievements' },
       { id: 'leaderboard', icon: Trophy, label: 'Leaderboard' },
-      { id: 'aesthetics', icon: Palette, label: 'Aesthetics' },
     ],
     []
   );
@@ -563,14 +568,7 @@ const StudentDashboard = () => {
     });
   }, [gamification, resourceMetaByCourseId]);
 
-  if (isLoading) {
-    return (
-      <div className="flex min-h-[calc(100vh-73px)] flex-col lg:flex-row bg-gray-50 dark:bg-[#0f172a] p-4 md:p-8 gap-6 animate-pulse">
-        <div className="w-full lg:w-64 bg-gray-200 rounded-2xl h-48 lg:h-full"></div>
-        <div className="flex-1 bg-gray-200 rounded-2xl h-56 lg:h-full"></div>
-      </div>
-    );
-  }
+  if (isLoading) return <GeminiLoader fullScreen text="Calibrating Learning Path..." />;
 
   return (
     <div className="flex h-[calc(100vh-5rem)] flex-col lg:flex-row bg-transparent overflow-hidden relative">
@@ -586,9 +584,9 @@ const StudentDashboard = () => {
         )}
       </AnimatePresence>
 
-      <aside className={`fixed lg:relative inset-y-0 left-0 w-72 shrink-0 glass border-r border-gray-200 dark:border-gray-800 p-4 space-y-4 z-[101] transform transition-transform duration-300 lg:translate-x-0 ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'} lg:block surface-elevation h-full overflow-y-auto custom-scrollbar`}>
+      <aside className={`fixed lg:relative inset-y-0 left-0 w-72 shrink-0 glass border-r border-gray-200 dark:border-gray-800 p-4 space-y-4 z-[101] transform transition-transform duration-300 lg:translate-x-0 ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'} lg:block surface-elevation h-full smooth-scroll no-scrollbar`}>
         <div className="flex items-center justify-between lg:hidden mb-4">
-           <span className="text-sm font-black uppercase tracking-widest text-primary-600">Quick Access</span>
+           <span className="text-sm font-bold uppercase tracking-widest text-primary-600">Quick Access</span>
            <button onClick={() => setIsSidebarOpen(false)} className="p-2 rounded-xl bg-gray-100 dark:bg-gray-800 text-gray-500">
               <CheckCircle2 size={20} className="rotate-45" />
            </button>
@@ -597,13 +595,13 @@ const StudentDashboard = () => {
         <div className="p-4 rounded-3xl border border-gray-100 dark:border-gray-800 glass">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3 min-w-0">
-              <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-primary-600 to-indigo-600 text-white flex items-center justify-center font-black shadow-lg shadow-primary-500/30 shrink-0">
+              <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-primary-600 to-indigo-600 text-white flex items-center justify-center font-bold shadow-lg shadow-primary-500/30 shrink-0">
                 {(user?.name || 'S')[0]}
                 {(user?.name || 'S')[1] || ''}
               </div>
               <div className="min-w-0">
-                <div className="text-sm font-extrabold text-gray-900 dark:text-white truncate uppercase tracking-tight">{user?.name || 'Student'}</div>
-                <div className="text-[10px] font-black uppercase tracking-widest text-primary-600 dark:text-primary-400 mt-1">Level {level}</div>
+                <div className="text-sm font-extrabold text-[var(--text-primary-light)] dark:text-[var(--text-primary-dark)] truncate uppercase tracking-tight">{user?.name || 'Student'}</div>
+                <div className="text-[10px] font-bold uppercase tracking-widest text-primary-600 dark:text-primary-400 mt-1">Level {level}</div>
               </div>
             </div>
             <div className="w-9 h-9 rounded-xl bg-primary-50 dark:bg-primary-900/30 text-primary-600 dark:text-primary-400 border border-primary-500/20 flex items-center justify-center">
@@ -612,7 +610,7 @@ const StudentDashboard = () => {
           </div>
 
           <div className="mt-4">
-            <div className="flex items-center justify-between text-[10px] font-black uppercase tracking-widest text-gray-500 dark:text-gray-400 mb-2">
+            <div className="flex items-center justify-between text-[10px] font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400 mb-2">
               <span>XP to next</span>
               <span>{xp % 100}/100</span>
             </div>
@@ -642,44 +640,44 @@ const StudentDashboard = () => {
               }`}
             >
               <item.icon size={18} />
-              <span className="text-xs font-black uppercase tracking-wider">{item.label}</span>
+              <span className="text-xs font-bold uppercase tracking-wider">{item.label}</span>
             </button>
           ))}
         </nav>
 
-        <div className="p-4 rounded-3xl border border-gray-100 dark:border-gray-800 bg-white/35 dark:bg-gray-900/25">
+        <div className="p-4 rounded-3xl border border-gray-100 dark:border-gray-800 bg-white/35 dark:bg-[#080c14]/25">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <CalendarDays size={18} className="text-emerald-500" />
-              <div className="text-xs font-black uppercase tracking-widest text-gray-500 dark:text-gray-400">Attendance</div>
+              <CalendarDays size={18} className="text-indigo-500" />
+              <div className="text-xs font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400">Attendance</div>
             </div>
-            <div className="text-xs font-black text-emerald-500">{Math.round(attendancePercentLast7 * 100)}%</div>
+            <div className="text-xs font-bold text-indigo-500">{Math.round(attendancePercentLast7 * 100)}%</div>
           </div>
-          <div className="mt-3 flex items-center justify-between text-[10px] font-black uppercase tracking-widest text-gray-500 dark:text-gray-400">
+          <div className="mt-3 flex items-center justify-between text-[10px] font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400">
             <span>Streak</span>
             <span className="text-orange-500">{streakDays}d</span>
           </div>
         </div>
       </aside>
 
-      <main className="flex-1 p-3 md:p-8 overflow-y-auto no-scrollbar">
+      <main className="flex-1 p-3 md:p-8 smooth-scroll no-scrollbar">
         <header className="mb-8">
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
-            className="p-6 rounded-3xl border border-gray-100 dark:border-gray-800 bg-white/40 dark:bg-gray-900/30 backdrop-blur-xl"
+            className="p-6 rounded-3xl border border-gray-100 dark:border-gray-800 bg-[var(--surface-light-blur)] dark:bg-[var(--surface-dark-blur)] backdrop-blur-xl"
             style={{ background: 'linear-gradient(135deg, rgba(67,97,238,0.18), rgba(114,9,183,0.10))' }}
           >
             <div className="flex flex-col md:flex-row items-center justify-between gap-4 mb-6">
               <button 
                 onClick={() => setIsSidebarOpen(true)}
-                className="lg:hidden self-start flex items-center gap-2 px-4 py-2 rounded-xl bg-primary-600 text-white font-black text-[10px] uppercase tracking-widest shadow-lg shadow-primary-500/20"
+                className="lg:hidden self-start flex items-center gap-2 px-4 py-2 rounded-xl bg-primary-600 text-white font-bold text-[10px] uppercase tracking-widest shadow-lg shadow-primary-500/20"
               >
                 <LayoutDashboard size={14} />
                 Open Sidebar
               </button>
               <div className="w-full md:min-w-[260px]">
-                <h1 className="text-3xl font-extrabold text-gray-900 dark:text-white capitalize">
+                <h1 className="text-3xl font-extrabold text-[var(--text-primary-light)] dark:text-[var(--text-primary-dark)] capitalize">
                   {menuItems.find((i) => i.id === activeTab)?.label}
                 </h1>
                 <div className="text-gray-600 dark:text-gray-300 mt-1 font-semibold flex items-center gap-2 flex-wrap">
@@ -689,25 +687,25 @@ const StudentDashboard = () => {
                     <select 
                       value={selectedSem} 
                       onChange={(e) => setSelectedSem(Number(e.target.value))}
-                      className="text-gray-500 dark:text-gray-400 text-[10px] font-black uppercase tracking-widest bg-transparent px-3 py-1 outline-none cursor-pointer border-r border-gray-100 dark:border-gray-700"
+                      className="text-gray-500 dark:text-gray-400 text-[10px] font-bold uppercase tracking-widest bg-transparent px-3 py-1 outline-none cursor-pointer border-r border-gray-100 dark:border-gray-700"
                     >
-                      {[1,2,3,4,5,6,7,8].map(s => <option key={s} value={s} className="dark:bg-gray-900">Semester {s}</option>)}
+                      {[1,2,3,4,5,6,7,8].map(s => <option key={s} value={s} className="dark:bg-[#080c14]">Semester {s}</option>)}
                     </select>
                     <div className="px-3 py-1 flex items-center gap-2">
                        {selectedSem < user?.semester ? (
                          <>
-                           <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                           <span className="text-emerald-500 text-[9px] font-black uppercase tracking-widest">Completed</span>
+                           <div className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-pulse" />
+                           <span className="text-indigo-500 text-[9px] font-bold uppercase tracking-widest">Completed</span>
                          </>
                        ) : selectedSem === user?.semester ? (
                          <>
                            <div className="w-1.5 h-1.5 rounded-full bg-primary-600 animate-pulse" />
-                           <span className="text-primary-600 text-[9px] font-black uppercase tracking-widest italic">Active Duty</span>
+                           <span className="text-primary-600 text-[9px] font-bold uppercase tracking-widest italic">Active Duty</span>
                          </>
                        ) : (
                          <>
                            <div className="w-1.5 h-1.5 rounded-full bg-gray-400" />
-                           <span className="text-gray-400 text-[9px] font-black uppercase tracking-widest">Future Phase</span>
+                           <span className="text-gray-400 text-[9px] font-bold uppercase tracking-widest">Future Phase</span>
                          </>
                        )}
                     </div>
@@ -725,7 +723,7 @@ const StudentDashboard = () => {
                     </div>
                     <button 
                       onClick={() => navigate('/face-registration')}
-                      className="whitespace-nowrap bg-blue-600 hover:bg-blue-700 text-white text-[10px] font-black uppercase tracking-widest px-4 py-2 rounded-xl transition-all shadow-md active:scale-95"
+                      className="whitespace-nowrap bg-blue-600 hover:bg-blue-700 text-white text-[10px] font-bold uppercase tracking-widest px-4 py-2 rounded-xl transition-all shadow-md active:scale-95"
                     >
                       Setup Now
                     </button>
@@ -737,17 +735,17 @@ const StudentDashboard = () => {
               <div className="w-full grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3">
                 <div className="p-4 rounded-2xl border border-amber-100 dark:border-amber-900/10 bg-amber-50/20 dark:bg-amber-500/5 group hover:bg-amber-500/10 transition-all">
                   <div className="flex items-center justify-between">
-                    <div className="text-[10px] font-black uppercase tracking-widest text-amber-600 dark:text-amber-500">Scholar Coins</div>
+                    <div className="text-[10px] font-bold uppercase tracking-widest text-amber-600 dark:text-amber-500">Scholar Coins</div>
                     <CoinIcon size={16} className="group-hover:rotate-12 transition-transform" />
                   </div>
-                  <div className="text-2xl font-black text-amber-600 dark:text-amber-500 mt-1 tabular-nums italic">{user?.coins || 0}</div>
-                  <div className="mt-2 text-[8px] font-black text-amber-600/60 uppercase tracking-widest italic flex items-center gap-1.5">
+                  <div className="text-2xl font-bold text-amber-600 dark:text-amber-500 mt-1 tabular-nums italic">{user?.coins || 0}</div>
+                  <div className="mt-2 text-[8px] font-bold text-amber-600/60 uppercase tracking-widest italic flex items-center gap-1.5">
                     <Zap size={8} /> Redeem for Prizes
                   </div>
                 </div>
-                <div className="p-4 rounded-2xl border border-gray-100 dark:border-gray-800 bg-white/40 dark:bg-gray-900/30">
-                  <div className="text-[10px] font-black uppercase tracking-widest text-gray-500 dark:text-gray-400">Badges</div>
-                  <div className="text-2xl font-extrabold text-gray-900 dark:text-white mt-1">{(gamification?.badges || []).length}</div>
+                <div className="p-4 rounded-2xl border border-gray-100 dark:border-gray-800 bg-[var(--surface-light-blur)] dark:bg-[var(--surface-dark-blur)]">
+                  <div className="text-[10px] font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400">Badges</div>
+                  <div className="text-2xl font-extrabold text-[var(--text-primary-light)] dark:text-[var(--text-primary-dark)] mt-1">{(gamification?.badges || []).length}</div>
                   {earnedBadgeMeta.length ? (
                     <div className="mt-3 flex items-center gap-2">
                       {earnedBadgeMeta.map((b) => (
@@ -761,17 +759,17 @@ const StudentDashboard = () => {
                       ))}
                     </div>
                   ) : (
-                    <div className="mt-3 text-[10px] font-black uppercase tracking-widest text-gray-500 dark:text-gray-400">
+                    <div className="mt-3 text-[10px] font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400">
                       Earn to unlock
                     </div>
                   )}
                 </div>
-                <div className="p-4 rounded-2xl border border-gray-100 dark:border-gray-800 bg-white/40 dark:bg-gray-900/30">
-                  <div className="text-[10px] font-black uppercase tracking-widest text-gray-500 dark:text-gray-400">Pending</div>
-                  <div className="text-2xl font-extrabold text-gray-900 dark:text-white mt-1">{pendingTasksCount}</div>
-                  <div className="mt-3 text-[10px] font-black uppercase tracking-widest text-primary-600 dark:text-primary-400">Tasks assigned</div>
+                <div className="p-4 rounded-2xl border border-gray-100 dark:border-gray-800 bg-[var(--surface-light-blur)] dark:bg-[var(--surface-dark-blur)]">
+                  <div className="text-[10px] font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400">Pending</div>
+                  <div className="text-2xl font-extrabold text-[var(--text-primary-light)] dark:text-[var(--text-primary-dark)] mt-1">{pendingTasksCount}</div>
+                  <div className="mt-3 text-[10px] font-bold uppercase tracking-widest text-primary-600 dark:text-primary-400">Tasks assigned</div>
                 </div>
-                <div className="sm:col-span-2 lg:col-span-3 xl:col-span-2 p-5 sm:p-6 rounded-[2.5rem] border border-gray-100 dark:border-gray-800 bg-white/40 dark:bg-gray-900/30 backdrop-blur-3xl relative overflow-hidden group">
+                <div className="sm:col-span-2 lg:col-span-3 xl:col-span-2 p-5 sm:p-6 rounded-[2.5rem] border border-gray-100 dark:border-gray-800 bg-[var(--surface-light-blur)] dark:bg-[var(--surface-dark-blur)] backdrop-blur-3xl relative overflow-hidden group">
                   {/* Decorative Background Flame */}
                   <div className="absolute top-[-20%] right-[-10%] opacity-5 scale-150 rotate-12 group-hover:rotate-0 transition-transform duration-1000">
                     <Flame size={200} className="text-orange-500 fill-current" />
@@ -783,11 +781,11 @@ const StudentDashboard = () => {
                            <div className="p-2 bg-orange-500/20 rounded-xl text-orange-500 animate-pulse">
                               <Flame size={20} className="fill-current" />
                            </div>
-                           <h3 className="text-xs font-black uppercase tracking-[0.2em] text-orange-500/80">Streak Momentum</h3>
+                           <h3 className="text-xs font-bold uppercase tracking-[0.2em] text-orange-500/80">Streak Momentum</h3>
                         </div>
                         <div className="flex items-baseline gap-2">
-                           <span className="text-4xl sm:text-5xl font-black text-gray-900 dark:text-white tracking-tighter">{streakDays}</span>
-                           <span className="text-lg sm:text-xl font-black text-gray-400 uppercase">Days</span>
+                           <span className="text-4xl sm:text-5xl font-bold text-[var(--text-primary-light)] dark:text-[var(--text-primary-dark)] tracking-tighter">{streakDays}</span>
+                           <span className="text-lg sm:text-xl font-bold text-gray-400 uppercase">Days</span>
                         </div>
                         
                         {(() => {
@@ -796,16 +794,16 @@ const StudentDashboard = () => {
                            const last = new Date(user.lastStreakedAt).setHours(0,0,0,0);
                            if (last === today) {
                               return (
-                                <div className="mt-2 flex items-center gap-1.5 px-3 py-1 bg-emerald-500/10 rounded-full border border-emerald-500/20 w-fit">
-                                   <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                                   <span className="text-[8px] font-black text-emerald-500 uppercase tracking-widest whitespace-nowrap">Daily Reward Claimed</span>
+                                <div className="mt-2 flex items-center gap-1.5 px-3 py-1 bg-indigo-500/10 rounded-full border border-indigo-500/20 w-fit">
+                                   <div className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-pulse" />
+                                   <span className="text-[8px] font-bold text-indigo-500 uppercase tracking-widest whitespace-nowrap">Daily Reward Claimed</span>
                                 </div>
                               );
                            }
                            return null;
                         })()}
 
-                        <p className="text-[10px] font-black uppercase tracking-widest text-gray-500 mt-3 whitespace-nowrap overflow-hidden text-ellipsis max-w-full">
+                        <p className="text-[10px] font-bold uppercase tracking-widest text-gray-500 mt-3 whitespace-nowrap overflow-hidden text-ellipsis max-w-full">
                            {streakDays >= 7 ? 'Legendary Consistency!' : `${7 - (streakDays % 7)} days to next major badge`}
                         </p>
                     </div>
@@ -819,7 +817,7 @@ const StudentDashboard = () => {
                                     <div className={`w-full aspect-square rounded-lg flex items-center justify-center border-2 transition-all duration-500 max-w-[36px] ${attended ? 'bg-orange-500 border-orange-400 shadow-lg shadow-orange-500/40 text-white' : 'bg-gray-100 dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-400 opacity-40'}`}>
                                        {attended ? <CheckCircle2 size={12} /> : <div className="w-1 h-1 rounded-full bg-current" />}
                                     </div>
-                                    <span className="text-[7px] font-black uppercase tracking-tighter text-gray-400 mt-1">D{i+1}</span>
+                                    <span className="text-[7px] font-bold uppercase tracking-tighter text-gray-400 mt-1">D{i+1}</span>
                                  </div>
                               );
                            })}
@@ -831,7 +829,7 @@ const StudentDashboard = () => {
                              className="h-full bg-gradient-to-r from-orange-600 via-orange-400 to-amber-300 shadow-[0_0_15px_rgba(249,115,22,0.5)]"
                            />
                         </div>
-                        <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest mt-2 flex justify-between">
+                        <p className="text-[8px] font-bold text-gray-400 uppercase tracking-widest mt-2 flex justify-between">
                            <span>Weekly Matrix</span>
                            <span>{Math.round(streakProgressPercent)}% Complete</span>
                         </p>
@@ -846,11 +844,11 @@ const StudentDashboard = () => {
                    <Trophy size={18} />
                 </div>
                 <div className="flex flex-col">
-                   <span className="text-[11px] font-black uppercase tracking-wider text-gray-500 mb-1">Your Current Sem Rank</span>
+                   <span className="text-[11px] font-bold uppercase tracking-wider text-gray-500 mb-1">Your Current Sem Rank</span>
                    <div className="flex items-center gap-4">
                       <div className="flex items-center gap-2">
-                         <span className="text-3xl font-black text-gray-900 dark:text-white tracking-tighter">#{leaderboardData.currentSemRank}</span>
-                         <span className="text-[11px] bg-emerald-500/10 text-emerald-600 px-3 py-1 rounded-full font-black uppercase tracking-widest italic border border-emerald-500/20">Top Standing</span>
+                         <span className="text-3xl font-bold text-[var(--text-primary-light)] dark:text-[var(--text-primary-dark)] tracking-tighter">#{leaderboardData.currentSemRank}</span>
+                         <span className="text-[11px] bg-indigo-500/10 text-indigo-600 px-3 py-1 rounded-full font-bold uppercase tracking-widest italic border border-indigo-500/20">Top Standing</span>
                       </div>
                       <div className="h-6 w-px bg-gray-200 dark:bg-gray-800 hidden sm:block" />
                       <MomentumSidebarTracker user={user} isInline={true} />
@@ -859,26 +857,26 @@ const StudentDashboard = () => {
               </div>
               <button
                 onClick={() => navigate('/quize-arena')}
-                className="px-4 py-2 rounded-2xl bg-gray-900 dark:bg-white text-white dark:text-gray-900 font-black text-xs uppercase tracking-widest hover:opacity-90 transition"
+                className="px-4 py-2 rounded-2xl bg-[#080c14] dark:bg-white text-white dark:text-gray-900 font-bold text-xs uppercase tracking-widest hover:opacity-90 transition"
               >
                 Jump to Quiz Arena
               </button>
             </div>
             
             {selectedSem < user?.semester && (
-              <div className="mt-4 p-4 rounded-2xl bg-emerald-500/5 border border-emerald-500/10 flex items-center justify-between">
+              <div className="mt-4 p-4 rounded-2xl bg-indigo-500/5 border border-indigo-500/10 flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-xl bg-emerald-500 text-white flex items-center justify-center shadow-lg shadow-emerald-500/20">
+                  <div className="w-8 h-8 rounded-xl bg-indigo-500 text-white flex items-center justify-center shadow-lg shadow-indigo-500/20">
                     <CheckCircle2 size={16} />
                   </div>
                   <div>
-                    <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-600">Semester Terminus Reached</h4>
-                    <p className="text-[9px] font-black text-gray-500 uppercase tracking-widest mt-0.5">Historical verification view active. Record sector frozen post-grading.</p>
+                    <h4 className="text-[10px] font-bold uppercase tracking-[0.2em] text-indigo-600">Semester Terminus Reached</h4>
+                    <p className="text-[9px] font-bold text-gray-500 uppercase tracking-widest mt-0.5">Historical verification view active. Record sector frozen post-grading.</p>
                   </div>
                 </div>
-                <div className="flex items-center gap-2 bg-emerald-500/10 text-emerald-600 px-3 py-1.5 rounded-xl border border-emerald-500/20">
-                   <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                   <span className="text-[9px] font-black uppercase tracking-widest italic">Status: COMPLETED</span>
+                <div className="flex items-center gap-2 bg-indigo-500/10 text-indigo-600 px-3 py-1.5 rounded-xl border border-indigo-500/20">
+                   <div className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-pulse" />
+                   <span className="text-[9px] font-bold uppercase tracking-widest italic">Status: COMPLETED</span>
                 </div>
               </div>
             )}
@@ -898,15 +896,15 @@ const StudentDashboard = () => {
                         </div>
                         <div>
                           <div className="text-sm font-extrabold text-gray-900 dark:text-white">XP & Level</div>
-                          <div className="text-[10px] font-black uppercase tracking-widest text-gray-500 dark:text-gray-400 mt-1">XP drives your progression</div>
+                          <div className="text-[10px] font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400 mt-1">XP drives your progression</div>
                         </div>
                       </div>
                       <div className="mt-4">
                         <div className="text-4xl font-extrabold text-gray-900 dark:text-white tabular-nums">{xp}</div>
-                        <div className="text-xs font-black uppercase tracking-widest text-primary-600 dark:text-primary-400 mt-1">Level {level}</div>
+                        <div className="text-xs font-bold uppercase tracking-widest text-primary-600 dark:text-primary-400 mt-1">Level {level}</div>
                       </div>
                       <div className="mt-4">
-                        <div className="flex items-center justify-between text-[10px] font-black uppercase tracking-widest text-gray-500 dark:text-gray-400 mb-2">
+                        <div className="flex items-center justify-between text-[10px] font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400 mb-2">
                           <span>Progress to next</span>
                           <span>{Math.round(progressToNext)}%</span>
                         </div>
@@ -930,18 +928,18 @@ const StudentDashboard = () => {
                   <div className="flex items-start justify-between gap-4">
                     <div>
                       <div className="flex items-center gap-2">
-                        <div className="w-10 h-10 rounded-2xl bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-400/30 text-emerald-500 flex items-center justify-center">
+                        <div className="w-10 h-10 rounded-2xl bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-400/30 text-indigo-500 flex items-center justify-center">
                           <Flame size={18} />
                         </div>
                         <div>
                           <div className="text-sm font-extrabold text-gray-900 dark:text-white">Streak & Attendance</div>
-                          <div className="text-[10px] font-black uppercase tracking-widest text-gray-500 dark:text-gray-400 mt-1">Earn "Streak Master" at 7 days</div>
+                          <div className="text-[10px] font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400 mt-1">Earn "Streak Master" at 7 days</div>
                         </div>
                       </div>
 
                       <div className="mt-3 flex items-center gap-3 flex-wrap">
                         <div className="text-3xl font-extrabold text-gray-900 dark:text-white tabular-nums">{streakDays}</div>
-                        <div className="text-xs font-black uppercase tracking-widest text-gray-500 dark:text-gray-400">
+                        <div className="text-xs font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400">
                           / 7 day streak
                         </div>
                       </div>
@@ -958,17 +956,17 @@ const StudentDashboard = () => {
                     </div>
 
                     <div className="min-w-[160px]">
-                      <div className="text-[10px] font-black uppercase tracking-widest text-gray-500 dark:text-gray-400 mb-2">Last 7 days</div>
+                      <div className="text-[10px] font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400 mb-2">Last 7 days</div>
                       <div className="flex gap-2">
                         {last7Keys.map((k) => {
                           const attended = new Set(gamification?.attendanceDates || []).has(k);
                           return (
                             <div
                               key={k}
-                              className={`w-8 h-8 rounded-2xl border flex items-center justify-center text-xs font-black transition ${
+                              className={`w-8 h-8 rounded-2xl border flex items-center justify-center text-xs font-bold transition ${
                                 attended
-                                  ? 'bg-emerald-500/20 border-emerald-400/30 text-emerald-200'
-                                  : 'bg-white/40 dark:bg-gray-900/40 border-gray-200 dark:border-gray-800 text-gray-400'
+                                  ? 'bg-indigo-500/20 border-indigo-400/30 text-indigo-200'
+                                  : 'bg-white/40 dark:bg-[#080c14]/40 border-gray-200 dark:border-gray-800 text-gray-400'
                               }`}
                               title={k}
                             >
@@ -981,7 +979,7 @@ const StudentDashboard = () => {
                   </div>
 
                   <div className="mt-6">
-                    <div className="text-xs font-black uppercase tracking-widest text-gray-500 dark:text-gray-400 mb-3">Weekly Result</div>
+                    <div className="text-xs font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400 mb-3">Weekly Result</div>
                     <div className="w-full relative" style={{ height: '220px', minWidth: '0' }}>
                       {isMounted && (
                         <ResponsiveContainer width="100%" height="100%" debounce={50}>
@@ -1010,13 +1008,13 @@ const StudentDashboard = () => {
                   <div className="flex items-center justify-between gap-4">
                     <div>
                       <div className="text-sm font-extrabold text-gray-900 dark:text-white">Course Progress</div>
-                      <div className="text-[10px] font-black uppercase tracking-widest text-gray-500 dark:text-gray-400 mt-1">
+                      <div className="text-[10px] font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400 mt-1">
                         Lectures (40) + Assignments (30) + Quizzes (30)
                       </div>
                     </div>
                     <button
                       onClick={() => setActiveTab('progress')}
-                      className="px-3 py-2 rounded-2xl bg-gray-900 dark:bg-white text-white dark:text-gray-900 font-black text-xs uppercase tracking-widest hover:opacity-90 border border-gray-200 dark:border-gray-800"
+                      className="px-3 py-2 rounded-2xl bg-[#080c14] dark:bg-white text-white dark:text-gray-900 font-bold text-xs uppercase tracking-widest hover:opacity-90 border border-gray-200 dark:border-gray-800"
                     >
                       Full View
                     </button>
@@ -1026,7 +1024,7 @@ const StudentDashboard = () => {
                     {courseProgressCards.map((card) => {
                       const isBlocked = card.course.excludedStudents?.includes(user?._id);
                       return (
-                        <div key={card.course.id} className={`flex items-center justify-between gap-4 p-4 rounded-3xl border border-gray-100 dark:border-gray-800 bg-white/35 dark:bg-gray-900/25 ${isBlocked ? 'opacity-60' : ''}`}>
+                        <div key={card.course.id} className={`flex items-center justify-between gap-4 p-4 rounded-3xl border border-gray-100 dark:border-gray-800 bg-white/35 dark:bg-[#080c14]/25 ${isBlocked ? 'opacity-60' : ''}`}>
                           <div className="flex items-center gap-4 min-w-0">
                             <div
                               className={`w-12 h-12 rounded-3xl flex items-center justify-center text-white shadow-lg shrink-0 ${isBlocked ? 'bg-gray-400' : 'shadow-primary-500/20'}`}
@@ -1037,9 +1035,9 @@ const StudentDashboard = () => {
                             <div className="min-w-0">
                               <div className="text-sm font-extrabold text-gray-900 dark:text-white truncate">
                                 {card.course.id} · {card.course.name}
-                                {isBlocked && <span className="ml-2 text-[8px] px-1.5 py-0.5 rounded-full bg-rose-500 text-white font-black uppercase tracking-widest align-middle">Blocked</span>}
+                                {isBlocked && <span className="ml-2 text-[8px] px-1.5 py-0.5 rounded-full bg-rose-500 text-white font-bold uppercase tracking-widest align-middle">Blocked</span>}
                               </div>
-                              <div className="text-[10px] font-black uppercase tracking-widest text-gray-500 dark:text-gray-400 mt-1">
+                              <div className="text-[10px] font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400 mt-1">
                                 Videos {card.videoCompleted}/{card.totals.totalVideos} · Docs {card.docsCompleted}/{card.totals.totalDocs}
                               </div>
                             </div>
@@ -1048,12 +1046,12 @@ const StudentDashboard = () => {
                           <div className="flex items-center gap-4">
                             <div className="text-center">
                               <div className="text-3xl font-extrabold text-gray-900 dark:text-white">{card.summary.progressPercentage}%</div>
-                              <div className="text-[10px] font-black uppercase tracking-widest text-gray-500 dark:text-gray-400 mt-1">Captured</div>
+                              <div className="text-[10px] font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400 mt-1">Captured</div>
                             </div>
                             <div className="flex items-center gap-2">
                                 <button
                                   onClick={() => !isBlocked && navigate(`/self-attendance/${card.course.id}`)}
-                                  className={`px-4 py-2 rounded-2xl font-black text-xs uppercase tracking-widest transition shadow-md ${isBlocked || !user?.faceRegistered ? 'bg-gray-200 text-gray-400 cursor-not-allowed' : 'bg-green-600 text-white hover:opacity-90 shadow-green-500/20'}`}
+                                  className={`px-4 py-2 rounded-2xl font-bold text-xs uppercase tracking-widest transition shadow-md ${isBlocked || !user?.faceRegistered ? 'bg-gray-200 text-gray-400 cursor-not-allowed' : 'bg-blue-600 text-white hover:opacity-90 shadow-blue-500/20'}`}
                                   disabled={isBlocked || !user?.faceRegistered}
                                   title={!user?.faceRegistered ? "Register face first" : ""}
                                 >
@@ -1061,7 +1059,7 @@ const StudentDashboard = () => {
                                 </button>
                                 <button
                                   onClick={() => !isBlocked && navigate(`/course-inner/${card.course.id}`)}
-                                  className={`px-4 py-2 rounded-2xl font-black text-xs uppercase tracking-widest transition shadow-md ${isBlocked ? 'bg-gray-200 text-gray-400 cursor-not-allowed' : 'bg-primary-600 text-white hover:opacity-90 shadow-primary-500/20'}`}
+                                  className={`px-4 py-2 rounded-2xl font-bold text-xs uppercase tracking-widest transition shadow-md ${isBlocked ? 'bg-gray-200 text-gray-400 cursor-not-allowed' : 'bg-primary-600 text-white hover:opacity-90 shadow-primary-500/20'}`}
                                 >
                                   {isBlocked ? 'Locked' : 'Open Course'}
                                 </button>
@@ -1073,8 +1071,8 @@ const StudentDashboard = () => {
                     {courseProgressCards.length === 0 && (
                       <div className="py-20 text-center border-2 border-dashed border-gray-100 dark:border-gray-800 rounded-[2.5rem]">
                         <BookOpen className="mx-auto text-gray-300 dark:text-gray-700 mb-6" size={48} />
-                        <h3 className="text-sm font-black uppercase tracking-[0.2em] text-gray-500 dark:text-gray-400">No Academic Modules Detected</h3>
-                        <p className="text-[10px] font-black uppercase tracking-widest text-gray-400 dark:text-gray-500 mt-3 max-w-md mx-auto leading-relaxed">
+                        <h3 className="text-sm font-bold uppercase tracking-[0.2em] text-gray-500 dark:text-gray-400">No Academic Modules Detected</h3>
+                        <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400 dark:text-gray-500 mt-3 max-w-md mx-auto leading-relaxed">
                           Your current sector allocation <span className="text-primary-500">[{user?.department || 'UNASSIGNED'}]</span> or semester <span className="text-primary-500">[{user?.semester || 'UNASSIGNED'}]</span> has no active curriculum mapped at this lattice point.
                         </p>
                       </div>
@@ -1089,7 +1087,7 @@ const StudentDashboard = () => {
                     </div>
                     <div>
                       <div className="text-sm font-extrabold text-gray-900 dark:text-white">Badges</div>
-                      <div className="text-[10px] font-black uppercase tracking-widest text-gray-500 dark:text-gray-400 mt-1">
+                      <div className="text-[10px] font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400 mt-1">
                         Unlock achievements with streak, accuracy, and consistency
                       </div>
                     </div>
@@ -1105,14 +1103,14 @@ const StudentDashboard = () => {
                           initial={{ opacity: 0, y: 10 }}
                           animate={{ opacity: 1, y: 0 }}
                           transition={{ duration: 0.25 }}
-                          className={`p-4 rounded-3xl border ${earned ? ` ${b.colorClass}` : 'bg-white/35 dark:bg-gray-900/25 border-gray-200 dark:border-gray-800 text-gray-500'}`}
+                          className={`p-4 rounded-3xl border ${earned ? ` ${b.colorClass}` : 'bg-white/35 dark:bg-[#080c14]/25 border-gray-200 dark:border-gray-800 text-gray-500'}`}
                         >
                           <div className="flex items-start gap-3">
                             <div className={`w-10 h-10 rounded-2xl flex items-center justify-center border ${earned ? 'bg-white/20 border-white/20' : 'bg-gray-100 dark:bg-gray-800 border-gray-200 dark:border-gray-700'}`}>
                               <Icon size={18} />
                             </div>
                             <div>
-                              <div className="text-xs font-black uppercase tracking-widest">{b.title}</div>
+                              <div className="text-xs font-bold uppercase tracking-widest">{b.title}</div>
                               <div className="text-xs font-semibold mt-1">{b.subtitle}</div>
                             </div>
                           </div>
@@ -1136,11 +1134,11 @@ const StudentDashboard = () => {
                   <div className="flex items-center justify-between gap-4">
                     <div>
                       <div className="text-sm font-extrabold text-gray-900 dark:text-white">Today's Timetable</div>
-                      <div className="text-[10px] font-black uppercase tracking-widest text-gray-500 dark:text-gray-400 mt-1">Attend classes to earn XP</div>
+                      <div className="text-[10px] font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400 mt-1">Attend classes to earn XP</div>
                     </div>
                     <button
                       onClick={() => setActiveTab('assignments')}
-                      className="px-3 py-2 rounded-2xl border border-gray-200 dark:border-gray-800 bg-white/40 dark:bg-gray-900/30 text-gray-700 dark:text-gray-200 font-black text-xs uppercase tracking-widest hover:bg-white dark:hover:bg-gray-800"
+                      className="px-3 py-2 rounded-2xl border border-gray-200 dark:border-gray-800 bg-white/40 dark:bg-[#080c14]/30 text-gray-700 dark:text-gray-200 font-bold text-xs uppercase tracking-widest hover:bg-white dark:hover:bg-gray-800"
                     >
                       Go to Assignments
                     </button>
@@ -1152,7 +1150,7 @@ const StudentDashboard = () => {
                         key={`${item.courseId}_${item.time}`}
                         initial={{ opacity: 0, x: -10 }}
                         animate={{ opacity: 1, x: 0 }}
-                        className="flex items-center justify-between gap-4 p-4 rounded-3xl bg-white/35 dark:bg-gray-900/25 border border-gray-100 dark:border-gray-800"
+                        className="flex items-center justify-between gap-4 p-4 rounded-3xl bg-white/35 dark:bg-[#080c14]/25 border border-gray-100 dark:border-gray-800"
                       >
                         <div className="flex items-center gap-4 min-w-0">
                           <div className="w-10 h-10 rounded-3xl bg-gray-100 dark:bg-gray-800 flex items-center justify-center border border-gray-200 dark:border-gray-700 shrink-0">
@@ -1165,12 +1163,12 @@ const StudentDashboard = () => {
                         </div>
 
                         <div className="flex items-center gap-3">
-                          <span className="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300">
+                          <span className="px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300">
                             {item.type}
                           </span>
                           <button
                             onClick={() => handleJoin(item.courseId)}
-                            className="px-4 py-2 rounded-2xl font-black text-xs uppercase tracking-widest bg-emerald-500 hover:bg-emerald-600 text-white transition shadow-md shadow-emerald-500/20 flex items-center gap-2"
+                            className="px-4 py-2 rounded-2xl font-bold text-xs uppercase tracking-widest bg-indigo-500 hover:bg-indigo-600 text-white transition shadow-md shadow-indigo-500/20 flex items-center gap-2"
                           >
                             <Video size={14} />
                             Join Now
@@ -1185,36 +1183,36 @@ const StudentDashboard = () => {
                   <div className="flex items-center justify-between gap-4">
                     <div>
                       <div className="text-sm font-extrabold text-gray-900 dark:text-white">Quick Achievements</div>
-                      <div className="text-[10px] font-black uppercase tracking-widest text-gray-500 dark:text-gray-400 mt-1">Short goals to level up</div>
+                      <div className="text-[10px] font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400 mt-1">Short goals to level up</div>
                     </div>
                     <button
                       onClick={() => setActiveTab('quizzes')}
-                      className="px-3 py-2 rounded-2xl bg-gray-900 dark:bg-white text-white dark:text-gray-900 font-black text-xs uppercase tracking-widest hover:opacity-90 border border-gray-200 dark:border-gray-800"
+                      className="px-3 py-2 rounded-2xl bg-[#080c14] dark:bg-white text-white dark:text-gray-900 font-bold text-xs uppercase tracking-widest hover:opacity-90 border border-gray-200 dark:border-gray-800"
                     >
                       Start Quiz
                     </button>
                   </div>
 
                   <div className="mt-5 space-y-3">
-                    <div className="p-4 rounded-3xl border border-gray-100 dark:border-gray-800 bg-white/35 dark:bg-gray-900/25">
+                    <div className="p-4 rounded-3xl border border-gray-100 dark:border-gray-800 bg-[var(--surface-light-blur)] dark:bg-[var(--surface-dark-blur)]">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-3">
                           <div className="w-10 h-10 rounded-3xl bg-primary-50 dark:bg-primary-900/30 border border-primary-500/20 text-primary-600 dark:text-primary-400 flex items-center justify-center">
                             <Sparkles size={18} />
                           </div>
                           <div>
-                            <div className="text-xs font-black uppercase tracking-widest text-gray-500">Next Goal</div>
+                            <div className="text-xs font-bold uppercase tracking-widest text-gray-500">Next Goal</div>
                             <div className="text-sm font-extrabold text-gray-900 dark:text-white">Clear one quiz</div>
                           </div>
                         </div>
-                        <div className="text-xs font-black uppercase tracking-widest text-emerald-500">{(gamification?.passedQuizIds || []).length} passed</div>
+                        <div className="text-xs font-bold uppercase tracking-widest text-indigo-500">{(gamification?.passedQuizIds || []).length} passed</div>
                       </div>
                       <div className="mt-3 h-2 bg-black/5 dark:bg-white/10 rounded-full overflow-hidden">
                         <motion.div
                           initial={{ width: 0 }}
                           animate={{ width: `${Math.min(100, ((gamification?.passedQuizIds || []).length / Math.max(1, quizzesTotalCount)) * 100)}%` }}
                           transition={{ duration: 0.6 }}
-                          className="h-full rounded-full bg-gradient-to-r from-emerald-500 to-primary-600"
+                          className="h-full rounded-full bg-gradient-to-r from-indigo-500 to-primary-600"
                         />
                       </div>
                     </div>
@@ -1239,7 +1237,7 @@ const StudentDashboard = () => {
                         </div>
                         <div className="min-w-0">
                           <div className="text-lg font-extrabold text-gray-900 dark:text-white truncate">{card.course.id} · {card.course.name}</div>
-                          <div className="text-[10px] font-black uppercase tracking-widest text-gray-500 dark:text-gray-400 mt-1">
+                          <div className="text-[10px] font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400 mt-1">
                             Lectures {card.summary.completedLectures} · Assignments {card.summary.completedAssignments} · Quizzes {card.summary.completedQuizzes}
                           </div>
                         </div>
@@ -1247,13 +1245,13 @@ const StudentDashboard = () => {
 
                       <div className="text-right">
                         <div className="text-4xl font-extrabold text-gray-900 dark:text-white">{card.summary.progressPercentage}%</div>
-                        <div className="text-[10px] font-black uppercase tracking-widest text-gray-500 dark:text-gray-400 mt-1">Course Capture</div>
+                        <div className="text-[10px] font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400 mt-1">Course Capture</div>
                       </div>
                     </div>
 
                     <div className="mt-5 grid grid-cols-1 lg:grid-cols-3 gap-4">
-                      <div className="p-4 rounded-3xl border border-gray-100 dark:border-gray-800 bg-white/35 dark:bg-gray-900/25">
-                        <div className="text-[10px] font-black uppercase tracking-widest text-gray-500">Video Watch</div>
+                      <div className="p-4 rounded-3xl border border-gray-100 dark:border-gray-800 bg-[var(--surface-light-blur)] dark:bg-[var(--surface-dark-blur)]">
+                        <div className="text-[10px] font-bold uppercase tracking-widest text-gray-500">Video Watch</div>
                         <div className="mt-2 flex items-center justify-between">
                           <div className="text-2xl font-extrabold text-gray-900 dark:text-white">
                             {Math.round((card.videoCompleted / Math.max(1, card.totals.totalVideos)) * 100)}%
@@ -1271,8 +1269,8 @@ const StudentDashboard = () => {
                           />
                         </div>
                       </div>
-                      <div className="p-4 rounded-3xl border border-gray-100 dark:border-gray-800 bg-white/35 dark:bg-gray-900/25">
-                        <div className="text-[10px] font-black uppercase tracking-widest text-gray-500">PDF / Docs Opened</div>
+                      <div className="p-4 rounded-3xl border border-gray-100 dark:border-gray-800 bg-[var(--surface-light-blur)] dark:bg-[var(--surface-dark-blur)]">
+                        <div className="text-[10px] font-bold uppercase tracking-widest text-gray-500">PDF / Docs Opened</div>
                         <div className="mt-2 flex items-center justify-between">
                           <div className="text-2xl font-extrabold text-gray-900 dark:text-white">
                             {Math.round((card.docsCompleted / Math.max(1, card.totals.totalDocs)) * 100)}%
@@ -1286,25 +1284,25 @@ const StudentDashboard = () => {
                             initial={{ width: 0 }}
                             animate={{ width: `${Math.round((card.docsCompleted / Math.max(1, card.totals.totalDocs)) * 100)}%` }}
                             transition={{ duration: 0.7 }}
-                            className="h-full rounded-full bg-gradient-to-r from-emerald-500 to-indigo-600"
+                            className="h-full rounded-full bg-gradient-to-r from-indigo-500 to-indigo-600"
                           />
                         </div>
                       </div>
-                      <div className="p-4 rounded-3xl border border-gray-100 dark:border-gray-800 bg-white/35 dark:bg-gray-900/25">
-                        <div className="text-[10px] font-black uppercase tracking-widest text-gray-500">Next Step</div>
+                      <div className="p-4 rounded-3xl border border-gray-100 dark:border-gray-800 bg-[var(--surface-light-blur)] dark:bg-[var(--surface-dark-blur)]">
+                        <div className="text-[10px] font-bold uppercase tracking-widest text-gray-500">Next Step</div>
                         <div className="mt-2 text-sm font-extrabold text-gray-900 dark:text-white">
                           {card.summary.progressPercentage >= 70 ? 'Maintain momentum' : 'Complete one more quiz'}
                         </div>
                         <div className="mt-3 flex gap-3">
                           <button
                             onClick={() => navigate(`/course-inner/${card.course.id}`)}
-                            className="flex-1 px-4 py-2 rounded-2xl font-black text-xs uppercase tracking-widest bg-primary-600 text-white hover:opacity-90 transition shadow-md shadow-primary-500/20"
+                            className="flex-1 px-4 py-2 rounded-2xl font-bold text-xs uppercase tracking-widest bg-primary-600 text-white hover:opacity-90 transition shadow-md shadow-primary-500/20"
                           >
                             Open Course
                           </button>
                           <button
                             onClick={() => setActiveTab('quizzes')}
-                            className="px-4 py-2 rounded-2xl font-black text-xs uppercase tracking-widest bg-gray-900 dark:bg-white text-white dark:text-gray-900 border border-gray-200 dark:border-gray-800 hover:opacity-90 transition"
+                            className="px-4 py-2 rounded-2xl font-bold text-xs uppercase tracking-widest bg-[#080c14] dark:bg-white text-white dark:text-gray-900 border border-gray-200 dark:border-gray-800 hover:opacity-90 transition"
                           >
                             Quiz
                           </button>
@@ -1317,64 +1315,6 @@ const StudentDashboard = () => {
             </motion.div>
           )}
 
-          {activeTab === 'aesthetics' && (
-                <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-10">
-                    <div className="flex flex-col">
-                        <h2 className="text-3xl font-black uppercase tracking-tighter dark:text-white italic">Workspace <span className="text-primary-600">Aesthetics</span></h2>
-                        <p className="text-[10px] text-slate-400 font-black uppercase tracking-[0.3em] mt-2">Personalize your neural learning environment</p>
-                    </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-                        <button 
-                            onClick={() => {
-                                localStorage.removeItem('personal_theme');
-                                window.location.reload();
-                            }}
-                            className="p-8 rounded-[2.5rem] border border-gray-100 dark:border-gray-800 bg-white/40 dark:bg-gray-900/30 hover:border-primary-500/30 transition-all text-left group"
-                        >
-                            <div className="flex items-center gap-3 mb-4">
-                                <div className="p-3 bg-gray-100 dark:bg-gray-800 rounded-2xl text-gray-500 group-hover:scale-110 transition-transform">
-                                    <RefreshCw size={20} />
-                                </div>
-                                <div className="text-xs font-black uppercase tracking-widest text-gray-900 dark:text-white underline decoration-primary-500/30">Institutional Default</div>
-                            </div>
-                            <p className="text-[10px] text-gray-500 font-bold uppercase italic leading-relaxed">Reset to follow the university's master protocol signature.</p>
-                        </button>
-
-                        {[
-                            { id: 'academic', name: 'Classic Academic', light: '#FDFBF7', dark: '#0f172a', desc: 'Warm paper & deep slate for scholarly focus.' },
-                            { id: 'indigo', name: 'Indigo Fusion', light: '#F0F4F8', dark: '#0B0E14', desc: 'Cool slate & obsidian for tech-driven minds.' },
-                            { id: 'nature', name: 'Nature\'s Breath', light: '#F0FDF4', dark: '#052E16', desc: 'Mint & forest tones for a calm study session.' },
-                            { id: 'amethyst', name: 'Royal Amethyst', light: '#F5F3FF', dark: '#1E1B4B', desc: 'Lavender & midnight for premium distinction.' },
-                            { id: 'sunset', name: 'Sunset Horizon', light: '#FFF1F2', dark: '#450A0A', desc: 'Rose & burgundy for high-energy productivity.' },
-                            { id: 'ocean', name: 'Ocean Deep', light: '#F0F9FF', dark: '#082F49', desc: 'Sky & sea blues for serene concentration.' },
-                            { id: 'cyber', name: 'Cyber Gold', light: '#FEFCE8', dark: '#1A1600', desc: 'Lemon & bronze for bold institutional grit.' }
-                        ].map(t => (
-                            <button 
-                                key={t.id}
-                                onClick={() => {
-                                    localStorage.setItem('personal_theme', JSON.stringify(t));
-                                    document.documentElement.style.setProperty('--bg-light', t.light);
-                                    document.documentElement.style.setProperty('--bg-dark', t.dark);
-                                }}
-                                className="p-8 rounded-[2.5rem] border border-gray-100 dark:border-gray-800 bg-white/40 dark:bg-gray-900/30 hover:border-primary-500/30 transition-all text-left group"
-                            >
-                                <div className="flex items-center justify-between mb-4">
-                                    <div className="text-xs font-black uppercase tracking-widest text-gray-900 dark:text-white">{t.name}</div>
-                                    <div className="flex gap-1.5">
-                                        <div className="w-4 h-4 rounded-full border border-black/5 shadow-sm" style={{ backgroundColor: t.light }} />
-                                        <div className="w-4 h-4 rounded-full border border-black/5 shadow-sm" style={{ backgroundColor: t.dark }} />
-                                    </div>
-                                </div>
-                                <p className="text-[10px] text-gray-400 font-bold uppercase italic leading-relaxed mb-6">{t.desc}</p>
-                                <div className="h-1 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
-                                    <div className="h-full bg-primary-500 w-0 group-hover:w-full transition-all duration-700" />
-                                </div>
-                            </button>
-                        ))}
-                    </div>
-                </motion.div>
-             )}
 
           {/* Attendance tab removed */}
 
@@ -1396,16 +1336,16 @@ const StudentDashboard = () => {
             <motion.div key="quizzes" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-8 pb-20">
                <div className="flex items-center justify-between">
                   <div>
-                    <h2 className="text-3xl font-black text-gray-900 dark:text-white uppercase tracking-tighter italic">Quiz Arena Hub</h2>
+                    <h2 className="text-3xl font-bold text-gray-900 dark:text-white uppercase tracking-tighter italic">Quiz Arena Hub</h2>
                     <p className="text-[10px] text-primary-600 font-bold uppercase tracking-widest mt-1">Earn Neural Credits & Experience Nodes</p>
                   </div>
                </div>
                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                   {availableQuizzes.map(q => (
-                    <div key={q._id} className="group relative bg-white dark:bg-gray-900 p-8 rounded-[2.5rem] border border-gray-100 dark:border-gray-800 shadow-sm hover:shadow-2xl transition-all overflow-hidden flex flex-col">
+                    <div key={q._id} className="group relative bg-white dark:bg-[#080c14] p-8 rounded-[2.5rem] border border-gray-100 dark:border-gray-800 shadow-sm hover:shadow-2xl transition-all overflow-hidden flex flex-col">
                        <div className="absolute top-0 right-0 w-24 h-24 bg-primary-600/5 rounded-bl-[4rem] group-hover:scale-110 transition-transform" />
                        <div className="w-14 h-14 rounded-2xl bg-primary-600/10 text-primary-600 flex items-center justify-center mb-6 shadow-inner"><Brain size={28}/></div>
-                       <h3 className="text-xl font-black text-gray-900 dark:text-white uppercase tracking-tight mb-2 leading-none">{q.title}</h3>
+                       <h3 className="text-xl font-bold text-gray-900 dark:text-white uppercase tracking-tight mb-2 leading-none">{q.title}</h3>
                        <p className="text-[11px] font-medium text-gray-500 dark:text-gray-400 mb-6 line-clamp-2 uppercase tracking-wide">{q.description || 'Test your cognitive logic across institutional parameters.'}</p>
                        
                        {q.isCompleted && q.bestAttempt ? (
@@ -1413,27 +1353,27 @@ const StudentDashboard = () => {
                             <div className="flex justify-between items-center">
                                <div className="flex items-center gap-2">
                                   <Trophy size={14} className="text-amber-500" />
-                                  <span className="text-[10px] font-black text-gray-900 dark:text-white uppercase">Best Attempt</span>
+                                  <span className="text-[10px] font-bold text-gray-900 dark:text-white uppercase">Best Attempt</span>
                                </div>
-                               <div className="px-3 py-1 bg-primary-600 text-white text-[9px] font-black rounded-lg uppercase tracking-widest">Rank #{q.bestAttempt.rank}</div>
+                               <div className="px-3 py-1 bg-primary-600 text-white text-[9px] font-bold rounded-lg uppercase tracking-widest">Rank #{q.bestAttempt.rank}</div>
                             </div>
                             <div className="grid grid-cols-3 gap-4 border-t border-gray-100 dark:border-white/5 pt-4">
                                <div className="text-center">
-                                  <div className="text-base font-black text-gray-900 dark:text-white">{q.bestAttempt.score}</div>
-                                  <div className="text-[8px] font-black text-gray-400 uppercase">Obtained</div>
+                                  <div className="text-base font-bold text-gray-900 dark:text-white">{q.bestAttempt.score}</div>
+                                  <div className="text-[8px] font-bold text-gray-400 uppercase">Obtained</div>
                                </div>
                                <div className="text-center">
-                                  <div className="text-base font-black text-emerald-500">{q.bestAttempt.correct}</div>
-                                  <div className="text-[8px] font-black text-gray-400 uppercase">Correct</div>
+                                  <div className="text-base font-bold text-indigo-500">{q.bestAttempt.correct}</div>
+                                  <div className="text-[8px] font-bold text-gray-400 uppercase">Correct</div>
                                </div>
                                <div className="text-center">
-                                  <div className="text-base font-black text-red-500">{q.bestAttempt.wrong}</div>
-                                  <div className="text-[8px] font-black text-gray-400 uppercase">Wrong</div>
+                                  <div className="text-base font-bold text-red-500">{q.bestAttempt.wrong}</div>
+                                  <div className="text-[8px] font-bold text-gray-400 uppercase">Wrong</div>
                                </div>
                             </div>
                             <button 
                               onClick={(e) => { e.stopPropagation(); viewQuizLeaderboard(q._id); }}
-                              className="w-full mt-4 py-2 text-[9px] font-black uppercase tracking-widest text-primary-600 border border-primary-600/20 rounded-xl hover:bg-primary-600 hover:text-white transition-all flex items-center justify-center gap-2"
+                              className="w-full mt-4 py-2 text-[9px] font-bold uppercase tracking-widest text-primary-600 border border-primary-600/20 rounded-xl hover:bg-primary-600 hover:text-white transition-all flex items-center justify-center gap-2"
                             >
                                <Trophy size={10} /> View Peer Rankings
                             </button>
@@ -1444,12 +1384,12 @@ const StudentDashboard = () => {
 
                        <div className="flex items-center justify-between pt-6 border-t border-gray-50 dark:border-gray-800 mt-auto">
                           <div className="flex items-center gap-4">
-                             <div className="flex items-center gap-2"><Target size={14} className="text-gray-400"/><span className="text-[10px] font-black text-gray-500">{q.totalPoints} PTS</span></div>
-                             <div className="flex items-center gap-2"><Clock size={14} className="text-gray-400"/><span className="text-[10px] font-black text-gray-500">{q.timeLimit} MIN</span></div>
+                             <div className="flex items-center gap-2"><Target size={14} className="text-gray-400"/><span className="text-[10px] font-bold text-gray-500">{q.totalPoints} PTS</span></div>
+                             <div className="flex items-center gap-2"><Clock size={14} className="text-gray-400"/><span className="text-[10px] font-bold text-gray-500">{q.timeLimit} MIN</span></div>
                           </div>
                           <button 
                              onClick={() => setActiveQuizId(q._id)} 
-                             className={`px-5 py-2.5 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all shadow-lg active:scale-95 ${q.isCompleted ? 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 hover:bg-emerald-500 hover:text-white' : 'bg-gray-900 dark:bg-white text-white dark:text-gray-900 hover:bg-primary-600 hover:text-white'}`}
+                             className={`px-5 py-2.5 rounded-xl font-bold text-[10px] uppercase tracking-widest transition-all shadow-lg active:scale-95 ${q.isCompleted ? 'bg-indigo-500/10 text-indigo-500 border border-indigo-500/20 hover:bg-indigo-500 hover:text-white' : 'bg-[#080c14] dark:bg-white text-white dark:text-gray-900 hover:bg-primary-600 hover:text-white'}`}
                           >
                              {q.isCompleted ? 'Re-attempt' : 'Start Quiz'}
                           </button>
@@ -1465,30 +1405,30 @@ const StudentDashboard = () => {
                <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
                   <div className="bg-gradient-to-br from-primary-600 to-indigo-800 rounded-[3rem] p-10 text-white shadow-2xl relative overflow-hidden group">
                      <div className="relative z-10">
-                        <div className="text-[10px] font-black uppercase tracking-[0.3em] opacity-60 mb-2">Neural Bank</div>
-                        <div className="text-6xl font-black flex items-center gap-3">
+                        <div className="text-[10px] font-bold uppercase tracking-[0.3em] opacity-60 mb-2">Neural Bank</div>
+                        <div className="text-6xl font-bold flex items-center gap-3">
                            {gamifiedStats.stats.coins}
                            <CoinIcon size={36} />
                         </div>
                         <div className="mt-8 flex items-center gap-2 px-4 py-2 bg-white/10 rounded-xl border border-white/10 w-fit drop-shadow-xl backdrop-blur-md">
                            <Flame size={16} className="text-orange-400" />
-                           <span className="text-[10px] font-black uppercase tracking-widest">{streakDays} DAY STREAK ACTIVE</span>
+                           <span className="text-[10px] font-bold uppercase tracking-widest">{streakDays} DAY STREAK ACTIVE</span>
                         </div>
                      </div>
                      <div className="absolute top-[-10%] right-[-10%] opacity-10 group-hover:rotate-12 transition-transform duration-1000"><Zap size={240} className="fill-current" /></div>
                   </div>
 
                   <div className="md:col-span-2 grid grid-cols-2 gap-6">
-                     <div className="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-[3rem] p-8 flex flex-col justify-center">
-                        <div className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Total Learning Time</div>
-                        <div className="text-4xl font-black text-gray-900 dark:text-white tabular-nums">{gamifiedStats.stats.learningTime} <span className="text-sm font-bold text-gray-500">MINS</span></div>
+                     <div className="bg-white dark:bg-[#080c14] border border-gray-100 dark:border-gray-800 rounded-[3rem] p-8 flex flex-col justify-center">
+                        <div className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">Total Learning Time</div>
+                        <div className="text-4xl font-bold text-gray-900 dark:text-white tabular-nums">{gamifiedStats.stats.learningTime} <span className="text-sm font-bold text-gray-500">MINS</span></div>
                         <div className="mt-4 h-1.5 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
                            <div className="h-full bg-primary-600 w-[65%]" />
                         </div>
                      </div>
-                     <div className="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-[3rem] p-8 flex flex-col justify-center">
-                        <div className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Progression Level</div>
-                        <div className="text-4xl font-black text-gray-900 dark:text-white tabular-nums">LVL {Math.floor(gamifiedStats.stats.coins / 100) + 1}</div>
+                     <div className="bg-white dark:bg-[#080c14] border border-gray-100 dark:border-gray-800 rounded-[3rem] p-8 flex flex-col justify-center">
+                        <div className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">Progression Level</div>
+                        <div className="text-4xl font-bold text-gray-900 dark:text-white tabular-nums">LVL {Math.floor(gamifiedStats.stats.coins / 100) + 1}</div>
                         <div className="mt-4 flex gap-2">
                            <div className="w-2 h-2 rounded-full bg-primary-500" />
                            <div className="w-2 h-2 rounded-full bg-primary-500" />
@@ -1498,12 +1438,12 @@ const StudentDashboard = () => {
                   </div>
                </div>
 
-               <div className="bg-white dark:bg-gray-900 rounded-[3.5rem] p-12 border border-gray-100 dark:border-gray-800 shadow-xl">
+               <div className="bg-white dark:bg-[#080c14] rounded-[3.5rem] p-12 border border-gray-100 dark:border-gray-800 shadow-xl">
                   <div className="mb-12">
-                     <h3 className="text-sm font-black text-gray-900 dark:text-white uppercase tracking-[0.3em] flex items-center gap-4 mb-2">
+                     <h3 className="text-sm font-bold text-gray-900 dark:text-white uppercase tracking-[0.3em] flex items-center gap-4 mb-2">
                         Institutional Badge Catalog <div className="h-px flex-1 bg-gray-100 dark:border-gray-800" />
                      </h3>
-                     <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest italic">Unlock achievements with streak, accuracy, and consistency</p>
+                     <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest italic">Unlock achievements with streak, accuracy, and consistency</p>
                   </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-10">
@@ -1529,7 +1469,7 @@ const StudentDashboard = () => {
                            name: 'Consistent Learner',
                            desc: '100% last 7 days attendance',
                            icon: <Target size={32} />,
-                           color: 'emerald',
+                           color: 'indigo',
                            unlocked: weeklyPerformance.every(d => d.attended > 0)
                         },
                         {
@@ -1552,7 +1492,7 @@ const StudentDashboard = () => {
                            </div>
                            
                            <div className="mt-8 text-center space-y-2">
-                              <h4 className={`text-sm font-black uppercase tracking-tight ${badge.unlocked ? 'text-gray-900 dark:text-white' : 'text-gray-400'}`}>
+                              <h4 className={`text-sm font-bold uppercase tracking-tight ${badge.unlocked ? 'text-gray-900 dark:text-white' : 'text-gray-400'}`}>
                                  {badge.name}
                               </h4>
                               <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest leading-relaxed">
@@ -1562,7 +1502,7 @@ const StudentDashboard = () => {
 
                            {!badge.unlocked && (
                               <div className="absolute inset-0 bg-white/40 dark:bg-black/40 backdrop-blur-[1px] rounded-[2.5rem] flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                                 <div className="px-5 py-2 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-xl font-black text-[9px] uppercase tracking-widest">
+                                 <div className="px-5 py-2 bg-[#080c14] dark:bg-white text-white dark:text-gray-900 rounded-xl font-black text-[9px] uppercase tracking-widest">
                                     Locked
                                  </div>
                               </div>
@@ -1577,7 +1517,7 @@ const StudentDashboard = () => {
           {activeTab === 'leaderboard' && (
             <motion.div key="leaderboard" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-10">
                <div className="flex flex-col md:flex-row items-center justify-between gap-6">
-                  <div className="flex items-center gap-4 px-2 py-2 bg-white/50 dark:bg-gray-900/50 backdrop-blur-xl border border-gray-100 dark:border-gray-800 rounded-3xl">
+                  <div className="flex items-center gap-4 px-2 py-2 bg-white/50 dark:bg-[#080c14]/50 backdrop-blur-xl border border-gray-100 dark:border-gray-800 rounded-3xl">
                      {['Daily', 'Weekly', 'Global'].map(t => (
                        <button key={t} className={`px-6 py-2.5 rounded-2xl text-[9px] font-black uppercase tracking-widest transition-all ${t === 'Global' ? 'bg-primary-600 text-white shadow-lg' : 'text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800'}`}>{t}</button>
                      ))}
@@ -1587,7 +1527,7 @@ const StudentDashboard = () => {
                       <select 
                         value={leaderboardSem}
                         onChange={(e) => setLeaderboardSem(e.target.value)}
-                        className="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 px-5 py-2.5 rounded-2xl text-[10px] font-black uppercase outline-none focus:border-primary-500 transition-all"
+                        className="bg-white dark:bg-[#080c14] border border-gray-100 dark:border-gray-800 px-5 py-2.5 rounded-2xl text-[10px] font-black uppercase outline-none focus:border-primary-500 transition-all"
                       >
                          <option value="All">Global Roster</option>
                          {[1,2,3,4,5,6,7,8].map(s => (
@@ -1597,7 +1537,7 @@ const StudentDashboard = () => {
                    </div>
                </div>
 
-               <div className="bg-white dark:bg-gray-900 rounded-[3rem] border border-gray-100 dark:border-gray-800 overflow-hidden shadow-2xl">
+               <div className="bg-white dark:bg-[#080c14] rounded-[3rem] border border-gray-100 dark:border-gray-800 overflow-hidden shadow-2xl">
                   <div className="overflow-x-auto">
                     <table className="w-full text-left">
                       <thead>
@@ -1653,7 +1593,7 @@ const StudentDashboard = () => {
                         <button 
                           disabled={currentPage === 1}
                           onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-                          className="p-2 rounded-xl bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 text-gray-400 hover:text-primary-600 disabled:opacity-30 disabled:hover:text-gray-400 transition-all"
+                          className="p-2 rounded-xl bg-white dark:bg-[#080c14] border border-gray-100 dark:border-gray-800 text-gray-400 hover:text-primary-600 disabled:opacity-30 disabled:hover:text-gray-400 transition-all"
                         >
                            <ChevronLeft size={18} />
                         </button>
@@ -1675,7 +1615,7 @@ const StudentDashboard = () => {
                                 <button 
                                   key={`pg-${pageNum}`}
                                   onClick={() => setCurrentPage(pageNum)}
-                                  className={`w-9 h-9 rounded-xl font-black text-[10px] transition-all ${currentPage === pageNum ? 'bg-primary-600 text-white shadow-lg shadow-primary-500/30' : 'bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 text-gray-500 hover:border-primary-500 hover:text-primary-600'}`}
+                                  className={`w-9 h-9 rounded-xl font-black text-[10px] transition-all ${currentPage === pageNum ? 'bg-primary-600 text-white shadow-lg shadow-primary-500/30' : 'bg-white dark:bg-[#080c14] border border-gray-100 dark:border-gray-800 text-gray-500 hover:border-primary-500 hover:text-primary-600'}`}
                                 >
                                   {pageNum}
                                 </button>
@@ -1686,7 +1626,7 @@ const StudentDashboard = () => {
                         <button 
                           disabled={currentPage === totalPages}
                           onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
-                          className="p-2 rounded-xl bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 text-gray-400 hover:text-primary-600 disabled:opacity-30 disabled:hover:text-gray-400 transition-all"
+                          className="p-2 rounded-xl bg-white dark:bg-[#080c14] border border-gray-100 dark:border-gray-800 text-gray-400 hover:text-primary-600 disabled:opacity-30 disabled:hover:text-gray-400 transition-all"
                         >
                            <ChevronRight size={18} />
                         </button>

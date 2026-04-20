@@ -32,16 +32,19 @@ const Leaderboard = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
 
-  const filteredLeaders = leaders.filter(l => 
+  const filteredLeaders = React.useMemo(() => leaders.filter(l => 
     l.name.toLowerCase().includes(search.toLowerCase()) || 
     l.department?.toLowerCase().includes(search.toLowerCase())
-  );
+  ), [leaders, search]);
 
   // Pagination logic for the table (excluding top 3)
-  const otherLeaders = filteredLeaders.slice(3);
-  const totalPages = Math.ceil(otherLeaders.length / itemsPerPage);
-  const startIndex = (currentPage - 1) * itemsPerPage;
-  const paginatedLeaders = otherLeaders.slice(startIndex, startIndex + itemsPerPage);
+  const { otherLeaders, paginatedLeaders, totalPages, startIndex } = React.useMemo(() => {
+    const other = filteredLeaders.slice(3);
+    const total = Math.ceil(other.length / itemsPerPage);
+    const start = (currentPage - 1) * itemsPerPage;
+    const paginated = other.slice(start, start + itemsPerPage);
+    return { otherLeaders: other, paginatedLeaders: paginated, totalPages: total, startIndex: start };
+  }, [filteredLeaders, currentPage, itemsPerPage]);
 
   const handlePageChange = (newPage) => {
     setCurrentPage(newPage);
@@ -49,16 +52,16 @@ const Leaderboard = () => {
   };
 
   return (
-    <div className="p-4 lg:p-12 space-y-10">
+    <div className="p-4 lg:p-12 space-y-10 smooth-scroll will-change-transform">
       <div className="flex flex-col md:flex-row items-center justify-between gap-6">
         <div>
-          <h2 className="text-4xl font-black text-slate-900 dark:text-white uppercase tracking-tighter flex items-center gap-4">
+          <h2 className="text-4xl font-bold text-[var(--text-primary-light)] dark:text-[var(--text-primary-dark)] uppercase tracking-tighter flex items-center gap-4">
             <Trophy className="text-yellow-500" size={36} /> Top Performers
           </h2>
           <p className="text-[10px] font-black text-slate-500 dark:text-gray-500 uppercase tracking-widest mt-2">ScholarNode Global Rankings</p>
         </div>
 
-        <div className="flex items-center gap-2 p-1.5 bg-slate-100 dark:bg-white/5 rounded-2xl border border-slate-200 dark:border-white/10">
+        <div className="flex items-center gap-2 p-1.5 bg-[var(--surface-light-blur)] dark:bg-[var(--surface-dark-blur)] rounded-2xl border border-slate-200 dark:border-white/10">
           {['global', 'monthly'].map(tab => (
             <button
               key={tab}
@@ -66,7 +69,7 @@ const Leaderboard = () => {
               className={`px-8 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
                 activeTab === tab 
                   ? 'bg-indigo-600 text-white shadow-xl shadow-indigo-600/20' 
-                  : 'text-slate-500 hover:text-slate-900 dark:text-gray-400 dark:hover:text-white'
+                  : 'text-slate-500 hover:text-[var(--text-primary-light)] dark:text-gray-400 dark:hover:text-[var(--text-primary-dark)]'
               }`}
             >
               {tab}
@@ -84,7 +87,7 @@ const Leaderboard = () => {
             placeholder="Lookup student or department profile..."
             value={search}
             onChange={(e) => { setSearch(e.target.value); setCurrentPage(1); }}
-            className="w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-[2.5rem] pl-16 pr-8 py-7 text-sm font-bold text-slate-900 dark:text-white outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/5 transition-all"
+            className="w-full bg-[var(--surface-light-blur)] dark:bg-[var(--surface-dark-blur)] border border-slate-200 dark:border-white/10 rounded-[2.5rem] pl-16 pr-8 py-7 text-sm font-bold text-[var(--text-primary-light)] dark:text-[var(--text-primary-dark)] outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/5 transition-all"
           />
         </div>
       </div>
@@ -99,7 +102,7 @@ const Leaderboard = () => {
             className={`relative p-8 rounded-[3.5rem] border flex flex-col items-center gap-6 overflow-hidden transition-all duration-500 ${
               idx === 0 
                 ? 'bg-gradient-to-br from-indigo-600 to-indigo-800 text-white border-transparent scale-105 shadow-2xl shadow-indigo-500/20 z-10' 
-                : 'bg-white dark:bg-[#0b0f1a] border-slate-200 dark:border-white/10 shadow-xl shadow-slate-200/50 dark:shadow-none'
+                : 'bg-[var(--surface-light)] dark:bg-[var(--surface-dark)] border-slate-200 dark:border-white/10 shadow-xl shadow-slate-200/50 dark:shadow-none'
             }`}
           >
             {idx === 0 && <Crown className="absolute top-6 right-8 text-yellow-400" size={36} />}
@@ -115,7 +118,7 @@ const Leaderboard = () => {
               )}
             </div>
             <div className="text-center">
-              <h3 className={`text-2xl font-black uppercase tracking-tight ${idx === 0 ? 'text-white' : 'text-slate-900 dark:text-white'}`}>
+              <h3 className={`text-2xl font-black uppercase tracking-tight ${idx === 0 ? 'text-white' : 'text-[var(--text-primary-light)] dark:text-[var(--text-primary-dark)]'}`}>
                 {player.name}
               </h3>
               <p className={`text-[10px] font-black uppercase tracking-[0.2em] mt-2 ${idx === 0 ? 'text-indigo-100/60' : 'text-slate-400 dark:text-gray-500'}`}>
@@ -136,7 +139,7 @@ const Leaderboard = () => {
         ))}
       </div>
 
-      <div className="bg-white dark:bg-[#0b0f1a] border border-slate-200 dark:border-white/10 rounded-[3rem] overflow-hidden shadow-xl shadow-slate-200/50 dark:shadow-none">
+      <div className="bg-[var(--surface-light)] dark:bg-[var(--surface-dark)] border border-slate-200 dark:border-white/10 rounded-[3rem] overflow-hidden shadow-xl shadow-slate-200/50 dark:shadow-none leaderboard-container will-change-transform">
         <div className="overflow-x-auto">
           <table className="w-full border-collapse">
             <thead>
@@ -152,7 +155,7 @@ const Leaderboard = () => {
               {paginatedLeaders.map((player, idx) => {
                 const globalIdx = startIndex + idx + 4;
                 return (
-                  <tr key={player._id} className="hover:bg-slate-50/50 dark:hover:bg-white/[0.02] transition-colors group">
+                  <tr key={player._id} className="hover:bg-slate-50/50 dark:hover:bg-white/[0.02] transition-colors group leaderboard-row">
                     <td className="px-10 py-6">
                       <span className="text-sm font-black text-slate-400 dark:text-gray-600 group-hover:text-indigo-500 transition-colors">#{globalIdx}</span>
                     </td>
@@ -162,7 +165,7 @@ const Leaderboard = () => {
                           {player.profilePic ? <img src={player.profilePic} className="w-full h-full object-cover" /> : <User size={20} className="text-slate-400" />}
                         </div>
                         <div>
-                          <p className="text-sm font-black text-slate-900 dark:text-white group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors uppercase tracking-tight">{player.name}</p>
+                          <p className="text-sm font-black text-[var(--text-primary-light)] dark:text-[var(--text-primary-dark)] group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors uppercase tracking-tight">{player.name}</p>
                           <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mt-0.5 opacity-60">Verified Scholar</p>
                         </div>
                       </div>
@@ -178,7 +181,7 @@ const Leaderboard = () => {
                     </td>
                     <td className="px-10 py-6 text-right">
                        <div className="flex items-center justify-end gap-3">
-                         <span className="text-sm font-black text-slate-900 dark:text-white">{player.coins.toLocaleString()}</span>
+                         <span className="text-sm font-black text-[var(--text-primary-light)] dark:text-[var(--text-primary-dark)]">{player.coins.toLocaleString()}</span>
                          <CoinIcon size={16} />
                        </div>
                     </td>
@@ -230,7 +233,7 @@ const Leaderboard = () => {
         {!isLoading && filteredLeaders.length === 0 && (
           <div className="p-32 text-center opacity-40">
              <Star className="mx-auto text-slate-300 dark:text-gray-700 mb-6" size={64} />
-             <h3 className="text-xl font-black text-slate-900 dark:text-white uppercase tracking-widest">Sector Empty</h3>
+             <h3 className="text-xl font-black text-[var(--text-primary-light)] dark:text-[var(--text-primary-dark)] uppercase tracking-widest">Sector Empty</h3>
              <p className="text-[10px] font-black text-slate-400 dark:text-gray-500 uppercase tracking-widest mt-2">No results found for current search parameters</p>
           </div>
         )}

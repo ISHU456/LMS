@@ -132,23 +132,23 @@ const CreatePost = ({ user, onPostCreated }) => {
   const config = roleConfigs[user?.role] || roleConfigs.student;
 
   return (
-    <div className={`w-full bg-white/80 dark:bg-white/[0.03] backdrop-blur-xl shadow-xl rounded-2xl border border-slate-200/50 dark:border-white/10 transition-all relative z-30 transform-gpu hover:border-white/20 ${isExpanded ? 'p-8' : 'p-6'}`}>
+    <div className={`w-full bg-app-surface backdrop-blur-xl shadow-xl rounded-2xl border border-app-border/30 transition-all relative z-30 transform-gpu hover:border-app-border/50 ${isExpanded ? 'p-8' : 'p-6'}`}>
       
       {!isExpanded ? (
         <div className="flex flex-col gap-4">
           <div className="flex items-center gap-4">
-            <div className={`w-14 h-14 rounded-2xl bg-slate-100 dark:bg-white/5 overflow-hidden shrink-0 border border-slate-200 dark:border-white/10 shadow-lg`}>
+            <div className={`w-14 h-14 rounded-2xl bg-app-bg overflow-hidden shrink-0 border border-app-border/30 shadow-lg`}>
                {user?.profilePic ? (
                  <img src={user.profilePic} alt={user.name} className="w-full h-full object-cover" />
                ) : (
-                 <div className="w-full h-full flex items-center justify-center text-xl font-black text-slate-400">
+                 <div className="w-full h-full flex items-center justify-center text-xl font-black text-app-muted">
                     {user?.name?.charAt(0) || 'U'}
                  </div>
                )}
             </div>
             <button 
               onClick={() => setIsExpanded(true)}
-              className="flex-1 h-14 text-left px-6 rounded-2xl bg-slate-50 dark:bg-white/[0.02] border border-slate-200 dark:border-white/5 text-slate-400 font-bold hover:bg-slate-100 dark:hover:bg-white/[0.05] transition-all text-sm uppercase tracking-widest"
+              className="flex-1 h-14 text-left px-6 rounded-2xl bg-app-bg border border-app-border/30 text-app-muted font-bold hover:bg-app-bg/80 transition-all text-sm uppercase tracking-widest"
             >
               Start an institutional signal...
             </button>
@@ -164,37 +164,37 @@ const CreatePost = ({ user, onPostCreated }) => {
               <button 
                 key={i}
                 onClick={tool.action}
-                className="flex items-center gap-2 px-4 py-2.5 rounded-xl hover:bg-slate-100 dark:hover:bg-white/5 transition-all group"
+                className="flex items-center gap-2 px-4 py-2.5 rounded-xl hover:bg-app-bg transition-all group"
               >
                 <div className="group-hover:scale-110 transition-transform">{tool.icon}</div>
-                <span className="text-[10px] font-black text-slate-500 tracking-widest uppercase">{tool.label}</span>
+                <span className="text-[10px] font-black text-app-muted tracking-widest uppercase">{tool.label}</span>
               </button>
             ))}
           </div>
         </div>
       ) : (
         <div className="space-y-4">
-          <div className="flex items-center justify-between pb-6 border-b border-slate-100 dark:border-white/5">
-             <div className="flex items-center gap-4">
-                <div className="w-12 h-12 rounded-xl bg-slate-100 dark:bg-white/5 overflow-hidden border border-slate-200 dark:border-white/10 shadow-lg">
-                   {user?.profilePic ? <img src={user.profilePic} alt="" className="w-full h-full object-cover" /> : null}
-                </div>
-                <div>
-                  <h4 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-tight">{user?.name}</h4>
-                  <p className={`text-[10px] ${config.color} font-black uppercase tracking-[0.2em] italic`}>Transmitting Signal</p>
-                </div>
-             </div>
-             <button onClick={() => setIsExpanded(false)} className="p-2 hover:bg-slate-100 dark:hover:bg-white/5 rounded-xl text-slate-500 transition-colors">
-                <X size={20} />
-             </button>
-          </div>
+              <div className="flex items-center justify-between pb-6 border-b border-app-border/20">
+                 <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 rounded-xl bg-app-bg overflow-hidden border border-app-border/30 shadow-lg">
+                       {user?.profilePic ? <img src={user.profilePic} alt="" className="w-full h-full object-cover" /> : null}
+                    </div>
+                    <div>
+                      <h4 className="text-sm font-black text-app-text uppercase tracking-tight">{user?.name}</h4>
+                      <p className={`text-[10px] ${config.color} font-black uppercase tracking-[0.2em] italic`}>Transmitting Signal</p>
+                    </div>
+                 </div>
+                 <button onClick={() => setIsExpanded(false)} className="p-2 hover:bg-app-bg rounded-xl text-app-muted transition-colors">
+                    <X size={20} />
+                 </button>
+              </div>
 
           <div className="space-y-4">
             <input 
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="Title (optional)"
-              className="w-full text-lg font-semibold bg-transparent border-none outline-none text-slate-900 dark:text-white placeholder:text-slate-400"
+              className="w-full text-lg font-semibold bg-transparent border-none outline-none text-app-text placeholder:text-app-muted/50"
             />
             
             <textarea 
@@ -202,7 +202,7 @@ const CreatePost = ({ user, onPostCreated }) => {
               onChange={(e) => setContent(e.target.value)}
               rows={6}
               placeholder="What do you want to talk about?"
-              className="w-full text-sm font-medium bg-transparent border-none outline-none text-slate-800 dark:text-gray-300 placeholder:text-slate-400 resize-none"
+              className="w-full text-sm font-medium bg-transparent border-none outline-none text-app-text/80 placeholder:text-app-muted/50 resize-none"
               autoFocus
             />
             
@@ -237,17 +237,17 @@ const CreatePost = ({ user, onPostCreated }) => {
                  onChange={(e) => setTagInput(e.target.value)}
                  onKeyDown={handleAddTag}
                  placeholder="add tag..."
-                 className="bg-transparent border-none outline-none text-xs text-slate-600 w-24"
+                 className="bg-transparent border-none outline-none text-xs text-app-muted w-24"
                />
             </div>
           </div>
 
-          <div className="flex items-center justify-between pt-4 border-t border-slate-100 dark:border-white/5">
+          <div className="flex items-center justify-between pt-4 border-t border-app-border/20">
              <div className="flex items-center gap-2 transition-all">
                 {typeOptions.map(opt => (
                   <button 
                     key={opt.id} onClick={() => setType(opt.id)}
-                    className={`p-2 rounded-full transition-colors ${type === opt.id ? `${config.lightBg} ${config.color}` : 'text-slate-400 hover:bg-slate-50 dark:hover:bg-white/5'}`}
+                    className={`p-2 rounded-full transition-colors ${type === opt.id ? `${config.lightBg} ${config.color}` : 'text-app-muted hover:bg-app-bg'}`}
                   >
                     {opt.icon}
                   </button>

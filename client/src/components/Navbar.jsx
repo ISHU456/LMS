@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { Sun, Moon, Star, UserCircle, LogOut, Menu, X, LayoutDashboard, GraduationCap, Building2, Megaphone, Home, Flame, Award, Edit, Bot, ArrowLeft, FileText, CheckCircle, TrendingUp, Terminal, ShieldCheck, MapPin, Code, ClipboardList, Trophy } from 'lucide-react';
+import { Sun, Moon, Star, UserCircle, LogOut, Menu, X, LayoutDashboard, GraduationCap, Building2, Megaphone, Home, Flame, Award, Edit, Bot, ArrowLeft, FileText, CheckCircle, TrendingUp, Terminal, ShieldCheck, MapPin, Code, ClipboardList, Trophy, Coins } from 'lucide-react';
 
 import { motion, AnimatePresence } from 'framer-motion';
 import { useSelector, useDispatch } from 'react-redux';
@@ -96,7 +96,6 @@ const Navbar = ({ darkMode, toggleDarkMode }) => {
     { name: 'Announcements', path: '/community', icon: <Megaphone size={18} /> },
 
     { name: 'Arena', path: '/arena', icon: <Trophy size={18} /> },
-    { name: 'AI Mode', path: '/ai-mode', icon: <Bot size={18} /> },
 
     ...(user ? [
       ...(user.role === 'student' ? [
@@ -112,12 +111,14 @@ const Navbar = ({ darkMode, toggleDarkMode }) => {
         ] : [])
       ] : [])
     ] : []),
+    { name: 'AI Mode', path: '/ai-mode', icon: <Bot size={18} /> },
   ];
+
 
   const [isProfileOpen, setIsProfileOpen] = useState(false);
 
   return (
-    <nav className="sticky top-0 z-[999] bg-white dark:bg-[#0f172a] lg:bg-white/80 lg:dark:bg-[#0f172a]/80 lg:backdrop-blur-xl border-b border-gray-100 dark:border-gray-800/50 transition-all duration-300">
+    <nav className="sticky top-0 z-[999] bg-app-bg/80 backdrop-blur-xl border-b border-app-border transition-all duration-300">
       <div className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-20">
           {/* Logo */}
@@ -137,6 +138,9 @@ const Navbar = ({ darkMode, toggleDarkMode }) => {
               const isAdminLink = ['Dashboard', 'HOD Dashboard', 'Faculty Dashboard', 'Admin Dashboard'].includes(link.name);
               if (isAdminLink && user?.role === 'student') return null;
 
+              const isArena = link.name === 'Arena';
+              const isAIMode = link.name === 'AI Mode';
+
               // CUSTOM LOGIC: Swap Courses for Departments if NOT logged in
               let finalLink = { ...link };
               if (!user && link.name === 'Courses') {
@@ -147,47 +151,45 @@ const Navbar = ({ darkMode, toggleDarkMode }) => {
                 <Link
                   key={finalLink.path}
                   to={finalLink.path}
-                  className={`relative px-4 py-2 group`}
+                  className={`relative px-4 py-1.5 group flex items-center justify-center transition-all duration-300 min-h-[32px] ${isAIMode ? 'border-2 border-transparent bg-gradient-to-r from-blue-700 via-indigo-700 to-purple-700 bg-origin-border [background-clip:padding-box,border-box] [background-image:linear-gradient(var(--app-bg),var(--app-bg)),linear-gradient(to_right,#1d4ed8,#4338ca,#7e22ce)] animate-gradient-x hover:scale-105 active:scale-95 ml-2 shadow-lg shadow-indigo-500/10 rounded-lg' : 'rounded-lg hover:bg-app-surface/50'}`}
                 >
-                  <span className={`relative z-10 text-[10px] font-black uppercase tracking-[0.2em] transition-colors duration-300 ${
-                    location.pathname === finalLink.path 
-                      ? 'text-primary-600 dark:text-primary-400' 
-                      : finalLink.name === 'Arena'
-                        ? 'text-black dark:text-teal-400 opacity-80 group-hover:opacity-100'
-                        : 'text-gray-500 dark:text-gray-400 group-hover:text-gray-900 dark:group-hover:text-white'
+                  <span className={`relative z-10 text-[9px] uppercase tracking-[0.2em] transition-colors duration-300 text-center flex items-center justify-center ${
+                    isAIMode 
+                      ? 'font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-700 via-indigo-700 to-purple-700'
+                      : location.pathname === finalLink.path 
+                        ? 'font-bold text-app-text' 
+                        : 'font-medium text-app-muted group-hover:text-app-text'
                   }`}>
                     {finalLink.name}
                   </span>
                   
-                  {/* Premium Hover Interaction */}
-                  <div className={`absolute inset-0 rounded-xl bg-gray-100/50 dark:bg-gray-800/50 scale-75 opacity-0 group-hover:scale-100 group-hover:opacity-100 transition-all duration-300 -z-0`} />
-                  
-                  {location.pathname === finalLink.path && (
+                  {location.pathname === finalLink.path && !isAIMode && (
                     <motion.div 
                       layoutId="nav-underline"
-                      className={`absolute bottom-0 left-4 right-4 h-0.5 rounded-full ${finalLink.name === 'Quiz Arena' ? 'bg-emerald-500' : 'bg-primary-500'}`}
+                      className="absolute bottom-0 left-3 right-3 h-[1.5px] rounded-full bg-app-text"
                     />
                   )}
-                  <div className={`absolute bottom-0 left-1/2 -translate-x-1/2 w-0 h-0.5 rounded-full group-hover:w-1/2 transition-all duration-300 ${finalLink.name === 'Quiz Arena' ? 'bg-emerald-500/40' : 'bg-primary-500/40'}`} />
                 </Link>
               );
             })}
             
             {/* Display Semester on every page for students */}
             {user?.role === 'student' && user?.semester && (
-              <div className="flex items-center gap-2 ml-4">
-                <div className="px-3 py-1.5 rounded-xl border border-primary-500/20 bg-primary-500/10 text-primary-600 dark:text-primary-400">
+              <div className="flex items-center gap-1.5 ml-3">
+                <Link to={`/courses?semester=${user.semester || 4}`} className="px-3 py-1.5 rounded-lg border-2 border-transparent bg-gradient-to-r from-indigo-600 via-blue-600 to-indigo-600 bg-origin-border [background-clip:padding-box,border-box] [background-image:linear-gradient(var(--app-bg),var(--app-bg)),linear-gradient(to_right,#4f46e5,#2563eb,#4f46e5)] animate-gradient-x hover:scale-105 active:scale-95 flex items-center justify-center transition-all shadow-xl shadow-indigo-500/10">
                   <div className="text-[10px] font-black uppercase tracking-widest flex items-center gap-2">
-                    <GraduationCap size={14} className="opacity-70" />
-                    Semester {user.semester}
+                    <GraduationCap size={16} className="text-indigo-600" />
+                    Sem {user.semester || 4}
                   </div>
-                </div>
-                <div className="px-3 py-1.5 rounded-xl border border-amber-500/20 bg-amber-500/10 text-amber-600 dark:text-amber-400">
-                  <div className="text-[10px] font-black uppercase tracking-widest flex items-center gap-2">
-                    <Flame size={14} className="fill-current text-orange-500" />
-                    {user.coins || 0} Coins
+                </Link>
+                <Link to="/arena" className="px-3 py-1.5 rounded-lg border-2 border-amber-500 bg-white text-amber-600 flex items-center justify-center hover:bg-amber-50 transition-all shadow-lg shadow-amber-500/10">
+                  <div className="flex items-center gap-2">
+                    <Coins size={16} className="text-amber-500 shrink-0" />
+                    <span className="text-[10px] font-black uppercase tracking-widest leading-none">
+                      {user.coins || 0}
+                    </span>
                   </div>
-                </div>
+                </Link>
               </div>
             )}
             </div>
@@ -197,27 +199,29 @@ const Navbar = ({ darkMode, toggleDarkMode }) => {
           <div className="flex items-center gap-2 sm:gap-3">
             <button 
               onClick={toggleDarkMode}
-              className="p-2 sm:p-2.5 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-500 dark:text-gray-400 transition-colors"
+              className="p-2 sm:p-2.5 rounded-xl hover:bg-app-surface text-app-muted transition-colors"
               aria-label="Toggle Dark Mode"
             >
               {darkMode ? <Sun size={18} /> : <Moon size={18} />}
             </button>
             
-            <div className="flex items-center gap-3 pl-3 border-l border-gray-100 dark:border-gray-800 relative">
+            <div className="flex items-center gap-3 pl-3 border-l border-app-border relative">
               {user ? (
                 <>
                   {user?.role === 'student' && (
-                    <div className="flex items-center gap-1.5 px-3 py-1.5 bg-orange-500/10 text-orange-600 dark:text-orange-400 rounded-xl border border-orange-500/20 mr-2 shadow-sm">
-                      <Flame size={14} className={ (user?.streak || gamification?.streakDays) > 0 ? 'fill-current text-orange-500 animate-pulse' : 'opacity-40'} />
-                      <span className="text-xs font-black uppercase tracking-tighter">{(user?.streak || gamification?.streakDays) || 0}d</span>
-                    </div>
+                    <Link to={getDashboardLink()} className="flex items-center gap-2 px-3 py-1.5 bg-white hover:bg-rose-50 text-rose-600 rounded-lg border-2 border-rose-600 mr-2 shadow-xl shadow-rose-500/10 transition-all group">
+                      <Flame size={16} className={ (user?.streak || gamification?.streakDays) > 0 ? 'fill-current text-rose-500 animate-pulse' : 'opacity-40'} />
+                      <span className="text-[10px] font-black uppercase tracking-widest leading-none">
+                        {(user?.streak || gamification?.streakDays) || 0}D
+                      </span>
+                    </Link>
                   )}
 
                   {/* Profile Trigger - Avatar Only */}
                   <div className="relative">
                     <button 
                       onClick={() => setIsProfileOpen(!isProfileOpen)}
-                      className={`flex items-center justify-center w-10 h-10 rounded-xl transition-all ${isProfileOpen ? 'bg-primary-50 dark:bg-primary-900/20 ring-2 ring-primary-500/20' : 'bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700'}`}
+                      className={`flex items-center justify-center w-10 h-10 rounded-xl transition-all ${isProfileOpen ? 'bg-primary-500/10 ring-2 ring-primary-500/20' : 'bg-app-surface hover:bg-app-surface/80'}`}
                     >
                       <div className="w-8 h-8 rounded-lg overflow-hidden border border-primary-500/20 shadow-sm shrink-0">
                         {user?.profilePic ? (
@@ -237,15 +241,15 @@ const Navbar = ({ darkMode, toggleDarkMode }) => {
                           initial={{ opacity: 0, scale: 0.95, y: 10 }}
                           animate={{ opacity: 1, scale: 1, y: 0 }}
                           exit={{ opacity: 0, scale: 0.95, y: 10 }}
-                          className="absolute right-0 mt-3 w-60 rounded-2xl bg-white dark:bg-[#0f172a] shadow-2xl border border-gray-100 dark:border-gray-800 p-2 z-[1000]"
+                          className="absolute right-0 mt-3 w-60 rounded-2xl bg-app-surface shadow-2xl border border-app-border p-2 z-[1000]"
                         >
-                          <div className="px-3 py-3 border-b border-gray-100 dark:border-gray-800/50 mb-1">
-                             <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1 opacity-60">Verified Identity</p>
+                          <div className="px-3 py-3 border-b border-app-border mb-1">
+                             <p className="text-[9px] font-black text-app-muted uppercase tracking-widest mb-1 opacity-60">Verified Identity</p>
                              <div className="flex items-center justify-between">
-                                <p className="text-[11px] font-black text-gray-900 dark:text-white uppercase truncate">{user.name}</p>
+                                <p className="text-[11px] font-black text-app-text uppercase truncate">{user.name}</p>
                                 <div className="flex items-center gap-1">
                                    {user.role === 'student' && user.section && (
-                                      <span className="text-[8px] px-2 py-0.5 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 rounded-lg font-black uppercase whitespace-nowrap border border-emerald-500/10">SEC {user.section}</span>
+                                      <span className="text-[8px] px-2 py-0.5 bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 rounded-lg font-black uppercase whitespace-nowrap border border-indigo-500/10">SEC {user.section}</span>
                                    )}
                                    <span className="text-[8px] px-2 py-0.5 bg-primary-500/10 text-primary-600 dark:text-primary-400 rounded-lg font-black uppercase whitespace-nowrap border border-primary-500/10">{user.role}</span>
                                 </div>
@@ -255,10 +259,10 @@ const Navbar = ({ darkMode, toggleDarkMode }) => {
                           <div className="py-1.5 space-y-1">
                             {/* 1st - Profile */}
                             <Link 
-                              onClick={() => setIsProfileOpen(false)}
-                              to="/profile" 
-                              className="flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800/50 text-[10px] font-black text-gray-700 dark:text-gray-300 uppercase tracking-widest transition-all group"
-                            >
+                                onClick={() => setIsProfileOpen(false)}
+                                to="/profile" 
+                                className="flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-app-surface/50 text-[10px] font-black text-app-text uppercase tracking-widest transition-all group"
+                              >
                               <div className="w-8 h-8 rounded-lg bg-indigo-500/10 flex items-center justify-center text-indigo-500 group-hover:bg-indigo-500 group-hover:text-white transition-all">
                                 <UserCircle size={14} />
                               </div>
@@ -267,10 +271,10 @@ const Navbar = ({ darkMode, toggleDarkMode }) => {
 
                             {/* 2nd - Dashboard */}
                             <Link 
-                              onClick={() => setIsProfileOpen(false)}
-                              to={getDashboardLink()} 
-                              className="flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-primary-50 dark:hover:bg-primary-950/20 text-[10px] font-black text-primary-600 dark:text-primary-400 uppercase tracking-widest transition-all group border border-transparent hover:border-primary-100 dark:hover:border-primary-900/30"
-                            >
+                                onClick={() => setIsProfileOpen(false)}
+                                to={getDashboardLink()} 
+                                className="flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-primary-500/10 text-[10px] font-black text-primary-600 dark:text-primary-400 uppercase tracking-widest transition-all group border border-transparent hover:border-primary-500/20"
+                              >
                               <div className="w-8 h-8 rounded-lg bg-primary-500/10 flex items-center justify-center text-primary-500 group-hover:bg-primary-500 group-hover:text-white transition-all">
                                 <LayoutDashboard size={14} />
                               </div>
@@ -278,11 +282,11 @@ const Navbar = ({ darkMode, toggleDarkMode }) => {
                             </Link>
 
                             <Link 
-                              onClick={() => setIsProfileOpen(false)}
-                              to="/departments" 
-                              className="flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800/50 text-[10px] font-black text-gray-700 dark:text-gray-300 uppercase tracking-widest transition-all group"
-                            >
-                              <div className="w-8 h-8 rounded-lg bg-emerald-500/10 flex items-center justify-center text-emerald-500 group-hover:bg-emerald-500 group-hover:text-white transition-all">
+                                onClick={() => setIsProfileOpen(false)}
+                                to="/departments" 
+                                className="flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-app-surface/50 text-[10px] font-black text-app-text uppercase tracking-widest transition-all group"
+                              >
+                              <div className="w-8 h-8 rounded-lg bg-indigo-500/10 flex items-center justify-center text-indigo-500 group-hover:bg-indigo-500 group-hover:text-white transition-all">
                                 <Building2 size={14} />
                               </div>
                               Domain Registry
@@ -290,7 +294,7 @@ const Navbar = ({ darkMode, toggleDarkMode }) => {
 
                           </div>
 
-                          <div className="mt-2 pt-2 border-t border-gray-100 dark:border-gray-800/50">
+                          <div className="mt-2 pt-2 border-t border-app-border">
                             <button 
                               onClick={handleLogout}
                               className="w-full flex items-center gap-3 px-3 py-3 rounded-xl bg-red-50 dark:bg-red-900/10 text-red-600 dark:text-red-400 text-[10px] font-black uppercase tracking-widest hover:bg-red-100 transition-all shadow-sm"
@@ -317,7 +321,7 @@ const Navbar = ({ darkMode, toggleDarkMode }) => {
             {/* Mobile Menu Toggle */}
             <button
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-              className="lg:hidden p-3 rounded-2xl bg-gray-100 dark:bg-gray-800/50 text-gray-600 dark:text-gray-400 hover:bg-primary-50 dark:hover:bg-primary-900/20 hover:text-primary-600 transition-all border border-transparent hover:border-primary-100 dark:hover:border-primary-900/30"
+              className="lg:hidden p-3 rounded-2xl bg-app-surface text-app-muted hover:bg-primary-500/10 hover:text-primary-600 transition-all border border-transparent hover:border-primary-500/20"
             >
               {isMobileMenuOpen ? <X size={22} /> : <Menu size={22} />}
             </button>
@@ -367,15 +371,32 @@ const Navbar = ({ darkMode, toggleDarkMode }) => {
                     finalLink = { name: 'Departments', path: '/departments', icon: <Building2 size={20} /> };
                   }
 
+                  const isAIMode = finalLink.name === 'AI Mode';
+
                   return (
                     <Link
                       key={finalLink.path}
                       to={finalLink.path}
                       onClick={() => setIsMobileMenuOpen(false)}
-                      className={`flex items-center gap-4 p-4 rounded-2xl font-black text-sm uppercase tracking-widest transition-all ${location.pathname === finalLink.path ? 'bg-primary-50 dark:bg-primary-900/20 text-primary-600 dark:text-primary-400' : 'text-gray-500 hover:bg-gray-50 dark:hover:bg-gray-800/50'}`}
+                      className={`flex items-center justify-start gap-4 p-4 rounded-2xl font-black text-sm uppercase tracking-widest transition-all ${
+                        isAIMode 
+                          ? 'border-2 border-transparent bg-gradient-to-r from-blue-700 via-indigo-700 to-purple-700 bg-origin-border [background-clip:padding-box,border-box] [background-image:linear-gradient(white,white),linear-gradient(to_right,#1d4ed8,#4338ca,#7e22ce)] dark:[background-image:linear-gradient(#0f172a,#0f172a),linear-gradient(to_right,#1d4ed8,#4338ca,#7e22ce)] shadow-lg animate-gradient-x' 
+                          : location.pathname === finalLink.path 
+                            ? 'bg-primary-50 dark:bg-primary-900/20 text-primary-600 dark:text-primary-400' 
+                            : 'text-gray-500 hover:bg-gray-50 dark:hover:bg-gray-800/50'
+                      }`}
                     >
-                      {finalLink.icon}
-                      {finalLink.name}
+                      {isAIMode ? (
+                         <span className="bg-clip-text text-transparent bg-gradient-to-r from-blue-700 via-indigo-700 to-purple-700 flex items-center justify-center gap-4">
+                            {finalLink.icon}
+                            {finalLink.name}
+                         </span>
+                      ) : (
+                        <>
+                          <div className="flex items-center justify-center w-6">{finalLink.icon}</div>
+                          {finalLink.name}
+                        </>
+                      )}
                     </Link>
                   );
                 })}
@@ -414,3 +435,23 @@ const Navbar = ({ darkMode, toggleDarkMode }) => {
 };
 
 export default Navbar;
+
+// Adding custom styles for the AI Mode button gradient animation
+const style = document.createElement('style');
+style.textContent = `
+  @keyframes gradient-x {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+  }
+  .animate-gradient-x {
+    animation: gradient-x 2s ease infinite;
+    background-size: 200% 100%;
+  }
+  .group:hover .animate-gradient-x, 
+  a:hover.animate-gradient-x {
+    animation-duration: 1s;
+    transform: scale(1.02);
+  }
+`;
+document.head.appendChild(style);

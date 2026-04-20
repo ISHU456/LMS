@@ -52,8 +52,8 @@ const Schedule = ({
                                 </div>
                             </div>
                             <div>
-                                <h3 className="text-2xl font-black text-gray-300 dark:text-gray-800 uppercase tracking-tighter mb-2">Schematic Manifest Empty</h3>
-                                <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest max-w-xs mx-auto">The centralized timeline graphic has not been authorized for this course yet.</p>
+                                <h3 className="text-2xl font-bold text-gray-300 dark:text-gray-800 uppercase tracking-tighter mb-2">Schematic Manifest Empty</h3>
+                                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest max-w-xs mx-auto">The centralized timeline graphic has not been authorized for this course yet.</p>
                             </div>
                         </div>
                     )}
@@ -65,10 +65,10 @@ const Schedule = ({
                                 <div className="w-20 h-20 bg-primary-600/30 border border-primary-500/50 flex items-center justify-center mx-auto mb-6 backdrop-blur-xl">
                                     <ShieldCheck size={32} />
                                 </div>
-                                <h3 className="text-3xl font-black uppercase tracking-tighter">
+                                <h3 className="text-3xl font-bold uppercase tracking-tighter">
                                     {isUploadingImage ? 'Syncing Repository...' : 'Schematic Control Module'}
                                 </h3>
-                                <p className="text-[10px] font-black uppercase tracking-[0.4em] opacity-60">Admin Protocol: {courseId.toUpperCase()}-SCDL</p>
+                                <p className="text-[10px] font-bold uppercase tracking-[0.4em] opacity-60">Admin Protocol: {courseId.toUpperCase()}-SCDL</p>
                             </div>
 
                             <div className="w-full max-w-md space-y-4">
@@ -95,7 +95,7 @@ const Schedule = ({
                                         />
                                         <label 
                                             htmlFor="master-schematic-up"
-                                            className="px-10 py-5 bg-white text-gray-900 font-black text-xs uppercase tracking-[0.3em] hover:bg-primary-600 hover:text-white transition-all cursor-pointer shadow-2xl active:scale-95 flex items-center justify-center gap-4"
+                                            className="px-10 py-5 bg-white text-gray-900 font-bold text-xs uppercase tracking-[0.3em] hover:bg-primary-600 hover:text-white transition-all cursor-pointer shadow-2xl active:scale-95 flex items-center justify-center gap-4"
                                         >
                                             <Upload size={20} /> UPLOAD NEW SCHEMATIC
                                         </label>
@@ -103,12 +103,12 @@ const Schedule = ({
                                         {timetableImageUrl && (
                                             <button 
                                                 onClick={handleDeleteTimetableImage}
-                                                className="px-10 py-5 bg-rose-600/20 text-rose-500 border border-rose-500/50 hover:bg-rose-600 hover:text-white font-black text-xs uppercase tracking-[0.3em] transition-all shadow-xl flex items-center justify-center gap-4"
+                                                className="px-10 py-5 bg-rose-600/20 text-rose-500 border border-rose-500/50 hover:bg-rose-600 hover:text-white font-bold text-xs uppercase tracking-[0.3em] transition-all shadow-xl flex items-center justify-center gap-4"
                                             >
                                                 <Target size={20} /> PURGE DATA SOURCE
                                             </button>
                                         )}
-                                        <p className="text-[8px] font-black uppercase tracking-widest opacity-40">Authorized Key Required • Auto-Logging Enabled</p>
+                                        <p className="text-[8px] font-bold uppercase tracking-widest opacity-40">Authorized Key Required • Auto-Logging Enabled</p>
                                     </div>
                                 )}
                             </div>

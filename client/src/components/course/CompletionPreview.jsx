@@ -91,11 +91,11 @@ const CompletionPreview = ({
           {/* Leaderboard Section */}
           <div className="lg:col-span-2 glass p-8 rounded-[3rem] border border-white dark:border-gray-800 bg-white/60 dark:bg-gray-900/60 shadow-2xl relative overflow-hidden group">
             <div className="flex items-center justify-between mb-10">
-                <h3 className="text-2xl font-black dark:text-white uppercase tracking-tighter flex items-center gap-3">
+                <h3 className="text-xl font-bold dark:text-white uppercase tracking-tighter flex items-center gap-3">
                     <Users size={28} className="text-primary-500" /> Professional Learner Registry
                 </h3>
                 <div className="flex items-center gap-2 px-4 py-2 bg-primary-50 dark:bg-primary-900/20 rounded-2xl border border-primary-100 dark:border-primary-800">
-                    <span className="text-[10px] font-black text-primary-600 uppercase tracking-widest leading-none">{students.length} VERIFIED NODES</span>
+                    <span className="text-[9px] font-bold text-primary-600 uppercase tracking-widest leading-none">{students.length} VERIFIED NODES</span>
                 </div>
             </div>
             
@@ -109,42 +109,42 @@ const CompletionPreview = ({
                                 {student.profilePic ? (
                                     <img src={student.profilePic} alt={student.name} className="w-16 h-16 rounded-2xl object-cover shadow-xl border-2 border-white dark:border-gray-700" />
                                 ) : (
-                                    <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary-500 to-indigo-600 flex items-center justify-center text-white text-xl font-black shadow-xl">
+                                    <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary-500 to-indigo-600 flex items-center justify-center text-white text-lg font-bold shadow-xl">
                                         {student.name.charAt(0)}
                                     </div>
                                 )}
-                                <div className={`absolute -top-3 -left-3 w-8 h-8 rounded-full flex items-center justify-center font-black text-[12px] shadow-lg border-2 border-white dark:border-gray-800 ${student.rank === 1 ? 'bg-amber-500 text-white' : student.rank === 2 ? 'bg-slate-300 text-gray-800' : student.rank === 3 ? 'bg-orange-600 text-white' : 'bg-gray-900 dark:bg-white text-white dark:text-gray-900'}`}>
+                                <div className={`absolute -top-3 -left-3 w-8 h-8 rounded-full flex items-center justify-center font-bold text-[12px] shadow-lg border-2 border-white dark:border-gray-800 ${student.rank === 1 ? 'bg-amber-500 text-white' : student.rank === 2 ? 'bg-slate-300 text-gray-800' : student.rank === 3 ? 'bg-orange-600 text-white' : 'bg-gray-900 dark:bg-white text-white dark:text-gray-900'}`}>
                                     {student.rank}
                                 </div>
                             </div>
                             <div className="min-w-0">
                                 <div className="flex items-center gap-2 mb-1">
-                                    <h4 className="text-base font-black dark:text-white uppercase tracking-tight truncate">{student.name}</h4>
+                                    <h4 className="text-sm font-bold dark:text-white uppercase tracking-tight truncate">{student.name}</h4>
                                     {rankMeta && (
-                                        <div className={`px-2 py-0.5 rounded-md ${rankMeta.color} text-white text-[7px] font-black tracking-widest shadow-lg ${rankMeta.shadow}`}>
+                                        <div className={`px-2 py-0.5 rounded-md ${rankMeta.color} text-white text-[7px] font-bold tracking-widest shadow-lg ${rankMeta.shadow}`}>
                                             {rankMeta.label}
                                         </div>
                                     )}
                                 </div>
                                 <div className="flex items-center gap-3">
-                                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{student.rollNumber || student.enrollmentNumber || 'ID-UNKNOWN'}</p>
+                                    <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">{student.rollNumber || student.enrollmentNumber || 'ID-UNKNOWN'}</p>
                                     <div className="w-1 h-1 bg-gray-300 rounded-full"></div>
-                                    <span className="text-[9px] font-black text-primary-500 uppercase">{student.badge}</span>
+                                    <span className="text-[9px] font-bold text-primary-500 uppercase">{student.badge}</span>
                                 </div>
                             </div>
                         </div>
 
                         <div className="flex items-center gap-8 w-full sm:w-auto">
                             <div className="flex flex-col sm:items-end w-24">
-                                <span className="text-[8px] font-black text-gray-400 uppercase tracking-widest mb-2">Sync Progress</span>
+                                <span className="text-[8px] font-bold text-gray-400 uppercase tracking-widest mb-2">Sync Progress</span>
                                 <div className="w-full h-1.5 bg-gray-100 dark:bg-gray-900 rounded-full overflow-hidden">
                                     <div className={`h-full bg-emerald-500 rounded-full transition-all duration-1000 ${student.progress === 100 ? 'animate-pulse shadow-[0_0_10px_rgba(16,185,129,0.5)]' : ''}`} style={{width: `${student.progress}%`}} />
                                 </div>
-                                <span className="text-[10px] font-black dark:text-white mt-1">{student.progress}%</span>
+                                <span className="text-[9px] font-bold dark:text-white mt-1">{student.progress}%</span>
                             </div>
                             <div className="flex flex-col items-end shrink-0">
-                                <span className="text-[8px] font-black text-gray-400 uppercase tracking-widest mb-1">XP Power</span>
-                                <span className="text-sm font-black text-indigo-600 dark:text-indigo-400 flex items-center gap-1"><Zap size={12} fill="currentColor"/> {student.xp.toLocaleString()}</span>
+                                <span className="text-[8px] font-bold text-gray-400 uppercase tracking-widest mb-1">XP Power</span>
+                                <span className="text-xs font-bold text-indigo-600 dark:text-indigo-400 flex items-center gap-1"><Zap size={12} fill="currentColor"/> {student.xp.toLocaleString()}</span>
                             </div>
                             <button 
                                 onClick={() => removeStudent(student._id)}
@@ -159,7 +159,7 @@ const CompletionPreview = ({
               }) : (
                 <div className="py-20 text-center flex flex-col items-center gap-4">
                     <Users size={48} className="text-gray-200" />
-                    <p className="text-xs font-black text-gray-400 uppercase tracking-widest">Digital Registry Empty</p>
+                    <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">Digital Registry Empty</p>
                 </div>
               )}
             </div>
@@ -167,7 +167,7 @@ const CompletionPreview = ({
 
           {/* Badges Guide */}
           <div className="glass p-8 rounded-[3rem] border border-white dark:border-gray-800 bg-white/60 dark:bg-gray-900/60 shadow-2xl relative overflow-hidden flex flex-col h-fit">
-            <h3 className="text-xl font-black dark:text-white uppercase tracking-tighter mb-8 flex items-center gap-3">
+            <h3 className="text-lg font-bold dark:text-white uppercase tracking-tighter mb-8 flex items-center gap-3">
               <Medal size={24} className="text-amber-500" /> Achievement Protocol
             </h3>
             <div className="flex flex-col gap-5">
@@ -177,7 +177,7 @@ const CompletionPreview = ({
                     <badge.icon size={24} />
                   </div>
                   <div className="flex flex-col justify-center">
-                    <h4 className="text-[11px] font-black dark:text-white uppercase tracking-tight mb-1">{badge.title}</h4>
+                    <h4 className="text-[11px] font-bold dark:text-white uppercase tracking-tight mb-1">{badge.title}</h4>
                     <p className="text-[9px] font-bold text-gray-400 uppercase tracking-wide leading-relaxed">{badge.desc}</p>
                   </div>
                 </div>
@@ -186,7 +186,7 @@ const CompletionPreview = ({
 
             <div className="mt-10 p-6 bg-primary-600 rounded-[2rem] text-white relative overflow-hidden text-center">
                 <Crown className="absolute top-2 right-2 text-white/20" size={40} />
-                <h4 className="text-[10px] font-black uppercase tracking-[0.2em] mb-2 opacity-80">Season High Potential</h4>
+                <h4 className="text-[9px] font-bold uppercase tracking-[0.2em] mb-2 opacity-80">Season High Potential</h4>
                 <p className="text-xs font-bold leading-relaxed">System automatically upgrades active nodes based on XP velocity.</p>
             </div>
           </div>
@@ -201,7 +201,7 @@ const CompletionPreview = ({
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 relative z-10">
         <div className="glass p-8 rounded-[3rem] border border-white dark:border-gray-800 bg-white/60 dark:bg-gray-900/60 shadow-2xl relative overflow-hidden group">
           <div className="absolute top-0 right-0 w-32 h-32 bg-primary-500/5 rounded-bl-full pointer-events-none group-hover:bg-primary-500/10 transition-colors duration-700" />
-          <h3 className="text-xl font-black dark:text-white uppercase tracking-tighter mb-8 flex items-center gap-3">
+          <h3 className="text-lg font-bold dark:text-white uppercase tracking-tighter mb-8 flex items-center gap-3">
             <Trophy size={24} className="text-amber-500 animate-pulse" /> Achievement Matrix
           </h3>
           <div className="space-y-4">
@@ -216,9 +216,9 @@ const CompletionPreview = ({
                   <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${stat.bg} ${stat.color} transition-all`}>
                     <stat.icon size={18} />
                   </div>
-                  <span className="text-[10px] font-black uppercase text-gray-500 dark:text-gray-400 tracking-widest">{stat.label}</span>
+                  <span className="text-[9px] font-bold uppercase text-gray-500 dark:text-gray-400 tracking-widest">{stat.label}</span>
                 </div>
-                <span className="text-sm font-black dark:text-white uppercase px-3 py-1 rounded-lg bg-gray-50 dark:bg-gray-900 border border-gray-100 dark:border-gray-700">{stat.val}</span>
+                <span className="text-xs font-bold dark:text-white uppercase px-3 py-1 rounded-lg bg-gray-50 dark:bg-gray-900 border border-gray-100 dark:border-gray-700">{stat.val}</span>
               </div>
             ))}
           </div>
@@ -226,20 +226,20 @@ const CompletionPreview = ({
           <div className="grid grid-cols-2 gap-4 mt-6">
             <div className="p-4 bg-primary-50 dark:bg-primary-900/10 rounded-2xl border border-primary-100 dark:border-primary-900/30 flex flex-col items-center text-center">
                <Trophy size={20} className="text-primary-500 mb-2" />
-               <span className="text-[10px] font-black text-gray-500 uppercase tracking-widest">Current Rank</span>
-               <span className="text-sm font-black text-primary-600 dark:text-primary-400 uppercase">{earnedBadge}</span>
+               <span className="text-[9px] font-bold text-gray-500 uppercase tracking-widest">Current Rank</span>
+               <span className="text-xs font-bold text-primary-600 dark:text-primary-400 uppercase">{earnedBadge}</span>
             </div>
             <div className="p-4 bg-amber-50 dark:bg-amber-900/10 rounded-2xl border border-amber-100 dark:border-amber-900/30 flex flex-col items-center text-center">
                <Star size={20} className="text-amber-500 mb-2" />
-               <span className="text-[10px] font-black text-gray-500 uppercase tracking-widest">XP Power</span>
-               <span className="text-sm font-black text-amber-600 dark:text-amber-400 uppercase">{studentXp.toLocaleString()}</span>
+               <span className="text-[9px] font-bold text-gray-500 uppercase tracking-widest">XP Power</span>
+               <span className="text-xs font-bold text-amber-600 dark:text-amber-400 uppercase">{studentXp.toLocaleString()}</span>
             </div>
           </div>
 
           <div className="mt-6 p-6 bg-gradient-to-br from-primary-600 to-indigo-700 rounded-[2rem] shadow-xl shadow-primary-500/20 relative overflow-hidden text-white flex flex-col items-center text-center">
             <Sparkles className="absolute top-4 right-4 text-white/40" size={32} />
-            <p className="text-[10px] font-black uppercase tracking-widest mb-2 text-primary-100">Total Completion Score</p>
-            <h4 className="text-3xl font-black mb-4 tracking-tighter drop-shadow-lg">{progress}%</h4>
+            <p className="text-[9px] font-bold uppercase tracking-widest mb-2 text-primary-100">Total Completion Score</p>
+            <h4 className="text-2xl font-bold mb-4 tracking-tighter drop-shadow-lg">{progress}%</h4>
             <div className="w-full h-2 bg-black/20 rounded-full overflow-hidden mt-2 p-0.5 relative">
               <div 
                 className="h-full bg-white rounded-full shadow-[0_0_20px_rgba(255,255,255,0.9)] relative overflow-hidden"
@@ -252,8 +252,8 @@ const CompletionPreview = ({
         {/* Certificate Section */}
         <div className="glass p-8 rounded-[3rem] border border-white dark:border-gray-800 bg-white/60 dark:bg-gray-900/60 shadow-2xl flex flex-col items-center justify-center relative group">
            <div className="text-center mb-10 relative">
-             <h3 className="text-xl font-black dark:text-white uppercase tracking-tighter mb-2">Digital Credentials</h3>
-             <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest leading-relaxed">Generated upon verified completion of all sector modules.</p>
+             <h3 className="text-lg font-bold dark:text-white uppercase tracking-tighter mb-2">Digital Credentials</h3>
+             <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest leading-relaxed">Generated upon verified completion of all sector modules.</p>
            </div>
            
            <div className="relative w-full max-w-sm aspect-[1.4/1] rounded-2xl p-0.5 overflow-hidden group/cert shadow-[0_20px_60px_rgba(0,0,0,0.1)] hover:-translate-y-2 transition-transform duration-500">
@@ -271,11 +271,11 @@ const CompletionPreview = ({
                  <div className="space-y-3 relative z-10">
                     <div className="flex flex-col items-center gap-2">
                       <div className="w-12 h-12 flex items-center justify-center bg-gray-50 dark:bg-gray-900 rounded-full mb-1 border border-primary-100 dark:border-gray-800 shadow-inner group-hover/cert:scale-110"><Star size={20} className="text-amber-500" fill="currentColor" /></div>
-                      <h4 className="text-[7px] font-black text-primary-600 dark:text-primary-400 uppercase tracking-[0.3em]">Official Achievement Certificate</h4>
+                      <h4 className="text-[7px] font-bold text-primary-600 dark:text-primary-400 uppercase tracking-[0.3em]">Official Achievement Certificate</h4>
                     </div>
                     <div className="space-y-1">
                       <p className="text-[6px] font-bold text-gray-400 uppercase tracking-[0.2em]">Presented To</p>
-                      <h2 className="font-serif text-xl font-bold dark:text-white group-hover/cert:text-primary-500 uppercase tracking-widest">{displayName}</h2>
+                      <h2 className="font-serif text-lg font-bold dark:text-white group-hover/cert:text-primary-500 uppercase tracking-widest">{displayName}</h2>
                       <p className="text-[8px] font-bold text-primary-500 uppercase tracking-widest">{earnedBadge}</p>
                     </div>
                  </div>
@@ -284,8 +284,8 @@ const CompletionPreview = ({
            </div>
            
            <div className="mt-8 grid grid-cols-2 gap-4 w-full max-w-sm">
-              <button disabled={!isCompleted} className={`px-6 py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest transition-all ${isCompleted ? 'bg-primary-600 text-white shadow-xl hover:scale-[1.02]' : 'bg-gray-100 text-gray-400 cursor-not-allowed opacity-60'}`}><Download size={14} /> Download</button>
-              <button className="px-6 py-4 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-xl hover:scale-[1.02] transition-all"><ExternalLink size={14} /> Share</button>
+              <button disabled={!isCompleted} className={`px-6 py-4 rounded-2xl font-bold text-[9px] uppercase tracking-widest transition-all ${isCompleted ? 'bg-primary-600 text-white shadow-xl hover:scale-[1.02]' : 'bg-gray-100 text-gray-400 cursor-not-allowed opacity-60'}`}><Download size={14} /> Download</button>
+              <button className="px-6 py-4 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-2xl font-bold text-[9px] uppercase tracking-widest shadow-xl hover:scale-[1.02] transition-all"><ExternalLink size={14} /> Share</button>
            </div>
         </div>
       </div>

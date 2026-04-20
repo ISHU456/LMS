@@ -378,10 +378,10 @@ const AdminResultHub = ({ user }) => {
       {/* Header Section */}
       <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-8">
         <div className="min-w-0">
-          <h2 className="text-3xl lg:text-4xl font-black dark:text-white uppercase tracking-tighter flex flex-wrap items-center gap-4">
+          <h2 className="text-3xl lg:text-4xl font-black text-app-text uppercase tracking-tighter flex flex-wrap items-center gap-4">
              <BarChart3 className="text-red-600 w-8 h-8 lg:w-10 lg:h-10" /> Semester Result Hub
           </h2>
-          <p className="text-[10px] lg:text-[11px] font-black text-gray-400 uppercase tracking-[0.25em] mt-3 italic leading-relaxed">
+          <p className="text-[10px] lg:text-[11px] font-black text-app-muted uppercase tracking-[0.25em] mt-3 italic leading-relaxed">
             Multi-Dimensional Performance Lattice & Digital Compilation Engine
           </p>
         </div>
@@ -389,7 +389,7 @@ const AdminResultHub = ({ user }) => {
         <div className="grid grid-cols-2 md:grid-cols-4 lg:flex gap-3 w-full lg:w-auto h-fit">
           <button 
             onClick={fetchSummary}
-            className="p-4 bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 lg:border-none lg:bg-transparent text-gray-400 hover:text-red-500 rounded-2xl flex items-center justify-center transition-all active:scale-95"
+            className="p-4 bg-app-surface border border-app-border lg:border-none lg:bg-transparent text-app-muted hover:text-red-500 rounded-2xl flex items-center justify-center transition-all active:scale-95"
             title="Refresh Feed"
           >
             <RefreshCw size={18} className={loading ? "animate-spin" : ""} />
@@ -423,7 +423,7 @@ const AdminResultHub = ({ user }) => {
       </div>
 
       {/* Control Panel */}
-      <div className="grid grid-cols-1 md:grid-cols-3 xl:grid-cols-4 gap-6 p-6 lg:p-10 bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-[2.5rem] lg:rounded-[3rem] shadow-sm">
+      <div className="grid grid-cols-1 md:grid-cols-3 xl:grid-cols-4 gap-6 p-6 lg:p-10 bg-app-surface border border-app-border rounded-[2.5rem] lg:rounded-[3rem] shadow-sm">
         <div className="space-y-3">
           <label className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] ml-2">Academic Cycle</label>
           <div className="relative group">
@@ -431,7 +431,7 @@ const AdminResultHub = ({ user }) => {
             <select 
               value={semester} 
               onChange={(e) => setSemester(e.target.value)}
-              className="w-full bg-gray-50 dark:bg-gray-800/50 border-none focus:ring-2 focus:ring-red-500/20 rounded-2xl py-5 pl-14 pr-8 text-[11px] font-black uppercase tracking-widest dark:text-white outline-none appearance-none cursor-pointer group-hover:bg-gray-100 dark:group-hover:bg-gray-800 transition-all"
+              className="w-full bg-app-bg border-none focus:ring-2 focus:ring-red-500/20 rounded-2xl py-5 pl-14 pr-8 text-[11px] font-black uppercase tracking-widest text-app-text outline-none appearance-none cursor-pointer hover:bg-app-surface/80 transition-all"
             >
               {[1,2,3,4,5,6,7,8].map(s => <option key={s} value={s.toString()}>Semester {s}</option>)}
             </select>
@@ -446,7 +446,7 @@ const AdminResultHub = ({ user }) => {
             <select 
               value={department} 
               onChange={(e) => setDepartment(e.target.value)}
-              className="w-full bg-gray-50 dark:bg-gray-800/50 border-none focus:ring-2 focus:ring-red-500/20 rounded-2xl py-5 pl-14 pr-8 text-[11px] font-black uppercase tracking-widest dark:text-white outline-none appearance-none cursor-pointer group-hover:bg-gray-100 dark:group-hover:bg-gray-800 transition-all"
+              className="w-full bg-app-bg border-none focus:ring-2 focus:ring-red-500/20 rounded-2xl py-5 pl-14 pr-8 text-[11px] font-black uppercase tracking-widest text-app-text outline-none appearance-none cursor-pointer hover:bg-app-surface/80 transition-all"
             >
               <option value="All">All Departments</option>
               {departments.map(d => (
@@ -464,7 +464,7 @@ const AdminResultHub = ({ user }) => {
             <select 
               value={section} 
               onChange={(e) => setSection(e.target.value)}
-              className="w-full bg-gray-50 dark:bg-gray-800/50 border-none focus:ring-2 focus:ring-red-500/20 rounded-2xl py-5 pl-14 pr-8 text-[11px] font-black uppercase tracking-widest dark:text-white outline-none appearance-none cursor-pointer group-hover:bg-gray-100 dark:group-hover:bg-gray-800 transition-all shadow-inner"
+              className="w-full bg-app-bg border-none focus:ring-2 focus:ring-red-500/20 rounded-2xl py-5 pl-14 pr-8 text-[11px] font-black uppercase tracking-widest text-app-text outline-none appearance-none cursor-pointer hover:bg-app-surface/80 transition-all shadow-inner"
             >
               <option value="all">Global Roster</option>
               <option value="A">Section Alpha (A)</option>
@@ -484,52 +484,54 @@ const AdminResultHub = ({ user }) => {
               placeholder="Query Name or Roll Number for detailed sync..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full bg-gray-50 dark:bg-gray-800/50 border-none focus:ring-2 focus:ring-red-500/20 rounded-2xl py-5 pl-14 pr-8 text-[11px] font-black uppercase tracking-widest dark:text-white outline-none group-hover:bg-gray-100 dark:group-hover:bg-gray-800 transition-all shadow-inner"
+              className="w-full bg-app-bg border-none focus:ring-2 focus:ring-red-500/20 rounded-2xl py-5 pl-14 pr-8 text-[11px] font-black uppercase tracking-widest text-app-text outline-none hover:bg-app-surface/80 transition-all shadow-inner"
             />
           </div>
         </div>
       </div>
 
       {/* Main Grid View */}
-      <div className="bg-white dark:bg-[#080c14] border border-gray-100 dark:border-gray-800 rounded-[2.5rem] shadow-sm min-h-[500px]">
+      <div className="bg-app-surface border border-app-border rounded-[2.5rem] shadow-sm min-h-[500px]">
         <div className="overflow-x-auto custom-scrollbar">
           <table className="w-full text-left border-separate border-spacing-0">
             <thead>
-              <tr className="bg-slate-900 dark:bg-black border-b border-white/10 text-white">
+              <tr className="bg-slate-900 border-b border-white/10 text-white">
                 <th className="sticky top-0 left-0 z-50 bg-slate-900 dark:bg-black p-6 border-b border-r border-white/10 w-16">
                     <span className="text-[9px] font-black uppercase tracking-widest text-white">#</span>
                 </th>
-                <th className="sticky top-0 left-16 z-50 bg-slate-900 dark:bg-black p-6 border-b border-r border-white/10 min-w-[220px]">
+                <th className="sticky top-0 left-16 z-50 bg-slate-900 p-6 border-b border-r border-white/10 min-w-[220px]">
                   <div className="flex items-center gap-2 cursor-pointer group" onClick={() => setSortConfig({ key: 'name', direction: sortConfig.direction === 'asc' ? 'desc' : 'asc' })}>
                     <span className="text-[9px] font-black uppercase tracking-widest text-white">Student Identity</span>
                     <ArrowUpDown size={10} className="text-white/40 group-hover:text-red-500 transition-colors" />
                   </div>
                 </th>
                 {data.courses.map(course => (
-                  <th key={course._id} className="sticky top-0 z-30 bg-slate-900 dark:bg-black p-6 min-w-[160px] text-center border-b border-r border-white/10">
+                  <th key={course._id} className="sticky top-0 z-30 bg-slate-900 p-6 min-w-[160px] text-center border-b border-r border-white/10">
                     <p className="text-[10px] font-black uppercase tracking-tighter truncate max-w-[140px] text-white">{course.name}</p>
+                  <th key={course._id} className="sticky top-0 z-30 bg-app-surface p-6 min-w-[160px] text-center border-b border-r border-app-border">
+                    <p className="text-[10px] font-black uppercase tracking-tighter truncate max-w-[140px] text-app-text">{course.name}</p>
                     <div className="flex items-center justify-center gap-2 mt-1">
                       <p className="text-[8px] font-black text-red-500 uppercase tracking-widest">{course.code}</p>
                     </div>
                   </th>
                 ))}
-                <th className="sticky top-0 z-30 bg-slate-900 dark:bg-black p-6 text-center min-w-[120px] border-b border-white/10">
+                <th className="sticky top-0 z-30 bg-app-surface p-6 text-center min-w-[120px] border-b border-app-border">
                    <div className="flex items-center justify-center gap-2">
                       <span className="text-[9px] font-black uppercase tracking-widest text-red-500">Completion</span>
                    </div>
                 </th>
-                <th className="sticky top-0 z-30 bg-slate-900 dark:bg-black p-6 text-center min-w-[200px] border-b border-white/10">
+                <th className="sticky top-0 z-30 bg-app-surface p-6 text-center min-w-[200px] border-b border-app-border">
                    <div className="flex items-center justify-center gap-2">
                        <Download className="text-indigo-400" size={14} />
                       <span className="text-[9px] font-black uppercase tracking-widest text-indigo-400">Transcript</span>
                    </div>
                 </th>
-                <th className="sticky top-0 z-30 bg-slate-900 dark:bg-black p-6 text-center min-w-[100px] border-b border-white/10">
-                    <span className="text-[9px] font-black uppercase tracking-widest text-white/50">Status</span>
+                <th className="sticky top-0 z-30 bg-app-surface p-6 text-center min-w-[100px] border-b border-app-border">
+                    <span className="text-[9px] font-black uppercase tracking-widest text-app-muted">Status</span>
                 </th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
+            <tbody className="divide-y border-app-border">
               {loading ? (
                 <tr>
                   <td colSpan={data.courses.length + 3} className="p-20 text-center">
@@ -543,20 +545,20 @@ const AdminResultHub = ({ user }) => {
                 const percent = Math.round((resultsCount / totalPossible) * 100);
 
                 return (
-                  <tr key={student._id} className="hover:bg-gray-50/50 dark:hover:bg-gray-800/30 group">
-                    <td className="sticky left-0 z-20 bg-white dark:bg-gray-900 p-6 border-r border-gray-100 dark:border-gray-800 text-[10px] font-black text-gray-400 tabular-nums">
+                  <tr key={student._id} className="hover:bg-app-bg transition-all group">
+                    <td className="sticky left-0 z-20 bg-app-surface p-6 border-r border-app-border text-[10px] font-black text-app-muted tabular-nums">
                        {(currentPage - 1) * itemsPerPage + idx + 1}
                     </td>
-                    <td className="p-6 sticky left-16 z-20 bg-white dark:bg-gray-900 border-r border-gray-100 dark:border-gray-800 group-hover:bg-gray-50 dark:group-hover:bg-gray-800 transition-all">
+                    <td className="p-6 sticky left-16 z-20 bg-app-surface border-r border-app-border group-hover:bg-app-bg transition-all">
                        <div className="flex items-center gap-4">
-                        <div className="w-10 h-10 rounded-xl bg-gray-100 dark:bg-gray-800 flex items-center justify-center font-black text-xs text-gray-400">
+                        <div className="w-10 h-10 rounded-xl bg-app-bg flex items-center justify-center font-black text-xs text-app-muted">
                            {student.name[0]}
                         </div>
                         <div className="flex flex-col">
-                          <span className="text-xs font-black uppercase tracking-tighter text-slate-900 dark:text-white">{student.name}</span>
+                          <span className="text-xs font-black uppercase tracking-tighter text-app-text">{student.name}</span>
                           <div className="flex items-center gap-2 mt-0.5">
                             <span className="text-[9px] font-black text-indigo-500 uppercase">{student.rollNumber}</span>
-                            <span className="text-[9px] font-black px-1.5 py-0.5 bg-slate-800 text-slate-400 rounded-md">SEC {student.section || 'A'}</span>
+                            <span className="text-[9px] font-black px-1.5 py-0.5 bg-app-bg text-app-muted rounded-md">SEC {student.section || 'A'}</span>
                           </div>
                         </div>
                       </div>
@@ -565,26 +567,26 @@ const AdminResultHub = ({ user }) => {
                     {data.courses.map(course => {
                       const res = data.matrix[student._id]?.[course._id];
                       return (
-                        <td key={course._id} className="p-6 text-center border-r border-gray-100 dark:border-gray-800 last:border-0 relative">
+                        <td key={course._id} className="p-6 text-center border-r border-app-border last:border-0 relative">
                            {res ? (
                              <div className="flex flex-col items-center">
-                                <span className="text-lg font-black dark:text-white">{res.totalMarks}</span>
+                                <span className="text-lg font-black text-app-text">{res.totalMarks}</span>
                                 <span className={`text-[8px] font-black uppercase px-2 py-0.5 rounded-full border mt-1 ${getStatusColor(res.status)}`}>
                                    {res.grade || res.status}
                                 </span>
                              </div>
                            ) : (
                              <div className="flex items-center justify-center">
-                                <AlertCircle size={16} className="text-gray-200 dark:text-gray-700" />
+                                <AlertCircle size={16} className="text-app-border" />
                              </div>
                            )}
                         </td>
                       );
                     })}
 
-                    <td className="p-6 bg-red-50/10 dark:bg-red-900/5">
+                    <td className="p-6 bg-red-500/5">
                        <div className="flex flex-col items-center gap-1">
-                          <div className="w-full bg-gray-200 dark:bg-gray-800 h-1 rounded-full overflow-hidden">
+                          <div className="w-full bg-app-bg h-1 rounded-full overflow-hidden">
                              <div className="h-full bg-emerald-500" style={{ width: `${percent}%` }} />
                           </div>
                           <span className="text-[10px] font-black text-emerald-500">{percent}% Sync</span>
@@ -592,14 +594,14 @@ const AdminResultHub = ({ user }) => {
                        </div>
                     </td>
 
-                    <td className="p-6 bg-indigo-50/10 dark:bg-indigo-900/5">
+                    <td className="p-6 bg-indigo-500/5">
                        <div className="flex flex-col items-center gap-2">
                           {data.studentFinals?.[student._id]?.pdfUrl ? (
                              <a 
                                href={data.studentFinals[student._id].pdfUrl} 
                                target="_blank" 
                                rel="noreferrer"
-                               className="px-6 py-3 bg-white dark:bg-gray-800 text-emerald-600 border-2 border-emerald-500 rounded-2xl font-black text-[9px] uppercase tracking-tighter flex items-center gap-2 w-full justify-center hover:bg-emerald-50 transition-all shadow-xl shadow-emerald-500/10"
+                               className="px-6 py-3 bg-app-surface text-emerald-600 border-2 border-emerald-500 rounded-2xl font-black text-[9px] uppercase tracking-tighter flex items-center gap-2 w-full justify-center hover:bg-emerald-500/10 transition-all shadow-xl shadow-emerald-500/10"
                              >
                                 <Download size={14} /> View Official PDF
                              </a>
@@ -613,7 +615,7 @@ const AdminResultHub = ({ user }) => {
                                 Download PDF Result
                              </button>
                           ) : (
-                             <div className="px-6 py-3 bg-gray-100 text-gray-400 rounded-2xl font-black text-[9px] uppercase tracking-tighter flex items-center gap-2 w-full justify-center border border-dashed border-gray-300 italic opacity-50">
+                             <div className="px-6 py-3 bg-app-bg text-app-muted rounded-2xl font-black text-[9px] uppercase tracking-tighter flex items-center gap-2 w-full justify-center border border-dashed border-app-border italic opacity-50">
                                 Pre-Compilation
                              </div>
                           )}
@@ -622,12 +624,12 @@ const AdminResultHub = ({ user }) => {
 
                     <td className="p-6 text-center">
                         {data.studentFinals?.[student._id]?.isPublished ? (
-                           <div className="flex items-center justify-center text-emerald-500 gap-1 bg-emerald-50 dark:bg-emerald-500/10 py-2 rounded-lg border border-emerald-100 dark:border-emerald-500/20">
+                           <div className="flex items-center justify-center text-emerald-500 gap-1 bg-emerald-500/10 py-2 rounded-lg border border-emerald-500/20">
                               <CheckCircle2 size={12} />
                               <span className="text-[8px] font-black uppercase">LIVE</span>
                            </div>
                         ) : (
-                           <div className="flex items-center justify-center text-slate-400 gap-1 bg-slate-50 dark:bg-slate-800 py-2 rounded-lg border border-slate-200 dark:border-slate-700">
+                           <div className="flex items-center justify-center text-app-muted gap-1 bg-app-bg py-2 rounded-lg border border-app-border">
                               <Archive size={12} />
                               <span className="text-[8px] font-black uppercase">DRAFT</span>
                            </div>
@@ -648,8 +650,8 @@ const AdminResultHub = ({ user }) => {
 
         {/* Global Pagination Deck */}
         {totalPages > 1 && (
-          <div className="px-8 py-6 border-t border-gray-100 dark:border-gray-800 flex items-center justify-between">
-            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest italic">
+          <div className="px-8 py-6 border-t border-app-border flex items-center justify-between">
+            <p className="text-[10px] font-black text-app-muted uppercase tracking-widest italic">
               Registry Block {currentPage} of {totalPages}
             </p>
             <div className="flex gap-2">

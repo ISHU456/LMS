@@ -1,10 +1,21 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { BookOpen, BookCheck, Shield, MessageSquare, Home, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import GeminiLoader from '../../components/GeminiLoader';
 
 const LibrarianDashboard = () => {
   const [activeTab, setActiveTab] = useState('overview');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    setIsLoading(true);
+    const timer = setTimeout(() => setIsLoading(false), 800);
+    return () => clearTimeout(timer);
+  }, [activeTab]);
+
+  if (isLoading) return <GeminiLoader fullScreen text="Inventory Node Syncing..." />;
+
 
   const menuItems = [
     { id: 'overview', icon: Home, label: 'Library Overview' },

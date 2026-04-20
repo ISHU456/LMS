@@ -114,30 +114,30 @@ const AnnouncementFeed = ({ user, initialSearch = '', initialCategory = 'All' })
   return (
     <div className="space-y-6">
       {/* Header & Controls */}
-      <div className="p-6 bg-white/80 dark:bg-white/[0.02] backdrop-blur-xl rounded-2xl border border-slate-200/50 dark:border-white/10 shadow-xl">
+      <div className="p-6 bg-app-surface backdrop-blur-xl rounded-2xl border border-app-border/30 shadow-xl">
         <div className="flex flex-col sm:flex-row items-center justify-between gap-6">
           <div className="flex items-center gap-4">
              <div className={`p-3 rounded-2xl ${config.lightBg} border ${config.lightBg.replace('bg-', 'border-').replace('/10', '/20')}`}>
                 <Newspaper size={20} className={config.color} />
              </div>
-             <div className="flex flex-col">
-               <h1 className="text-base font-black text-slate-900 dark:text-white uppercase tracking-tight">Academic Signaling</h1>
-               <span className="text-[10px] text-slate-500 font-bold uppercase tracking-widest italic pt-0.5">Real-time institutional relay active</span>
-             </div>
+              <div className="flex flex-col">
+                <h1 className="text-base font-bold text-app-text uppercase tracking-tight">Academic Signaling</h1>
+                <span className="text-[10px] text-app-muted font-medium uppercase tracking-widest italic pt-0.5">Real-time institutional relay active</span>
+              </div>
           </div>
           
           <div className="flex items-center gap-3 w-full sm:w-auto">
             <div className="relative flex-1 sm:w-64">
-              <Search size={14} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" />
+               <Search size={14} className="absolute left-4 top-1/2 -translate-y-1/2 text-app-muted" />
               <input 
                 type="text" 
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder="Search archive..."
-                className="w-full pl-10 pr-4 py-2.5 rounded-2xl bg-slate-50 dark:bg-white/[0.03] border border-slate-200 dark:border-white/5 outline-none text-xs text-white placeholder-slate-500 focus:border-indigo-500/50 transition-all font-mono"
+                 className="w-full pl-10 pr-4 py-2.5 rounded-2xl bg-app-bg/50 border border-app-border/20 outline-none text-xs text-app-text placeholder-app-muted/50 focus:border-indigo-500/50 transition-all font-mono"
               />
             </div>
-            <button className="p-2.5 rounded-xl bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/5 text-slate-500 hover:text-white transition-colors">
+             <button className="p-2.5 rounded-xl bg-app-bg border border-app-border/20 text-app-muted hover:text-indigo-500 transition-colors">
                <Filter size={18} />
             </button>
           </div>
@@ -148,7 +148,7 @@ const AnnouncementFeed = ({ user, initialSearch = '', initialCategory = 'All' })
              <button
               key={cat}
               onClick={() => setCategory(cat)}
-              className={`flex-none px-6 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all border ${category === cat ? `${config.bg} border-${config.bg.split('-')[1]}-600 text-white shadow-lg ${config.bg.replace('bg-', 'shadow-')}/20` : 'bg-white dark:bg-white/5 border-slate-200 dark:border-white/5 text-slate-500 hover:bg-slate-100 dark:hover:bg-white/10'}`}
+               className={`flex-none px-6 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all border ${category === cat ? `${config.bg} border-${config.bg.split('-')[1]}-600 text-white shadow-lg ${config.bg.replace('bg-', 'shadow-')}/20` : 'bg-app-surface border-app-border/20 text-app-muted hover:bg-app-bg'}`}
              >
                {cat}
              </button>
@@ -182,19 +182,19 @@ const AnnouncementFeed = ({ user, initialSearch = '', initialCategory = 'All' })
 
         {!hasMore && announcements.length > 0 && (
           <div className="flex flex-col items-center justify-center py-20 gap-4 opacity-50">
-             <div className="w-12 h-1 bg-gray-200 dark:bg-gray-800 rounded-full" />
-             <p className="text-[10px] font-black uppercase tracking-widest text-gray-500">You've reached the end of the galaxy</p>
-             <div className="w-12 h-1 bg-gray-200 dark:bg-gray-800 rounded-full" />
+             <div className="w-12 h-1 bg-app-border rounded-full" />
+             <p className="text-[10px] font-black uppercase tracking-widest text-app-muted">You've reached the end of the galaxy</p>
+             <div className="w-12 h-1 bg-app-border rounded-full" />
           </div>
         )}
 
         {announcements.length === 0 && !isLoading && (
           <div className="flex flex-col items-center justify-center py-32 text-center">
-            <div className="w-20 h-20 rounded-[2.5rem] bg-gray-50 dark:bg-gray-800/30 flex items-center justify-center mb-6 border border-gray-100 dark:border-gray-800">
-               <Layers className="text-gray-200" size={40} />
+            <div className="w-20 h-20 rounded-[2.5rem] bg-app-surface flex items-center justify-center mb-6 border border-app-border">
+               <Layers className="text-app-muted/30" size={40} />
             </div>
-            <h3 className="text-xl font-black text-gray-900 dark:text-white uppercase tracking-wider">Silence in the universe</h3>
-            <p className="text-sm text-gray-500 font-bold mt-2">No announcements found in this orbit</p>
+            <h3 className="text-xl font-black text-app-text uppercase tracking-wider">Silence in the universe</h3>
+            <p className="text-sm text-app-muted font-bold mt-2">No announcements found in this orbit</p>
           </div>
         )}
       </div>

@@ -79,18 +79,18 @@ import AdminQuizeArena from './pages/admin/AdminQuizeArena';
 
 // Protected Route Component for Role-based Access Control
 const DashboardRedirect = () => {
-    const { user } = useSelector((state) => state.auth);
-    if (!user) return <Navigate to="/login" replace />;
-    
-    switch (user.role) {
-        case 'admin': return <Navigate to="/admin-dashboard" replace />;
-        case 'teacher': return <Navigate to="/faculty-dashboard" replace />;
-        case 'student': return <Navigate to="/student-dashboard" replace />;
-        case 'hod': return <Navigate to="/hod-dashboard" replace />;
-        case 'librarian': return <Navigate to="/librarian-dashboard" replace />;
-        case 'parent': return <Navigate to="/parent-dashboard" replace />;
-        default: return <Navigate to="/student-dashboard" replace />;
-    }
+  const { user } = useSelector((state) => state.auth);
+  if (!user) return <Navigate to="/login" replace />;
+
+  switch (user.role) {
+    case 'admin': return <Navigate to="/admin-dashboard" replace />;
+    case 'teacher': return <Navigate to="/faculty-dashboard" replace />;
+    case 'student': return <Navigate to="/student-dashboard" replace />;
+    case 'hod': return <Navigate to="/hod-dashboard" replace />;
+    case 'librarian': return <Navigate to="/librarian-dashboard" replace />;
+    case 'parent': return <Navigate to="/parent-dashboard" replace />;
+    default: return <Navigate to="/student-dashboard" replace />;
+  }
 };
 
 const ProtectedRoute = ({ children, allowedRoles, checkDept = true }) => {
@@ -104,19 +104,19 @@ const ProtectedRoute = ({ children, allowedRoles, checkDept = true }) => {
 
   if (allowedRoles && !allowedRoles.includes(user.role)) {
     return (
-      <LockedOverlay 
-        title="Unauthorized Access" 
-        message="Your current role clearance does not permit entry to this sector." 
+      <LockedOverlay
+        title="Unauthorized Access"
+        message="Your current role clearance does not permit entry to this sector."
       />
     );
   }
 
   // Redirect to face registration for students, admins, and teachers if not yet done
   if ((user.role === 'student' || user.role === 'admin' || user.role === 'teacher') && !user.faceRegistered) {
-     const currentPath = window.location.pathname;
-     if (currentPath !== '/face-registration' && !currentPath.includes('/login') && currentPath !== '/') {
-        return <Navigate to="/face-registration" replace />;
-     }
+    const currentPath = window.location.pathname;
+    if (currentPath !== '/face-registration' && !currentPath.includes('/login') && currentPath !== '/') {
+      return <Navigate to="/face-registration" replace />;
+    }
   }
 
   // Redirect to department selection if not admin and department not selected in DB and localStorage
@@ -147,25 +147,25 @@ const AppContent = () => {
           if (data.maintenanceMode) {
             setMaintenanceMode(true);
           }
-          // Apply background colors to CSS variables
-          if (data.lightModeBgColor) {
-            document.documentElement.style.setProperty('--bg-light', data.lightModeBgColor);
-          }
-          if (data.darkModeBgColor) {
-            document.documentElement.style.setProperty('--bg-dark', data.darkModeBgColor);
-          }
+          // Global Visual Identity Protocol - Synchronizes lattice aesthetics
+          const cssVarMap = {
+            'lightModeBgColor': '--bg-light',
+            'darkModeBgColor': '--bg-dark',
+            'lightModeSurfaceColor': '--surface-light',
+            'darkModeSurfaceColor': '--surface-dark',
+            'lightModePrimaryText': '--text-primary-light',
+            'darkModePrimaryText': '--text-primary-dark',
+            'lightModeSecondaryText': '--text-secondary-light',
+            'darkModeSecondaryText': '--text-secondary-dark',
+            'accentColor': '--accent'
+          };
 
-          // Personal Theme Override - Subverts institutional default if user has specified a preference
-          const personalTheme = localStorage.getItem('personal_theme');
-          if (personalTheme) {
-              try {
-                  const theme = JSON.parse(personalTheme);
-                  document.documentElement.style.setProperty('--bg-light', theme.light);
-                  document.documentElement.style.setProperty('--bg-dark', theme.dark);
-              } catch (e) {
-                  console.error("Personal theme corruption detected.");
-              }
-          }
+          Object.entries(cssVarMap).forEach(([dataKey, cssVar]) => {
+            if (data[dataKey]) {
+              document.documentElement.style.setProperty(cssVar, data[dataKey]);
+            }
+          });
+
         }
       } catch (err) {
         console.error("Failed to check maintenance status");
@@ -177,7 +177,7 @@ const AppContent = () => {
   }, []);
 
   const [darkMode, setDarkMode] = useState(
-    localStorage.getItem('theme') === 'dark' || 
+    localStorage.getItem('theme') === 'dark' ||
     (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)
   );
 
@@ -217,13 +217,13 @@ const AppContent = () => {
   if (!isSettingsLoading && maintenanceMode && user && user.role !== 'admin') {
     return (
       <div className="h-screen w-full bg-slate-950 flex flex-col items-center justify-center p-10 relative overflow-hidden">
-        <LockedOverlay 
-          title="Institutional Lockdown Active" 
-          message="The digital grid is currently offline for critical administrative maintenance. Service will restore momentarily." 
+        <LockedOverlay
+          title="Institutional Lockdown Active"
+          message="The digital grid is currently offline for critical administrative maintenance. Service will restore momentarily."
         />
         <div className="absolute top-10 flex items-center gap-3">
-           <div className="w-10 h-1 bg-red-600 rounded-full" />
-           <span className="text-[10px] font-black uppercase tracking-[0.5em] text-red-500 italic">Security Protocol v4.2.0</span>
+          <div className="w-10 h-1 bg-red-600 rounded-full" />
+          <span className="text-[10px] font-black uppercase tracking-[0.5em] text-red-500 italic">Security Protocol v4.2.0</span>
         </div>
       </div>
     );
@@ -232,246 +232,238 @@ const AppContent = () => {
   const isAuthPage = location.pathname.startsWith('/login') || location.pathname === '/face-registration' || location.pathname === '/verify-mfa' || location.pathname === '/select-department';
 
   return (
-    <div className="h-screen flex flex-col bg-transparent transition-colors duration-300 overflow-hidden">
+    <div className="h-screen flex flex-col bg-transparent overflow-hidden">
       <Navbar darkMode={darkMode} toggleDarkMode={toggleDarkMode} />
       <ActivityTracker />
-      
+
       {/* Restrict Global Marquee to Student and Faculty Dashboards only */}
       {(location.pathname === '/student-dashboard' || location.pathname === '/dashboard' || location.pathname === '/faculty-dashboard') && (
         <GlobalAlertMarquee />
       )}
       <main className="flex-grow relative w-full smooth-scroll custom-scrollbar bg-transparent">
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={location.pathname}
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -8 }}
-            transition={{ duration: 0.2, ease: [0.23, 1, 0.32, 1] }}
-            className="flex-grow flex flex-col"
-          >
-            <Routes location={location} key={location.pathname}>
-          <Route path="/" element={<Home />} />
-          <Route path="/login" element={<Login />} />
-          <Route path="/login/:roleType" element={<RoleLogin />} />
-          
-          <Route path="/select-department" element={
-            <ProtectedRoute checkDept={false}>
-              <DepartmentSelection />
-            </ProtectedRoute>
-          } />
-          <Route path="/departments" element={<Departments />} />
-          <Route path="/department/:code" element={<DepartmentDetail />} />
-          <Route path="/courses" element={
-            <ProtectedRoute checkDept={false}>
-              <Courses />
-            </ProtectedRoute>
-          } />
-          <Route path="/course-inner/:courseId" element={
-            <ProtectedRoute>
-               <CourseDetail />
-            </ProtectedRoute>
-          } />
-          <Route path="/courses/:courseId/upload" element={
-            <ProtectedRoute allowedRoles={['teacher', 'admin', 'hod']}>
-               <UploadCenter />
-            </ProtectedRoute>
-          } />
-          <Route path="/courses/:courseId/quick-schedule" element={
-            <ProtectedRoute allowedRoles={['teacher', 'admin', 'hod']}>
-               <QuickSchedulePage />
-            </ProtectedRoute>
-          } />
-          <Route path="/community" element={
-            <ProtectedRoute checkDept={false}>
-              <Announcements />
-            </ProtectedRoute>
-          } />
+        <div className="flex-grow flex flex-col">
+          <Routes location={location} key={location.pathname}>
+            {/* All routes... */}
+            <Route path="/" element={<Home />} />
+            <Route path="/login" element={<Login />} />
+            <Route path="/login/:roleType" element={<RoleLogin />} />
 
-          {/* Role-Based Dashboard Redirector */}
-          <Route path="/dashboard" element={
-            <ProtectedRoute checkDept={false}>
-              <DashboardRedirect />
-            </ProtectedRoute>
-          } />
+            <Route path="/select-department" element={
+              <ProtectedRoute checkDept={false}>
+                <DepartmentSelection />
+              </ProtectedRoute>
+            } />
+            <Route path="/departments" element={<Departments />} />
+            <Route path="/department/:code" element={<DepartmentDetail />} />
+            <Route path="/courses" element={
+              <ProtectedRoute checkDept={false}>
+                <Courses />
+              </ProtectedRoute>
+            } />
+            <Route path="/course-inner/:courseId" element={
+              <ProtectedRoute>
+                <CourseDetail />
+              </ProtectedRoute>
+            } />
+            <Route path="/courses/:courseId/upload" element={
+              <ProtectedRoute allowedRoles={['teacher', 'admin', 'hod']}>
+                <UploadCenter />
+              </ProtectedRoute>
+            } />
+            <Route path="/courses/:courseId/quick-schedule" element={
+              <ProtectedRoute allowedRoles={['teacher', 'admin', 'hod']}>
+                <QuickSchedulePage />
+              </ProtectedRoute>
+            } />
+            <Route path="/community" element={
+              <ProtectedRoute checkDept={false}>
+                <Announcements />
+              </ProtectedRoute>
+            } />
 
-          <Route path="/student-dashboard" element={
-            <ProtectedRoute allowedRoles={['student']}>
-              <StudentDashboard />
-            </ProtectedRoute>
-          } />
+            {/* Role-Based Dashboard Redirector */}
+            <Route path="/dashboard" element={
+              <ProtectedRoute checkDept={false}>
+                <DashboardRedirect />
+              </ProtectedRoute>
+            } />
+
+            <Route path="/student-dashboard" element={
+              <ProtectedRoute allowedRoles={['student']}>
+                <StudentDashboard />
+              </ProtectedRoute>
+            } />
 
 
-          <Route path="/admin-dashboard" element={
-            <ProtectedRoute allowedRoles={['admin']}>
-              <AdminDashboard /> 
-            </ProtectedRoute>
-          } />
-          <Route path="/admin/ai-management" element={
-            <ProtectedRoute allowedRoles={['admin']}>
-              <AdminAiManagement />
-            </ProtectedRoute>
-          } />
-          <Route path="/admin/ai-user/:userId" element={
-            <ProtectedRoute allowedRoles={['admin']}>
-              <AdminUserAiDetail />
-            </ProtectedRoute>
-          } />
+            <Route path="/admin-dashboard" element={
+              <ProtectedRoute allowedRoles={['admin']}>
+                <AdminDashboard />
+              </ProtectedRoute>
+            } />
+            <Route path="/admin/ai-management" element={
+              <ProtectedRoute allowedRoles={['admin']}>
+                <AdminAiManagement />
+              </ProtectedRoute>
+            } />
+            <Route path="/admin/ai-user/:userId" element={
+              <ProtectedRoute allowedRoles={['admin']}>
+                <AdminUserAiDetail />
+              </ProtectedRoute>
+            } />
 
-          <Route path="/faculty-dashboard" element={
-            <ProtectedRoute allowedRoles={['teacher']}>
-              <FacultyDashboard /> 
-            </ProtectedRoute>
-          } />
+            <Route path="/faculty-dashboard" element={
+              <ProtectedRoute allowedRoles={['teacher']}>
+                <FacultyDashboard />
+              </ProtectedRoute>
+            } />
 
-          <Route path="/hod-dashboard" element={
-            <ProtectedRoute allowedRoles={['hod']}>
-              <HODDashboard /> 
-            </ProtectedRoute>
-          } />
+            <Route path="/hod-dashboard" element={
+              <ProtectedRoute allowedRoles={['hod']}>
+                <HODDashboard />
+              </ProtectedRoute>
+            } />
 
-          <Route path="/librarian-dashboard" element={
-            <ProtectedRoute allowedRoles={['librarian']}>
-              <LibrarianDashboard /> 
-            </ProtectedRoute>
-          } />
+            <Route path="/librarian-dashboard" element={
+              <ProtectedRoute allowedRoles={['librarian']}>
+                <LibrarianDashboard />
+              </ProtectedRoute>
+            } />
 
-          <Route path="/parent-dashboard" element={
-            <ProtectedRoute allowedRoles={['parent']}>
-              <ParentDashboard /> 
-            </ProtectedRoute>
-          } />
+            <Route path="/parent-dashboard" element={
+              <ProtectedRoute allowedRoles={['parent']}>
+                <ParentDashboard />
+              </ProtectedRoute>
+            } />
 
-          {/* Universal Protected Live Class Route */}
-          <Route path="/live-class/:classId" element={
-            <ProtectedRoute>
-              <LiveClass />
-            </ProtectedRoute>
-          } />
+            {/* Universal Protected Live Class Route */}
+            <Route path="/live-class/:classId" element={
+              <ProtectedRoute>
+                <LiveClass />
+              </ProtectedRoute>
+            } />
 
-          <Route path="/assignments" element={
-            <ProtectedRoute>
-              <Assignments />
-            </ProtectedRoute>
-          } />
+            <Route path="/assignments" element={
+              <ProtectedRoute>
+                <Assignments />
+              </ProtectedRoute>
+            } />
 
-          {/* Universal Protected Profile Page */}
-          <Route path="/profile" element={
-            <ProtectedRoute>
-              <Profile />
-            </ProtectedRoute>
-          } />
-          
-          <Route path="/achievements" element={
-            <ProtectedRoute>
-              <Achievements />
-            </ProtectedRoute>
-          } />
-          
-          <Route path="/notifications" element={
-            <ProtectedRoute>
-              <Notifications />
-            </ProtectedRoute>
-          } />
+            {/* Universal Protected Profile Page */}
+            <Route path="/profile" element={
+              <ProtectedRoute>
+                <Profile />
+              </ProtectedRoute>
+            } />
 
-          <Route path="/quiz-arena" element={<Navigate to="/arena" replace />} />
-          <Route path="/quiz-arena/:quizId" element={<Navigate to="/arena" replace />} />
+            <Route path="/achievements" element={
+              <ProtectedRoute>
+                <Achievements />
+              </ProtectedRoute>
+            } />
 
-          <Route path="/arena" element={
-            <ProtectedRoute checkDept={false}>
-              <MasterArena />
-            </ProtectedRoute>
-          } />
+            <Route path="/notifications" element={
+              <ProtectedRoute>
+                <Notifications />
+              </ProtectedRoute>
+            } />
 
-          <Route path="/quize-arena" element={<Navigate to="/arena" replace />} />
-          <Route path="/quize-arena/:id" element={
-            <ProtectedRoute checkDept={false}>
-              <QuizeWorkspace />
-            </ProtectedRoute>
-          } />
+            <Route path="/quiz-arena" element={<Navigate to="/arena" replace />} />
+            <Route path="/quiz-arena/:quizId" element={<Navigate to="/arena" replace />} />
 
-          {/* Legacy Redirects */}
-          <Route path="/coding-arena" element={<Navigate to="/quize-arena" replace />} />
-          <Route path="/coding-arena/:id" element={<Navigate to="/quize-arena/:id" replace />} />
+            <Route path="/arena" element={
+              <ProtectedRoute checkDept={false}>
+                <MasterArena />
+              </ProtectedRoute>
+            } />
+
+            <Route path="/quize-arena" element={<Navigate to="/arena" replace />} />
+            <Route path="/quize-arena/:id" element={
+              <ProtectedRoute checkDept={false}>
+                <QuizeWorkspace />
+              </ProtectedRoute>
+            } />
+
+            {/* Legacy Redirects */}
+            <Route path="/coding-arena" element={<Navigate to="/quize-arena" replace />} />
+            <Route path="/coding-arena/:id" element={<Navigate to="/quize-arena/:id" replace />} />
 
 
 
 
-          
-          <Route path="/ai-tutor" element={
-            <ProtectedRoute>
-              <AITutor />
-            </ProtectedRoute>
-          } />
-          
-          <Route path="/ai-mode" element={
-            <ProtectedRoute checkDept={false}>
-              <AIMode />
-            </ProtectedRoute>
-          } />
-          
-          <Route path="/results/entry" element={
-            <ProtectedRoute allowedRoles={['teacher', 'admin', 'hod']}>
-              <ResultEntry />
-            </ProtectedRoute>
-          } />
 
-          <Route path="/results/verify" element={
-            <ProtectedRoute allowedRoles={['admin', 'hod']}>
-              <ResultVerification />
-            </ProtectedRoute>
-          } />
+            <Route path="/ai-tutor" element={
+              <ProtectedRoute>
+                <AITutor />
+              </ProtectedRoute>
+            } />
 
-          <Route path="/results/my" element={
-            <ProtectedRoute allowedRoles={['student']}>
-              <StudentResults />
-            </ProtectedRoute>
-          } />
-          
-          <Route path="/honor-arena" element={<Navigate to="/arena" replace />} />
+            <Route path="/ai-mode" element={
+              <ProtectedRoute checkDept={false}>
+                <AIMode />
+              </ProtectedRoute>
+            } />
+
+            <Route path="/results/entry" element={
+              <ProtectedRoute allowedRoles={['teacher', 'admin', 'hod']}>
+                <ResultEntry />
+              </ProtectedRoute>
+            } />
+
+            <Route path="/results/verify" element={
+              <ProtectedRoute allowedRoles={['admin', 'hod']}>
+                <ResultVerification />
+              </ProtectedRoute>
+            } />
+
+            <Route path="/results/my" element={
+              <ProtectedRoute allowedRoles={['student']}>
+                <StudentResults />
+              </ProtectedRoute>
+            } />
+
+            <Route path="/honor-arena" element={<Navigate to="/arena" replace />} />
 
 
-          <Route path="/results/analytics" element={
-            <ProtectedRoute allowedRoles={['admin', 'hod']}>
-              <ResultsAnalytics />
-            </ProtectedRoute>
-          } />
+            <Route path="/results/analytics" element={
+              <ProtectedRoute allowedRoles={['admin', 'hod']}>
+                <ResultsAnalytics />
+              </ProtectedRoute>
+            } />
 
-          <Route path="/unauthorized" element={
-             <div className="flex-1 flex items-center justify-center">
-               <h1 className="text-3xl font-bold uppercase">
- 403 - Unauthorized Access</h1>
-             </div>
-          } />
-          <Route path="/verify-mfa" element={<MFAVerify />} />
-          <Route path="/face-registration" element={
-            <ProtectedRoute checkDept={false}>
-              <FaceRegistrationPage />
-            </ProtectedRoute>
-          } />
-          <Route path="/self-attendance/:courseId" element={
-            <ProtectedRoute allowedRoles={['student']}>
-              <SelfAttendance />
-            </ProtectedRoute>
-          } />
-          <Route path="/daily-attendance" element={
-            <ProtectedRoute allowedRoles={['student']}>
-              <DailyAttendance />
-            </ProtectedRoute>
-          } />
-          <Route path="/admin/gps-config" element={
-            <ProtectedRoute allowedRoles={['admin']}>
-              <GPSConfigPage />
-            </ProtectedRoute>
-          } />
-        </Routes>
-          </motion.div>
-        </AnimatePresence>
+            <Route path="/unauthorized" element={
+              <div className="flex-1 flex items-center justify-center">
+                <h1 className="text-3xl font-bold uppercase">
+                  403 - Unauthorized Access</h1>
+              </div>
+            } />
+            <Route path="/verify-mfa" element={<MFAVerify />} />
+            <Route path="/face-registration" element={
+              <ProtectedRoute checkDept={false}>
+                <FaceRegistrationPage />
+              </ProtectedRoute>
+            } />
+            <Route path="/self-attendance/:courseId" element={
+              <ProtectedRoute allowedRoles={['student']}>
+                <SelfAttendance />
+              </ProtectedRoute>
+            } />
+            <Route path="/daily-attendance" element={
+              <ProtectedRoute allowedRoles={['student']}>
+                <DailyAttendance />
+              </ProtectedRoute>
+            } />
+            <Route path="/admin/gps-config" element={
+              <ProtectedRoute allowedRoles={['admin']}>
+                <GPSConfigPage />
+              </ProtectedRoute>
+            } />
+          </Routes>
+        </div>
       </main>
       {(!isAIMode && !isAuthPage) && <Footer />}
       <NotificationListener />
       <AchievementToaster />
-      {(!isAIMode && !isAuthPage) && <Chatbot />}
+      {!isAuthPage && <Chatbot />}
     </div>
   );
 };

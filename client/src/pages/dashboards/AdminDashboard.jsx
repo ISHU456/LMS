@@ -25,6 +25,7 @@ const QuizGenerator = lazy(() => import('../../components/teacher/QuizGenerator'
 
 
 import { Radio, Gift, Plus, Clock, Layers, Terminal, ClipboardList, Wind, Leaf, Droplets } from 'lucide-react';
+import GeminiLoader from '../../components/GeminiLoader';
 
 
 const AdminDashboard = () => {
@@ -101,11 +102,18 @@ const AdminDashboard = () => {
   }, [user.token]);
 
   useEffect(() => {
-    fetchStats();
-    fetchRecentOrders();
-    // Reduced delay for snappier initial loading state
-    const timer = setTimeout(() => setIsLoading(false), 200);
-    return () => clearTimeout(timer);
+    const loadData = async () => {
+      setIsLoading(true);
+      try {
+        await Promise.all([fetchStats(), fetchRecentOrders()]);
+      } catch (err) {
+        console.error("Data fetch error", err);
+      } finally {
+        // Minimum delay for branding visibility
+        setTimeout(() => setIsLoading(false), 800);
+      }
+    };
+    loadData();
   }, [fetchStats, fetchRecentOrders]);
 
   useEffect(() => {
@@ -170,22 +178,17 @@ const AdminDashboard = () => {
     indigo: { from: '#6366f1', to: '#818cf8', light: 'rgba(99, 102, 241, 0.08)' },
     violet: { from: '#8b5cf6', to: '#a78bfa', light: 'rgba(139, 92, 246, 0.08)' },
     amber: { from: '#f59e0b', to: '#fbbf24', light: 'rgba(245, 158, 11, 0.08)' },
-    emerald: { from: '#10b981', to: '#34d399', light: 'rgba(16, 185, 129, 0.08)' },
+    indigo: { from: '#10b981', to: '#34d399', light: 'rgba(16, 185, 129, 0.08)' },
     rose: { from: '#ef4444', to: '#f87171', light: 'rgba(239, 68, 68, 0.08)' },
     teal: { from: '#14b8a6', to: '#5eead4', light: 'rgba(20, 184, 166, 0.08)' }
   };
 
   const COLORS = ['#6366f1', '#10b981', '#14b8a6', '#f59e0b', '#ef4444', '#8b5cf6'];
 
-  if (isLoading) return (
-    <div className="flex h-[calc(100vh-80px)] bg-slate-50 dark:bg-[#030712] p-4 md:p-8 gap-6 overflow-hidden">
-      <div className="hidden lg:block bg-white dark:bg-slate-900/50 rounded-3xl border border-slate-200 dark:border-slate-800 animate-pulse h-full" style={{ width: sidebarWidth }}></div>
-      <div className="flex-1 bg-white dark:bg-slate-900/50 rounded-3xl border border-slate-200 dark:border-slate-800 animate-pulse h-full"></div>
-    </div>
-  );
+  if (isLoading) return <GeminiLoader fullScreen text="Establishing Secure Admin Node..." />;
 
       return (
-    <div className="flex h-[calc(100vh-80px)] bg-transparent font-sans selection:bg-teal-500 selection:text-white overflow-hidden relative contain-paint">
+    <div className="flex h-[calc(100vh-80px)] bg-transparent font-sans selection:bg-teal-500 selection:text-white overflow-hidden relative">
 
       {/* Premium Sidebar */}
       <aside
@@ -198,8 +201,8 @@ const AdminDashboard = () => {
               <Shield size={20} />
             </div>
             <div className="truncate">
-              <h2 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-tighter">Neural Admin</h2>
-              <p className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest italic">Governance Node</p>
+              <h2 className="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-tighter">Neural Admin</h2>
+              <p className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest italic">Governance Node</p>
             </div>
             <button onClick={() => setIsSidebarOpen(false)} className="lg:hidden ml-auto p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-slate-500"><X size={20} /></button>
           </div>
@@ -216,11 +219,11 @@ const AdminDashboard = () => {
                   setActiveTab(item.id);
                   if (window.innerWidth < 1024) setIsSidebarOpen(false);
                 }}
-                className={`group w-full flex items-center gap-4 px-5 py-4 rounded-[1.25rem] transition-all duration-300 relative overflow-hidden ${activeTab === item.id ? 'bg-slate-100/80 dark:bg-white/10 text-indigo-600 dark:text-indigo-400 shadow-[inset_0_1px_1px_rgba(255,255,255,0.1)]' : 'text-slate-500 dark:text-slate-500 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-gray-100 dark:hover:bg-white/10'}`}
+                className={`group w-full flex items-center gap-4 px-5 py-4 rounded-[1.25rem] transition-all duration-300 relative overflow-hidden ${activeTab === item.id ? 'bg-slate-100/80 dark:bg-white/10 text-indigo-600 dark:text-indigo-400 shadow-[inset_0_1px_1px_rgba(255,255,255,0.1)]' : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-gray-100 dark:hover:bg-white/10'}`}
               >
                 {activeTab === item.id && <div className="absolute left-0 w-1.5 h-6 bg-indigo-600 dark:bg-indigo-500 rounded-r-full" />}
                 <item.icon size={20} className={`shrink-0 transition-transform duration-500 group-hover:scale-110 ${activeTab === item.id ? 'scale-110' : ''}`} />
-                <span className="text-[11px] font-black uppercase tracking-widest truncate">{item.label}</span>
+                <span className="text-[11px] font-bold uppercase tracking-widest truncate">{item.label}</span>
               </button>
             ))}
           </nav>
@@ -229,12 +232,12 @@ const AdminDashboard = () => {
             <div className="p-4 bg-slate-50 dark:bg-white/5 rounded-2xl border border-slate-100 dark:border-white/5 group hover:border-indigo-500/30 transition-all duration-500 cursor-help">
               <div className="flex items-center gap-3 mb-2">
                 <Info size={14} className="text-indigo-500" />
-                <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">System Health</p>
+                <p className="text-[8px] font-bold text-slate-400 uppercase tracking-widest">System Health</p>
               </div>
               <div className="w-full bg-slate-200 dark:bg-slate-800 h-1.5 rounded-full overflow-hidden">
-                <div className="h-full bg-gradient-to-r from-emerald-500 to-indigo-500 w-[92%]" />
+                <div className="h-full bg-gradient-to-r from-indigo-500 to-indigo-500 w-[92%]" />
               </div>
-              <p className="text-[8px] font-black text-indigo-500 uppercase tracking-widest mt-2">Operational: 99.8%</p>
+              <p className="text-[8px] font-bold text-indigo-500 uppercase tracking-widest mt-2">Operational: 99.8%</p>
             </div>
           </div>
         </div>
@@ -255,25 +258,25 @@ const AdminDashboard = () => {
           <div className="flex items-center gap-4 lg:gap-6">
             <button onClick={() => setIsSidebarOpen(true)} className="lg:hidden p-2 bg-slate-100 dark:bg-white/5 rounded-xl text-slate-600 dark:text-slate-400"><LayoutGrid size={18} /></button>
             <div>
-              <h1 className="text-3xl font-black text-slate-900 dark:text-white uppercase tracking-tighter italic">
+              <h1 className="text-3xl font-bold text-slate-900 dark:text-white uppercase tracking-tighter italic">
                 {menuItems.find(i => i.id === activeTab)?.label}
               </h1>
-              <p className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.2em] mt-0.5">Administrative Grid Interface</p>
+              <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-[0.2em] mt-0.5">Administrative Grid Interface</p>
             </div>
           </div>
 
           <div className="flex items-center gap-4">
             <div className="hidden md:flex items-center gap-3 bg-slate-50 dark:bg-white/5 px-5 py-2.5 rounded-2xl border border-slate-100 dark:border-white/5">
               <Search size={16} className="text-slate-400" />
-              <input type="text" placeholder="Global Sector Search..." className="bg-transparent text-[10px] font-black uppercase tracking-widest outline-none text-slate-900 dark:text-white w-48" />
+              <input type="text" placeholder="Global Sector Search..." className="bg-transparent text-[10px] font-bold uppercase tracking-widest outline-none text-slate-900 dark:text-white w-48" />
             </div>
             <div className="flex items-center gap-3 pl-4 border-l border-slate-200 dark:border-slate-800">
               <div className="text-right hidden sm:block">
-                <p className="text-[10px] font-black text-slate-900 dark:text-white uppercase tracking-tighter">Root Administrator</p>
-                <p className="text-[9px] font-black text-emerald-500 uppercase tracking-widest italic">{user.department}</p>
+                <p className="text-[10px] font-bold text-slate-900 dark:text-white uppercase tracking-tighter">Root Administrator</p>
+                <p className="text-[9px] font-bold text-indigo-500 uppercase tracking-widest italic">{user.department}</p>
               </div>
               <div className="w-12 h-12 rounded-xl bg-indigo-500 p-0.5">
-                <div className="w-full h-full rounded-[10px] bg-slate-900 flex items-center justify-center text-white font-black text-xs uppercase">
+                <div className="w-full h-full rounded-[10px] bg-slate-900 flex items-center justify-center text-white font-bold text-xs uppercase">
                   {user.name[0]}
                 </div>
               </div>
@@ -282,12 +285,12 @@ const AdminDashboard = () => {
         </header>
 
         {/* Scrollable Content Reactor */}
-        <div className="flex-1 overflow-y-auto overflow-x-hidden custom-scrollbar will-change-transform bg-gray-50/50 dark:bg-transparent">
+        <div className="flex-1 overflow-y-auto overflow-x-hidden custom-scrollbar bg-gray-50/50 dark:bg-transparent">
           <main className="p-4 lg:p-10">
             <Suspense fallback={
               <div className="w-full h-full flex flex-col items-center justify-center py-20 space-y-4">
                 <div className="w-12 h-12 border-4 border-indigo-500/20 border-t-indigo-500 rounded-full animate-spin"></div>
-                <p className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.3em] animate-pulse">Initializing Component Node...</p>
+                <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-[0.3em] animate-pulse">Initializing Component Node...</p>
               </div>
             }>
               {activeTab === 'overview' ? (
@@ -300,7 +303,7 @@ const AdminDashboard = () => {
                   { label: 'Academic Sectors', value: stats.departments, icon: Building, theme: CHART_GRADIENTS.violet, detail: 'Departmental nodes' },
                   { label: 'Active Requests', value: stats.pendingApprovals, icon: Zap, theme: CHART_GRADIENTS.amber, detail: 'Awaiting protocol sync' },
                   { label: 'Reported Content', value: stats.reportedAnnouncementsCount, icon: ShieldAlert, theme: CHART_GRADIENTS.rose, detail: 'Flagged for review' },
-                  { label: 'Faculty Presence', value: `${stats.attendance}%`, icon: Activity, theme: CHART_GRADIENTS.emerald, detail: 'Live participation' },
+                  { label: 'Faculty Presence', value: `${stats.attendance}%`, icon: Activity, theme: CHART_GRADIENTS.indigo, detail: 'Live participation' },
                 ].map((s, idx) => (
                   <div
                     key={s.label}
@@ -309,11 +312,11 @@ const AdminDashboard = () => {
                     <div className="absolute top-0 right-0 w-32 h-32 rounded-full blur-3xl -mr-16 -mt-16 group-hover:scale-110 transition-transform duration-700" style={{ backgroundColor: s.theme.light }} />
                     <div className="flex justify-between items-start relative z-10">
                       <div>
-                        <p className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400 mb-1">{s.label}</p>
-                        <h3 className="text-4xl font-black dark:text-white tabular-nums tracking-tighter italic">{s.value}</h3>
+                        <p className="text-[9px] font-bold uppercase tracking-[0.2em] text-slate-400 mb-1">{s.label}</p>
+                        <h3 className="text-4xl font-bold dark:text-white tabular-nums tracking-tighter italic">{s.value}</h3>
                         <div className="flex items-center gap-2 mt-2">
                           <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: s.theme.from }} />
-                          <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest italic">{s.detail}</p>
+                          <p className="text-[8px] font-bold text-slate-400 uppercase tracking-widest italic">{s.detail}</p>
                         </div>
                       </div>
                       <div className="p-4 rounded-2xl bg-slate-50 dark:bg-white/5 transition-all duration-500 shadow-sm relative overflow-hidden group-hover:scale-110 group-hover:rotate-6">
@@ -333,7 +336,7 @@ const AdminDashboard = () => {
                     <LayoutGrid size={120} className="text-indigo-500" />
                   </div>
                   <div className="flex items-center justify-between mb-10 relative z-10">
-                    <h3 className="text-sm font-black uppercase tracking-[0.3em] dark:text-white italic">Identity Hub</h3>
+                    <h3 className="text-sm font-bold uppercase tracking-[0.3em] dark:text-white italic">Identity Hub</h3>
                     <div className="flex gap-1">
                       <div className="w-1.5 h-1.5 rounded-full bg-indigo-500" />
                       <div className="w-1.5 h-1.5 rounded-full bg-violet-500" />
@@ -357,11 +360,11 @@ const AdminDashboard = () => {
                         </PieChart>
                       </ResponsiveContainer>
                     ) : (
-                      <div className="h-full w-full flex items-center justify-center opacity-30 text-[10px] font-black uppercase tracking-[0.5em] italic">Awaiting Hub Context</div>
+                      <div className="h-full w-full flex items-center justify-center opacity-30 text-[10px] font-bold uppercase tracking-[0.5em] italic">Awaiting Hub Context</div>
                     )}
                     <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                      <p className="text-[8px] font-black text-slate-400 underline decoration-indigo-500/50 underline-offset-4 uppercase tracking-widest mb-1">Total</p>
-                      <p className="text-2xl font-black dark:text-white italic">{stats.users}</p>
+                      <p className="text-[8px] font-bold text-slate-400 underline decoration-indigo-500/50 underline-offset-4 uppercase tracking-widest mb-1">Total</p>
+                      <p className="text-2xl font-bold dark:text-white italic">{stats.users}</p>
                     </div>
                   </div>
                 </div>
@@ -372,8 +375,8 @@ const AdminDashboard = () => {
                     <TrendingUp size={240} className="text-indigo-500" />
                   </div>
                   <div className="flex items-center justify-between mb-10 relative z-10">
-                    <h3 className="text-sm font-black uppercase tracking-[0.3em] dark:text-white italic">Sector Population Matrix</h3>
-                    <div className="p-2 bg-indigo-500/5 rounded-xl border border-indigo-500/10 text-[9px] font-black text-indigo-500 uppercase tracking-widest">Real-time Sync</div>
+                    <h3 className="text-sm font-bold uppercase tracking-[0.3em] dark:text-white italic">Sector Population Matrix</h3>
+                    <div className="p-2 bg-indigo-500/5 rounded-xl border border-indigo-500/10 text-[9px] font-bold text-indigo-500 uppercase tracking-widest">Real-time Sync</div>
                   </div>
                   <div className="h-[320px] w-full relative z-10">
                     {isMounted && stats.deptPopulation?.length > 0 ? (
@@ -411,7 +414,7 @@ const AdminDashboard = () => {
                         </BarChart>
                       </ResponsiveContainer>
                     ) : (
-                      <div className="h-full w-full flex items-center justify-center opacity-30 text-[10px] font-black uppercase tracking-[0.5em] italic">Constructing Sector Matrix...</div>
+                      <div className="h-full w-full flex items-center justify-center opacity-30 text-[10px] font-bold uppercase tracking-[0.5em] italic">Constructing Sector Matrix...</div>
                     )}
                   </div>
                 </div>
@@ -422,15 +425,15 @@ const AdminDashboard = () => {
                 className="bg-white/90 dark:bg-[#080c14]/90 p-10 rounded-[3.5rem] shadow-xl border border-slate-200 dark:border-slate-800/60 overflow-hidden relative group">
                 <div className="flex items-center justify-between mb-10">
                   <div>
-                    <h3 className="text-sm font-black uppercase tracking-[0.3em] dark:text-white flex items-center gap-3 italic">
+                    <h3 className="text-sm font-bold uppercase tracking-[0.3em] dark:text-white flex items-center gap-3 italic">
                       <Activity size={20} className="text-teal-500" /> Institutional Growth Pulse
                     </h3>
-                    <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest mt-1 italic underline decoration-teal-500/30 underline-offset-4">Growth trajectory over active cycles</p>
+                    <p className="text-[8px] font-bold text-slate-400 uppercase tracking-widest mt-1 italic underline decoration-teal-500/30 underline-offset-4">Growth trajectory over active cycles</p>
                   </div>
                   <div className="flex items-center gap-6">
                     <div className="flex items-center gap-2">
                       <div className="w-2.5 h-2.5 rounded-full bg-gradient-to-r from-teal-500 to-indigo-500" />
-                      <span className="text-[9px] font-black dark:text-white text-slate-900 uppercase tracking-widest">Sync Efficiency (%)</span>
+                      <span className="text-[9px] font-bold dark:text-white text-slate-900 uppercase tracking-widest">Sync Efficiency (%)</span>
                     </div>
                   </div>
                 </div>
@@ -464,7 +467,7 @@ const AdminDashboard = () => {
                       </AreaChart>
                     </ResponsiveContainer>
                   ) : (
-                    <div className="h-full w-full flex items-center justify-center opacity-30 text-[10px] font-black uppercase tracking-[0.5em] italic tabular-nums">Tracing Institutional Vectors...</div>
+                    <div className="h-full w-full flex items-center justify-center opacity-30 text-[10px] font-bold uppercase tracking-[0.5em] italic tabular-nums">Tracing Institutional Vectors...</div>
                   )}
                 </div>
               </div>
@@ -497,10 +500,10 @@ const AdminDashboard = () => {
             <div key="quizzes" className="space-y-6">
               <div className="flex items-center justify-between mb-8">
                 <div>
-                  <h2 className="text-2xl font-black text-slate-900 dark:text-white uppercase tracking-tighter italic">MCQ Assessment Lab</h2>
+                  <h2 className="text-2xl font-bold text-slate-900 dark:text-white uppercase tracking-tighter italic">MCQ Assessment Lab</h2>
                   <p className="text-[10px] text-indigo-500 font-bold uppercase tracking-widest mt-1">Manage institutional multiple choice assessments</p>
                 </div>
-                <button onClick={() => setQuizGenOpen(true)} className="px-6 py-3 bg-indigo-600 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-lg hover:bg-indigo-500 transition-all flex items-center gap-2">Deploy New MCQ <Plus size={14} /></button>
+                <button onClick={() => setQuizGenOpen(true)} className="px-6 py-3 bg-indigo-600 text-white rounded-2xl text-[10px] font-bold uppercase tracking-widest shadow-lg hover:bg-indigo-500 transition-all flex items-center gap-2">Deploy New MCQ <Plus size={14} /></button>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
                 {quizzes.map(q => (
@@ -508,24 +511,24 @@ const AdminDashboard = () => {
                     <div className="flex items-center gap-4 mb-6">
                       <div className="w-12 h-12 rounded-2xl bg-indigo-600/10 text-indigo-600 flex items-center justify-center group-hover:bg-indigo-600 group-hover:text-white transition-all"><ClipboardList size={22} /></div>
                       <div>
-                        <h3 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-tight">{q.title}</h3>
-                        <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">{q.category}</span>
+                        <h3 className="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-tight">{q.title}</h3>
+                        <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">{q.category}</span>
                       </div>
                     </div>
                     <div className="flex items-center gap-8 mt-4 pt-6 border-t border-slate-100 dark:border-slate-800/60">
                       <div className="flex items-center gap-2">
-                        <CheckCircle size={14} className="text-emerald-500" />
-                        <span className="text-[10px] font-black text-slate-500 uppercase">{q.totalPoints} XP</span>
+                        <CheckCircle size={14} className="text-indigo-500" />
+                        <span className="text-[10px] font-bold text-slate-500 uppercase">{q.totalPoints} XP</span>
                       </div>
                       <div className="flex items-center gap-2">
                         <Clock size={14} className="text-slate-400" />
-                        <span className="text-[10px] font-black text-slate-500 uppercase">{q.timeLimit} Min</span>
+                        <span className="text-[10px] font-bold text-slate-500 uppercase">{q.timeLimit} Min</span>
                       </div>
                     </div>
                   </div>
                 ))}
                 {quizzes.length === 0 && (
-                  <div className="col-span-full py-20 text-center opacity-30 italic font-black uppercase tracking-widest">No MCQ Assessments Found</div>
+                  <div className="col-span-full py-20 text-center opacity-30 italic font-bold uppercase tracking-widest">No MCQ Assessments Found</div>
                 )}
               </div>
             </div>
@@ -558,7 +561,7 @@ const AdminDashboard = () => {
               <AdminSystemSettings user={user} />
             </div>
           ) : (
-            <div key="fallback" className="flex bg-white dark:bg-[#080c14] h-[60vh] items-center justify-center text-slate-400 rounded-[3rem] border border-slate-100 dark:border-slate-800/60 italic font-black uppercase tracking-[0.5em] shadow-xl">
+            <div key="fallback" className="flex bg-white dark:bg-[#080c14] h-[60vh] items-center justify-center text-slate-400 rounded-[3rem] border border-slate-100 dark:border-slate-800/60 italic font-bold uppercase tracking-[0.5em] shadow-xl">
               <span>Secure Implementation Area: {activeTab}</span>
             </div>
           )}

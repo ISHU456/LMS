@@ -232,7 +232,7 @@ const AIMode = () => {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="fixed inset-0 z-[5000] bg-[#030712] flex flex-col overflow-hidden text-gray-100"
+        className="flex-1 bg-[#030712] flex flex-col overflow-hidden text-gray-100 relative"
       >
         {/* --- BEAST MODE AMBIENT BACKGROUND - OPTIMIZED --- */}
         <div className="absolute inset-0 pointer-events-none z-0">

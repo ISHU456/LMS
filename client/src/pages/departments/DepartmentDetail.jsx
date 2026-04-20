@@ -34,7 +34,7 @@ const DepartmentDetail = () => {
   }, [code]);
 
   if (loading) return (
-    <div className="min-h-screen flex items-center justify-center bg-[#fafbfc] dark:bg-[#0b0f19]">
+    <div className="min-h-screen flex items-center justify-center bg-app-bg">
       <motion.div 
         animate={{ rotate: 360 }}
         transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
@@ -44,10 +44,10 @@ const DepartmentDetail = () => {
   );
 
   if (!dept) return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-[#fafbfc] dark:bg-[#0b0f19] p-6 text-center">
+    <div className="min-h-screen flex flex-col items-center justify-center bg-app-bg p-6 text-center">
       <Building2 size={64} className="text-gray-300 mb-6" />
-      <h1 className="text-3xl font-black text-gray-900 dark:text-white uppercase tracking-tighter">Department Not Found</h1>
-      <p className="text-gray-500 mt-2 mb-8 max-w-md">The department code you requested doesn't exist in our records.</p>
+      <h1 className="text-3xl font-black text-app-text uppercase tracking-tighter">Department Not Found</h1>
+      <p className="text-app-muted mt-2 mb-8 max-w-md">The department code you requested doesn't exist in our records.</p>
       <Link to="/departments" className="px-8 py-3 bg-primary-600 text-white font-black text-xs uppercase tracking-widest rounded-xl shadow-lg shadow-primary-500/20">
         Back to Departments
       </Link>
@@ -65,7 +65,7 @@ const DepartmentDetail = () => {
   };
 
   return (
-    <div className="flex-1 bg-[#fafbfc] dark:bg-[#0b0f19] smooth-scroll">
+    <div className="flex-1 bg-app-bg smooth-scroll">
       
       {/* --- HERO SECTION --- */}
       <section className="relative h-[70vh] flex items-center overflow-hidden">
@@ -75,7 +75,7 @@ const DepartmentDetail = () => {
             className="w-full h-full object-cover opacity-40 dark:opacity-20"
             alt={dept.name}
           />
-          <div className="absolute inset-0 bg-gradient-to-b from-transparent via-[#fafbfc]/50 to-[#fafbfc] dark:via-[#0b0f19]/50 dark:to-[#0b0f19]" />
+          <div className="absolute inset-0 bg-gradient-to-b from-transparent via-app-bg/50 to-app-bg" />
         </div>
 
         <div className="container mx-auto px-6 md:px-12 lg:px-24 relative z-10">
@@ -89,17 +89,17 @@ const DepartmentDetail = () => {
               <Star size={10} className="fill-current" />
               <span>Center of Excellence</span>
             </div>
-            <h1 className="text-4xl md:text-6xl font-black text-gray-900 dark:text-white uppercase tracking-tighter leading-[0.95] mb-6">
+            <h1 className="text-4xl md:text-6xl font-black text-app-text uppercase tracking-tighter leading-[0.95] mb-6">
               {dept.name}
             </h1>
-            <p className="text-lg md:text-xl text-gray-600 dark:text-gray-400 font-medium max-w-2xl mb-10 leading-relaxed italic">
+            <p className="text-lg md:text-xl text-app-muted font-medium max-w-2xl mb-10 leading-relaxed italic">
               "{dept.tagline || "Innovating the future, educating the leaders of tomorrow."}"
             </p>
             <div className="flex flex-wrap gap-4">
               <button className="px-6 py-3 bg-primary-600 text-white font-black text-[10px] uppercase tracking-widest rounded-xl shadow-2xl shadow-primary-500/30 hover:bg-primary-700 transition-all flex items-center gap-2">
                 Explore Courses <ChevronRight size={14} />
               </button>
-              <button className="px-6 py-3 glass dark:bg-gray-800/50 text-gray-900 dark:text-white font-black text-[10px] uppercase tracking-widest rounded-xl border border-gray-200 dark:border-gray-700 hover:bg-gray-50 transition-all">
+              <button className="px-6 py-3 bg-app-surface text-app-text font-black text-[10px] uppercase tracking-widest rounded-xl border border-app-border hover:bg-app-surface/80 transition-all">
                 Contact Department
               </button>
             </div>
@@ -126,13 +126,13 @@ const DepartmentDetail = () => {
               <motion.div 
                 key={i}
                 variants={itemVariants}
-                className="glass p-6 rounded-[2rem] border border-white dark:border-gray-800 bg-white/80 dark:bg-gray-900/80 shadow-2xl text-center group hover:border-primary-500/30 transition-all"
+                className="glass p-6 rounded-[2rem] border border-app-border bg-app-surface shadow-2xl text-center group hover:border-primary-500/30 transition-all"
               >
-                <div className="w-10 h-10 rounded-xl bg-primary-50 dark:bg-primary-900/30 flex items-center justify-center mx-auto mb-3 text-primary-600 dark:text-primary-400 group-hover:scale-110 transition-transform">
+                <div className="w-10 h-10 rounded-xl bg-primary-500/10 flex items-center justify-center mx-auto mb-3 text-primary-600 dark:text-primary-400 group-hover:scale-110 transition-transform">
                   <Activity size={20} />
                 </div>
-                <h3 className="text-2xl font-black text-gray-900 dark:text-white mb-1">{stat.value}</h3>
-                <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest">{stat.title}</p>
+                <h3 className="text-2xl font-black text-app-text mb-1">{stat.value}</h3>
+                <p className="text-[9px] font-black text-app-muted uppercase tracking-widest">{stat.title}</p>
               </motion.div>
             ))}
           </motion.div>
@@ -143,12 +143,12 @@ const DepartmentDetail = () => {
       <section className="px-6 md:px-12 lg:px-24 mb-32">
         <div className="container mx-auto">
           {/* Tab Navigation */}
-          <div className="flex overflow-x-auto no-scrollbar gap-2 mb-12 p-1.5 bg-gray-100 dark:bg-gray-900/50 rounded-2xl border border-gray-200 dark:border-gray-800 w-fit mx-auto">
+          <div className="flex overflow-x-auto no-scrollbar gap-2 mb-12 p-1.5 bg-app-surface rounded-2xl border border-app-border w-fit mx-auto">
             {['overview', 'programs', 'faculty', 'infrastructure', 'achievements'].map((tab) => (
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
-                className={`px-6 py-2.5 rounded-xl font-black text-[9px] uppercase tracking-widest transition-all whitespace-nowrap ${activeTab === tab ? 'bg-primary-600 text-white shadow-lg shadow-primary-500/20' : 'text-gray-500 hover:text-gray-900 dark:hover:text-white'}`}
+                className={`px-6 py-2.5 rounded-xl font-black text-[9px] uppercase tracking-widest transition-all whitespace-nowrap ${activeTab === tab ? 'bg-primary-600 text-white shadow-lg shadow-primary-500/20' : 'text-app-muted hover:text-app-text'}`}
               >
                 {tab}
               </button>
@@ -168,8 +168,8 @@ const DepartmentDetail = () => {
               {activeTab === 'overview' && (
                 <div className="grid lg:grid-cols-2 gap-12 items-center">
                   <div>
-                    <h2 className="text-3xl font-black text-gray-900 dark:text-white uppercase tracking-tighter mb-6">About the <span className="text-primary-600">Department</span></h2>
-                    <p className="text-gray-600 dark:text-gray-400 text-base leading-relaxed mb-8">
+                    <h2 className="text-3xl font-black text-app-text uppercase tracking-tighter mb-6">About the <span className="text-primary-600">Department</span></h2>
+                    <p className="text-app-muted text-base leading-relaxed mb-8">
                       {dept.overview || dept.description || "Leading the way in academic excellence and professional growth."}
                     </p>
                     <div className="space-y-6">
@@ -178,7 +178,7 @@ const DepartmentDetail = () => {
                           <Target size={20} />
                         </div>
                         <div>
-                          <h4 className="font-black text-[10px] uppercase tracking-widest text-gray-900 dark:text-white mb-1.5">Our Vision</h4>
+                          <h4 className="font-black text-[10px] uppercase tracking-widest text-app-text mb-1.5">Our Vision</h4>
                           <p className="text-xs text-gray-500 leading-relaxed">{dept.vision || "To be a global leader in education and research."}</p>
                         </div>
                       </div>
@@ -187,21 +187,21 @@ const DepartmentDetail = () => {
                           <Rocket size={20} />
                         </div>
                         <div>
-                          <h4 className="font-black text-[10px] uppercase tracking-widest text-gray-900 dark:text-white mb-1.5">Our Mission</h4>
+                          <h4 className="font-black text-[10px] uppercase tracking-widest text-app-text mb-1.5">Our Mission</h4>
                           <p className="text-xs text-gray-500 leading-relaxed">{dept.mission || "To empower students with knowledge and values for a better world."}</p>
                         </div>
                       </div>
                     </div>
                   </div>
                   <div className="relative">
-                    <div className="aspect-square rounded-[2.5rem] overflow-hidden shadow-2xl border-4 border-white dark:border-gray-800 rotate-3 group hover:rotate-0 transition-transform duration-500">
+                    <div className="aspect-square rounded-[2.5rem] overflow-hidden shadow-2xl border-4 border-app-surface rotate-3 group hover:rotate-0 transition-transform duration-500">
                       <img 
                         src={dept.gallery?.[0]?.url || "https://images.unsplash.com/photo-1523240795612-9a054b0db644?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80"} 
                         className="w-full h-full object-cover"
                         alt="Campus"
                       />
                     </div>
-                    <div className="absolute -bottom-6 -left-6 glass p-6 rounded-2xl border border-white dark:border-gray-800 shadow-2xl max-w-[160px] -rotate-6 group-hover:rotate-0 transition-transform duration-500">
+                    <div className="absolute -bottom-6 -left-6 glass p-6 rounded-2xl border border-app-border shadow-2xl max-w-[160px] -rotate-6 group-hover:rotate-0 transition-transform duration-500">
                       <p className="text-2xl font-black text-primary-600">#1</p>
                       <p className="text-[9px] font-black uppercase text-gray-400 tracking-widest">Ranked in the Region</p>
                     </div>
@@ -213,14 +213,14 @@ const DepartmentDetail = () => {
               {activeTab === 'programs' && (
                 <div className="space-y-16">
                   {/* Strategic Overview Header */}
-                  <div className="flex flex-col md:flex-row gap-8 items-start justify-between bg-primary-50/50 dark:bg-primary-950/20 p-8 rounded-[2.5rem] border border-primary-100 dark:border-primary-900/30">
+                  <div className="flex flex-col md:flex-row gap-8 items-start justify-between bg-primary-500/10 p-8 rounded-[2.5rem] border border-primary-500/20">
                      <div className="max-w-xl">
-                        <h3 className="text-2xl font-black text-gray-900 dark:text-white uppercase tracking-tighter mb-3">Academic <span className="text-primary-600">Roadmap</span>: B.Tech CSE</h3>
+                        <h3 className="text-2xl font-black text-app-text uppercase tracking-tighter mb-3">Academic <span className="text-primary-600">Roadmap</span>: B.Tech CSE</h3>
                         <p className="text-xs text-gray-500 font-bold uppercase tracking-widest leading-relaxed">A detailed 4-year trajectory through 8 semesters designed to transform foundation basics into elite industrial mastery.</p>
                      </div>
                      <div className="flex flex-wrap gap-2">
-                        <span className="px-4 py-2 bg-white dark:bg-gray-800 rounded-xl text-[9px] font-black uppercase tracking-widest text-primary-600 shadow-sm ring-1 ring-primary-500/10">8 SEMESTERS</span>
-                        <span className="px-4 py-2 bg-white dark:bg-gray-800 rounded-xl text-[9px] font-black uppercase tracking-widest text-emerald-600 shadow-sm ring-1 ring-emerald-500/10">INDUSTRY READY</span>
+                        <span className="px-4 py-2 bg-app-surface rounded-xl text-[9px] font-black uppercase tracking-widest text-primary-600 shadow-sm ring-1 ring-primary-500/10">8 SEMESTERS</span>
+                        <span className="px-4 py-2 bg-app-surface rounded-xl text-[9px] font-black uppercase tracking-widest text-emerald-600 shadow-sm ring-1 ring-emerald-500/10">INDUSTRY READY</span>
                      </div>
                   </div>
 
@@ -279,7 +279,7 @@ const DepartmentDetail = () => {
                       <motion.div 
                         key={i}
                         variants={itemVariants}
-                        className="group relative h-full glass p-6 rounded-[2.5rem] border border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900/50 flex flex-col hover:border-primary-500/30 transition-all shadow-xl"
+                        className="group relative h-full glass p-6 rounded-[2.5rem] border border-app-border bg-app-surface flex flex-col hover:border-primary-500/30 transition-all shadow-xl"
                       >
                         <div className="flex items-center justify-between mb-6">
                            <div className={`w-12 h-12 rounded-2xl bg-${sem.color}-500/10 text-${sem.color}-600 flex items-center justify-center font-black text-lg`}>
@@ -318,7 +318,7 @@ const DepartmentDetail = () => {
 
                         <div className="mt-8 pt-6 border-t border-gray-50 dark:border-gray-800/50">
                             <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest mb-2">Primary Objective</p>
-                            <p className="text-[10px] font-black text-gray-900 dark:text-white uppercase tracking-tighter leading-relaxed">{sem.focus}</p>
+                            <p className="text-[10px] font-black text-app-text uppercase tracking-tighter leading-relaxed">{sem.focus}</p>
                         </div>
                       </motion.div>
                     ))}
@@ -326,12 +326,12 @@ const DepartmentDetail = () => {
 
                   {/* Electives & Specializations */}
                   <div className="grid lg:grid-cols-2 gap-8">
-                     <div className="glass p-10 rounded-[3rem] border border-white dark:border-gray-800">
+                     <div className="glass p-10 rounded-[3rem] border border-app-border bg-app-surface">
                         <div className="flex items-center gap-4 mb-8">
                            <div className="w-12 h-12 rounded-2xl bg-orange-500/10 text-orange-600 flex items-center justify-center shadow-inner">
                               <Target size={24} />
                            </div>
-                           <h4 className="text-2xl font-black text-gray-900 dark:text-white uppercase tracking-tighter">Elective <span className="text-orange-600">Inventory</span></h4>
+                           <h4 className="text-2xl font-black text-app-text uppercase tracking-tighter">Elective <span className="text-orange-600">Inventory</span></h4>
                         </div>
                         <div className="grid sm:grid-cols-2 gap-8">
                            {[
@@ -344,7 +344,7 @@ const DepartmentDetail = () => {
                                 <h5 className={`text-[10px] font-black uppercase tracking-widest text-${group.color}-600 underline decoration-2 underline-offset-4`}>{group.title}</h5>
                                 <div className="space-y-2">
                                    {group.list.map(item => (
-                                     <p key={item} className="text-[11px] font-bold text-gray-600 dark:text-gray-400">{item}</p>
+                                     <p key={item} className="text-[11px] font-bold text-app-muted">{item}</p>
                                    ))}
                                 </div>
                              </div>
@@ -352,7 +352,7 @@ const DepartmentDetail = () => {
                         </div>
                      </div>
 
-                     <div className="bg-gray-900 dark:bg-[#0d121f] p-10 rounded-[3rem] text-white overflow-hidden relative group">
+                     <div className="bg-[#0d121f] rounded-[3rem] text-white overflow-hidden relative group">
                         <div className="absolute top-0 right-0 w-40 h-40 bg-primary-600/20 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 group-hover:scale-150 transition-transform duration-700" />
                         <div className="relative z-10">
                            <div className="flex items-center gap-4 mb-8">
@@ -403,10 +403,10 @@ const DepartmentDetail = () => {
                           <CheckCircle2 size={10} />
                           <span>Industry-Aligned Matrix</span>
                        </div>
-                       <h2 className="text-4xl font-black text-gray-900 dark:text-white uppercase tracking-tighter mb-6 leading-tight">
+                       <h2 className="text-4xl font-black text-app-text uppercase tracking-tighter mb-6 leading-tight">
                           Curriculum <span className="text-primary-600">Impact</span> & Student ROI
                        </h2>
-                       <p className="text-gray-500 dark:text-gray-400 text-base leading-relaxed mb-10">
+                       <p className="text-app-muted text-base leading-relaxed mb-10">
                           Our curriculum is engineered in collaboration with top-tier technology partners to ensure every block of learning translates directly into professional mastery. We move beyond theory to deliver high-impact, deployment-ready expertise.
                        </p>
                        
@@ -421,7 +421,7 @@ const DepartmentDetail = () => {
                                   <benefit.icon size={22} />
                                </div>
                                <div>
-                                  <h4 className="font-black text-xs uppercase tracking-widest text-gray-900 dark:text-white mb-1 group-hover:text-primary-600 transition-colors">{benefit.title}</h4>
+                                  <h4 className="font-black text-xs uppercase tracking-widest text-app-text mb-1 group-hover:text-primary-600 transition-colors">{benefit.title}</h4>
                                   <p className="text-xs text-gray-500 leading-relaxed max-w-sm">{benefit.desc}</p>
                                </div>
                             </div>
@@ -435,15 +435,15 @@ const DepartmentDetail = () => {
                              <div className="aspect-[4/5] bg-gray-100 dark:bg-gray-800 rounded-3xl overflow-hidden shadow-2xl hover:-translate-y-2 transition-transform">
                                 <img src="https://images.unsplash.com/photo-1573164773974-bc48705009a2?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&q=80" className="w-full h-full object-cover" alt="Lab" />
                              </div>
-                             <div className="glass p-6 rounded-3xl border border-white dark:border-gray-800 text-center">
-                                <p className="text-3xl font-black text-gray-900 dark:text-white mb-1">45+</p>
-                                <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Industry Links</p>
+                             <div className="glass p-6 rounded-3xl border border-app-border bg-app-surface text-center">
+                                <p className="text-3xl font-black text-app-text mb-1">45+</p>
+                                <p className="text-[9px] font-black text-app-muted uppercase tracking-widest">Industry Links</p>
                              </div>
                           </div>
                           <div className="space-y-4">
-                             <div className="glass p-6 rounded-3xl border border-white dark:border-gray-800 text-center">
+                             <div className="glass p-6 rounded-3xl border border-app-border bg-app-surface text-center">
                                 <p className="text-3xl font-black text-primary-600 mb-1">12M</p>
-                                <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Research Funding</p>
+                                <p className="text-[9px] font-black text-app-muted uppercase tracking-widest">Research Funding</p>
                              </div>
                              <div className="aspect-[4/5] bg-gray-100 dark:bg-gray-800 rounded-3xl overflow-hidden shadow-2xl hover:-translate-y-2 transition-transform">
                                 <img src="https://images.unsplash.com/photo-1516321318423-f06f85e504b3?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&q=80" className="w-full h-full object-cover" alt="Seminar" />
@@ -457,7 +457,7 @@ const DepartmentDetail = () => {
                   <div>
                     <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-12">
                        <div>
-                          <h3 className="text-2xl font-black text-gray-900 dark:text-white uppercase tracking-tighter leading-none mb-3">Academic <span className="text-primary-600">Command</span></h3>
+                          <h3 className="text-2xl font-black text-app-text uppercase tracking-tighter leading-none mb-3">Academic <span className="text-primary-600">Command</span></h3>
                           <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Distinguished Faculty & Subject Matter Experts</p>
                        </div>
                        <button className="px-6 py-3 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-primary-600 hover:text-white transition-all">
@@ -475,7 +475,7 @@ const DepartmentDetail = () => {
                         <motion.div 
                           key={i}
                           whileHover={{ y: -10 }}
-                          className="group bg-white dark:bg-[#0d121f] rounded-[2.5rem] border border-gray-100 dark:border-gray-800 p-8 shadow-xl hover:shadow-2xl hover:border-primary-500/30 transition-all flex flex-col"
+                          className="group bg-app-surface rounded-[2.5rem] border border-app-border p-8 shadow-xl hover:shadow-2xl hover:border-primary-500/30 transition-all flex flex-col"
                         >
                           <div className="mb-8 relative flex justify-center">
                              <div className={`w-32 h-32 rounded-[2rem] ${fac.color || 'bg-primary-600'} flex items-center justify-center text-white text-4xl font-black shadow-2xl relative overflow-hidden group-hover:scale-105 transition-transform`}>
@@ -488,13 +488,13 @@ const DepartmentDetail = () => {
                              </div>
                              
                              {/* Expert Badge */}
-                             <div className="absolute -bottom-2 bg-white dark:bg-gray-800 px-4 py-1.5 rounded-full shadow-lg border border-gray-100 dark:border-gray-700">
+                             <div className="absolute -bottom-2 bg-app-bg px-4 py-1.5 rounded-full shadow-lg border border-app-border">
                                 <p className="text-[8px] font-black text-primary-600 uppercase tracking-widest whitespace-nowrap">Subject Elite</p>
                              </div>
                           </div>
 
                           <div className="text-center flex-1 flex flex-col">
-                            <h4 className="text-xl font-black text-gray-900 dark:text-white uppercase tracking-tighter leading-none mb-2">{fac.name}</h4>
+                            <h4 className="text-xl font-black text-app-text uppercase tracking-tighter leading-none mb-2">{fac.name}</h4>
                             <p className="text-[10px] font-black text-primary-600 dark:text-primary-400 uppercase tracking-widest mb-6">{fac.designation}</p>
                             
                             <div className="mt-auto pt-6 border-t border-gray-50 dark:border-gray-800 text-center">
@@ -542,7 +542,7 @@ const DepartmentDetail = () => {
                         <img src={infra.image} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" alt={infra.name} />
                       </div>
                       <div className="w-full md:w-1/2 p-8 flex flex-col justify-center">
-                        <h4 className="text-xl font-black text-gray-900 dark:text-white uppercase tracking-tighter mb-4">{infra.name}</h4>
+                        <h4 className="text-xl font-black text-app-text uppercase tracking-tighter mb-4">{infra.name}</h4>
                         <p className="text-sm text-gray-500 leading-relaxed">{infra.description}</p>
                       </div>
                     </motion.div>
@@ -554,7 +554,7 @@ const DepartmentDetail = () => {
               {activeTab === 'achievements' && (
                 <div className="space-y-8">
                   <div className="p-8 border-l-4 border-primary-600 bg-primary-50/50 dark:bg-primary-950/20 rounded-r-[2.5rem] mb-12">
-                     <h3 className="text-xl font-black text-gray-900 dark:text-white uppercase tracking-tighter mb-2">Verified Academic Benchmarks</h3>
+                     <h3 className="text-xl font-black text-app-text uppercase tracking-tighter mb-2">Verified Academic Benchmarks</h3>
                      <p className="text-xs text-gray-500 max-w-2xl uppercase tracking-widest font-black opacity-80">objective markers of our department's curriculum excellence and research maturity.</p>
                   </div>
                   
@@ -574,7 +574,7 @@ const DepartmentDetail = () => {
                         </div>
                         <div>
                           <p className="text-[10px] font-black text-primary-600 uppercase tracking-widest mb-1">{ach.title}</p>
-                          <h4 className="text-3xl font-black text-gray-900 dark:text-white uppercase tracking-tighter mb-1">{ach.value}</h4>
+                          <h4 className="text-3xl font-black text-app-text uppercase tracking-tighter mb-1">{ach.value}</h4>
                           <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest leading-relaxed">{ach.metric}</p>
                         </div>
                       </motion.div>
@@ -588,10 +588,10 @@ const DepartmentDetail = () => {
       </section>
       
       {/* --- STRATEGIC DOMAINS & SKILL MAPPING --- */}
-      <section className="py-32 bg-white dark:bg-gray-950/50 border-y border-gray-100 dark:border-gray-800 px-6 md:px-12 lg:px-24">
+      <section className="py-32 bg-app-bg border-y border-app-border px-6 md:px-12 lg:px-24">
         <div className="container mx-auto">
           <div className="text-center max-w-3xl mx-auto mb-16">
-            <h2 className="text-3xl md:text-5xl font-black text-gray-900 dark:text-white uppercase tracking-tighter mb-6">Strategic <span className="text-primary-600">Impact</span> Matrix</h2>
+            <h2 className="text-3xl md:text-5xl font-black text-app-text uppercase tracking-tighter mb-6">Strategic <span className="text-primary-600">Impact</span> Matrix</h2>
             <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.3em]">Skill mapping and graduation pathways based on our unique curriculum.</p>
           </div>
 
@@ -607,7 +607,7 @@ const DepartmentDetail = () => {
                 ].map((stat, i) => (
                   <div key={i}>
                     <div className="flex justify-between mb-2">
-                      <span className="font-black text-[9px] uppercase tracking-widest text-gray-900 dark:text-white">{stat.domain}</span>
+                      <span className="font-black text-[9px] uppercase tracking-widest text-app-text">{stat.domain}</span>
                       <span className="font-black text-[10px] text-primary-600 tracking-tighter">{stat.weight}% Mastery</span>
                     </div>
                     <div className="h-1.5 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
@@ -639,7 +639,7 @@ const DepartmentDetail = () => {
                           <path.icon size={20} />
                        </div>
                        <div>
-                          <h5 className="font-black text-[11px] uppercase tracking-widest text-gray-900 dark:text-white mb-1">{path.title}</h5>
+                          <h5 className="font-black text-[11px] uppercase tracking-widest text-app-text mb-1">{path.title}</h5>
                           <p className="text-[10px] font-bold text-gray-400 leading-relaxed uppercase tracking-widest opacity-80">{path.desc}</p>
                        </div>
                     </div>
@@ -654,7 +654,7 @@ const DepartmentDetail = () => {
       <section className="py-24 px-6 md:px-12 lg:px-24">
         <div className="container mx-auto">
           <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-5xl font-black text-gray-900 dark:text-white uppercase tracking-tighter mb-6">Student <span className="text-indigo-600">Voices</span></h2>
+            <h2 className="text-3xl md:text-5xl font-black text-app-text uppercase tracking-tighter mb-6">Student <span className="text-indigo-600">Voices</span></h2>
           </div>
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
             {(dept.testimonials?.length > 0 ? dept.testimonials : [
@@ -674,7 +674,7 @@ const DepartmentDetail = () => {
                     <img src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${test.name}`} alt={test.name} />
                   </div>
                   <div>
-                    <p className="font-black text-xs uppercase text-gray-900 dark:text-white tracking-tighter">{test.name}</p>
+                    <p className="font-black text-xs uppercase text-app-text tracking-tighter">{test.name}</p>
                     <p className="text-[9px] font-bold text-primary-600 uppercase tracking-widest">{test.role}</p>
                   </div>
                 </div>
@@ -731,22 +731,22 @@ const DepartmentDetail = () => {
               </div>
             </div>
 
-            <div className="bg-white rounded-[3rem] p-10 md:p-12 shadow-2xl">
-              <h3 className="text-2xl font-black text-gray-900 uppercase tracking-tighter mb-6">Send a <span className="text-primary-600">Message</span></h3>
+            <div className="bg-app-surface rounded-[3rem] p-10 md:p-12 shadow-2xl">
+              <h3 className="text-2xl font-black text-app-text uppercase tracking-tighter mb-6">Send a <span className="text-primary-600">Message</span></h3>
               <form className="space-y-5">
                 <div className="grid md:grid-cols-2 gap-5">
                   <div className="space-y-1.5">
                     <label className="text-[9px] font-black uppercase text-gray-400 tracking-widest ml-4">Full Name</label>
-                    <input type="text" className="w-full px-5 py-3 bg-gray-50 border border-gray-100 rounded-xl outline-none focus:border-primary-500 transition-all text-gray-900 font-bold text-sm" placeholder="John Doe" />
+                    <input type="text" className="w-full px-5 py-3 bg-app-bg border border-app-border rounded-xl outline-none focus:border-primary-500 transition-all text-app-text font-bold text-sm" placeholder="John Doe" />
                   </div>
                   <div className="space-y-1.5">
                     <label className="text-[9px] font-black uppercase text-gray-400 tracking-widest ml-4">Email</label>
-                    <input type="email" className="w-full px-5 py-3 bg-gray-50 border border-gray-100 rounded-xl outline-none focus:border-primary-500 transition-all text-gray-900 font-bold text-sm" placeholder="john@example.com" />
+                    <input type="email" className="w-full px-5 py-3 bg-app-bg border border-app-border rounded-xl outline-none focus:border-primary-500 transition-all text-app-text font-bold text-sm" placeholder="john@example.com" />
                   </div>
                 </div>
                 <div className="space-y-1.5">
                   <label className="text-[9px] font-black uppercase text-gray-400 tracking-widest ml-4">Subject</label>
-                  <select className="w-full px-5 py-3 bg-gray-50 border border-gray-100 rounded-xl outline-none focus:border-primary-500 transition-all text-gray-900 font-bold text-sm appearance-none">
+                  <select className="w-full px-5 py-3 bg-app-bg border border-app-border rounded-xl outline-none focus:border-primary-500 transition-all text-app-text font-bold text-sm appearance-none">
                     <option>Admissions Inquiry</option>
                     <option>Research Collaboration</option>
                     <option>Resource Access</option>
@@ -755,7 +755,7 @@ const DepartmentDetail = () => {
                 </div>
                 <div className="space-y-1.5">
                   <label className="text-[9px] font-black uppercase text-gray-400 tracking-widest ml-4">Message</label>
-                  <textarea rows="3" className="w-full px-5 py-3 bg-gray-50 border border-gray-100 rounded-xl outline-none focus:border-primary-500 transition-all text-gray-900 font-bold text-sm" placeholder="How can we help you?"></textarea>
+                  <textarea rows="3" className="w-full px-5 py-3 bg-app-bg border border-app-border rounded-xl outline-none focus:border-primary-500 transition-all text-app-text font-bold text-sm" placeholder="How can we help you?"></textarea>
                 </div>
                 <button className="w-full py-4 bg-primary-600 text-white font-black text-[10px] uppercase tracking-widest rounded-xl shadow-xl shadow-primary-500/30 hover:bg-primary-700 transition-all flex items-center justify-center gap-2">
                   Submit Inquiry <ArrowRight size={16} />
